@@ -22,9 +22,15 @@ class Modem():
 
 
     def info(self):
-        mmcli_output = subprocess.check_output(self.mmcli_m).decode('utf-8')
-        mmcli_output = mmcli_output.split('\n')
+        try: 
+            mmcli_output = subprocess.check_output(self.mmcli_m, stderr=subprocess.STDOUT).decode('utf-8')
+        except subprocess.CalledProcessError as error:
+            print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
+        else:
+            # print(f"mmcli_output: {mmcli_output}")
+            pass
 
+        mmcli_output = mmcli_output.split('\n')
         m_details = {}
         for output in mmcli_output:
             m_detail = output.split(': ')

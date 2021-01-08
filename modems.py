@@ -6,9 +6,15 @@ class Modems():
         self.mmcli_L = ["mmcli", "-KL"]
 
     def list( self ):
-        mmcli_output = subprocess.check_output(self.mmcli_L).decode('utf-8')
-        mmcli_output = mmcli_output.split('\n')
+        try: 
+            mmcli_output = subprocess.check_output(self.mmcli_L, stderr=subprocess.STDOUT).decode('utf-8')
+        except subprocess.CalledProcessError as error:
+            print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
+        else:
+            # print(f"mmcli_output: {mmcli_output}")
+            pass
 
+        mmcli_output = mmcli_output.split('\n')
         n_modems = int(mmcli_output[0].split(': ')[1])
         # print(f"[=] #modems: {n_modems}")
         modems = []
