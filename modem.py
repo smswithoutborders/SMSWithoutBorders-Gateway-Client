@@ -45,8 +45,15 @@ class Modem():
     def __create(self, sms :SMS):
         mmcli_create_sms = []
         mmcli_create_sms += self.mmcli_m + sms.mmcli_create_sms
-        print(f"mmcli_create_sms: {mmcli_create_sms}")
-        # mmcli_output = subprocess.check_output(mmcli_create_sms).decode('utf-8')
+        mmcli_create_sms[-1] += f"'=number={sms.number}, text=\"{sms.text}\"'"
+        # print(f"mmcli_create_sms: {mmcli_create_sms}")
+
+        try: 
+            mmcli_output = subprocess.check_output(mmcli_create_sms, stderr=subprocess.STDOUT).decode('utf-8')
+        except subprocess.CalledProcessError as error:
+            print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
+        else:
+            print(f"mmcli_output: {mmcli_output}")
     
 
     def send_sms(self, sms :SMS):

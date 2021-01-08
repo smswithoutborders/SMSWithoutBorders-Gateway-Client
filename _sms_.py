@@ -15,8 +15,8 @@ class SMS():
         # else raise exception
 
     def create_sms(self, number, text, delivery_report_request=False, validity=None):
-        print(f"Text: {text}")
-        print(f"Number: {number}")
+        # print(f"Text: {text}")
+        # print(f"Number: {number}")
 
         if self.index != None:
             raise Exception("sms has index, cannot edit")
