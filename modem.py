@@ -1,35 +1,6 @@
 #!/bin/python
-
 import subprocess
-
-''' modems.py
-- Acquire all plugged in modems
-- Acquire specific modem
-'''
-
-''' modem.py
-- Acquire modem's details
-'''
-
-class Modems():
-    def __init__( self ):
-        self.mmcli_L = ["mmcli", "-KL"]
-
-    def L( self ):
-        mmcli_output = subprocess.check_output(self.mmcli_L).decode('utf-8')
-        mmcli_output = mmcli_output.split('\n')
-
-        n_modems = int(mmcli_output[0].split(': ')[1])
-        # print(f"[=] #modems: {n_modems}")
-        modems = []
-        for i in range(1, (n_modems + 1)):
-            modem_index = mmcli_output[i].split('/')[-1]
-            if not modem_index.isdigit():
-                continue
-            # print(f"[{i}]: index of>> {modem_index}")
-            modems.append( modem_index )
-
-        return modems
+from _sms_ import SMS 
 
 class Modem():
     def __init__( self, index ):
@@ -49,9 +20,8 @@ class Modem():
         self.signal_quality_value = "modem.generic.signal-quality.value"
         self.access_technologies_values = "modem.generic.access-technologies.value[1]"
 
-        self = self.m()
 
-    def m(self):
+    def info(self):
         mmcli_output = subprocess.check_output(self.mmcli_m).decode('utf-8')
         mmcli_output = mmcli_output.split('\n')
 
@@ -64,20 +34,20 @@ class Modem():
 
         return m_details
 
-    def readystate(self):
-        m_details = self.m()
+
+    def ready_state(self):
+        m_details = self.info()
         if m_details[self.operator_code].isdigit() and m_details[self.signal_quality_value].isdigit() and m_details[self.sim] != '--':
             return True
         return False
 
+    
+    def __create(self, sms :SMS):
+        mmcli_create_sms = []
+        mmcli_create_sms += self.mmcli_m + sms.mmcli_create_sms
+        print(f"mmcli_create_sms: {mmcli_create_sms}")
+        # mmcli_output = subprocess.check_output(mmcli_create_sms).decode('utf-8')
+    
 
-modems = Modems()
-print(f">>Modems indexes: {modems.L()}")
-for index in modems.L():
-    modem = Modem( index )
-    modem_m = modem.m()
-    print(f">> Modem[{index}]")
-    print(f"[=]Modem-state: [{modem_m[modem.state]}]")
-    print(f"[=]Modem-operator-name: [{modem_m[modem.operator_name]}]")
-    print(f"[=]Modem-operator-code: [{modem_m[modem.operator_code]}]")
-    print(f"[=]Modem-ready-state: [{modem.readystate()}]")
+    def send_sms(self, sms :SMS):
+        self.__create( sms )
