@@ -7,6 +7,10 @@ import subprocess
 - Acquire specific modem
 '''
 
+''' modem.py
+- Acquire modem's details
+'''
+
 class Modems():
     def __init__( self ):
         self.mmcli_L = ["mmcli", "-KL"]
@@ -45,6 +49,8 @@ class Modem():
         self.signal_quality_value = "modem.generic.signal-quality.value"
         self.access_technologies_values = "modem.generic.access-technologies.value[1]"
 
+        self = self.m()
+
     def m(self):
         mmcli_output = subprocess.check_output(self.mmcli_m).decode('utf-8')
         mmcli_output = mmcli_output.split('\n')
@@ -58,6 +64,12 @@ class Modem():
 
         return m_details
 
+    def readystate(self):
+        m_details = self.m()
+        if m_details[self.operator_code].isdigit() and m_details[self.signal_quality_value].isdigit() and m_details[self.sim] != '--':
+            return True
+        return False
+
 
 modems = Modems()
 print(f">>Modems indexes: {modems.L()}")
@@ -65,4 +77,7 @@ for index in modems.L():
     modem = Modem( index )
     modem_m = modem.m()
     print(f">> Modem[{index}]")
-    print(f"modem.gener{modem_}")
+    print(f"[=]Modem-state: [{modem_m[modem.state]}]")
+    print(f"[=]Modem-operator-name: [{modem_m[modem.operator_name]}]")
+    print(f"[=]Modem-operator-code: [{modem_m[modem.operator_code]}]")
+    print(f"[=]Modem-ready-state: [{modem.readystate()}]")
