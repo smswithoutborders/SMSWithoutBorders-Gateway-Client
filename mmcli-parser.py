@@ -20,6 +20,8 @@ class Modems():
         modems = []
         for i in range(1, (n_modems + 1)):
             modem_index = mmcli_output[i].split('/')[-1]
+            if not modem_index.isdigit():
+                continue
             # print(f"[{i}]: index of>> {modem_index}")
             modems.append( modem_index )
 
@@ -28,6 +30,20 @@ class Modems():
 class Modem():
     def __init__( self, index ):
         self.mmcli_m = ["mmcli", f"-Km", index]
+
+        # Modem parse keys
+        self.imei = "modem.3gpp.imei"
+        self.sim = "modem.generic.sim"
+        self.state = "modem.generic.state"
+        self.device = "modem.generic.device"
+        self.operator_code = "modem.3gpp.operator-code"
+        self.operator_name = "modem.3gpp.operator-name"
+        self.primary_port = "modem.generic.primary-port"
+        self.device_identifier = "modem.generic.device-identifier"
+        self.state_failed_reason = "modem.generic.state-failed-reason"
+        self.equipment_identifier = "modem.generic.equipment-identifier"
+        self.signal_quality_value = "modem.generic.signal-quality.value"
+        self.access_technologies_values = "modem.generic.access-technologies.value[1]"
 
     def m(self):
         mmcli_output = subprocess.check_output(self.mmcli_m).decode('utf-8')
@@ -47,4 +63,6 @@ modems = Modems()
 print(f">>Modems indexes: {modems.L()}")
 for index in modems.L():
     modem = Modem( index )
-    print(f">> Modem[{index}]\n{modem.m()}")
+    modem_m = modem.m()
+    print(f">> Modem[{index}]")
+    print(f"modem.gener{modem_}")
