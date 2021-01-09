@@ -12,19 +12,17 @@ class Modems():
             print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
         else:
             # print(f"mmcli_output: {mmcli_output}")
-            pass
+            mmcli_output = mmcli_output.split('\n')
+            n_modems = int(mmcli_output[0].split(': ')[1])
+            # print(f"[=] #modems: {n_modems}")
+            modems = []
+            for i in range(1, (n_modems + 1)):
+                modem_index = mmcli_output[i].split('/')[-1]
+                if not modem_index.isdigit():
+                    continue
+                # print(f"[{i}]: index of>> {modem_index}")
+                modems.append( modem_index )
 
-        mmcli_output = mmcli_output.split('\n')
-        n_modems = int(mmcli_output[0].split(': ')[1])
-        # print(f"[=] #modems: {n_modems}")
-        modems = []
-        for i in range(1, (n_modems + 1)):
-            modem_index = mmcli_output[i].split('/')[-1]
-            if not modem_index.isdigit():
-                continue
-            # print(f"[{i}]: index of>> {modem_index}")
-            modems.append( modem_index )
-
-        return modems
+            return modems
 
 

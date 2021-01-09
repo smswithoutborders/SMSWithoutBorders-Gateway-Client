@@ -25,6 +25,16 @@ for index in modems.list():
     print(f"[=]Modem-operator-code: [{modem_m[modem.operator_code]}]")
     print(f"[=]Modem-ready-state: [{modem.ready_state()}]")
 
+    if not modem.ready_state():
+        continue
+
     sms = SMS()
     sms.create_sms("0000", "sample sms message")
-    sms_state = modem.send_sms( sms )
+    sms = modem.set_sms( sms )
+    print(f"sms info: {sms.info()}]")
+
+    try:
+        send_status = modem.send_sms( sms )
+        print(f"[=]SMS sent: {send_status}")
+    except Exception as error:
+        print( error )

@@ -1,5 +1,6 @@
 #!/bin/python
 import subprocess
+from subprocess import Popen, PIPE
 from _sms_ import SMS 
 
 class Modem():
@@ -28,17 +29,15 @@ class Modem():
             print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
         else:
             # print(f"mmcli_output: {mmcli_output}")
-            pass
+            mmcli_output = mmcli_output.split('\n')
+            m_details = {}
+            for output in mmcli_output:
+                m_detail = output.split(': ')
+                if len(m_detail) < 2:
+                    continue
+                m_details[m_detail[0].replace(' ', '')] = m_detail[1]
 
-        mmcli_output = mmcli_output.split('\n')
-        m_details = {}
-        for output in mmcli_output:
-            m_detail = output.split(': ')
-            if len(m_detail) < 2:
-                continue
-            m_details[m_detail[0].replace(' ', '')] = m_detail[1]
-
-        return m_details
+            return m_details
 
 
     def ready_state(self):
@@ -51,16 +50,45 @@ class Modem():
     def __create(self, sms :SMS):
         mmcli_create_sms = []
         mmcli_create_sms += self.mmcli_m + sms.mmcli_create_sms
-        mmcli_create_sms[-1] += f"'=number={sms.number}, text=\"{sms.text}\"'"
-        # print(f"mmcli_create_sms: {mmcli_create_sms}")
-
+        mmcli_create_sms[-1] += '=number=' + sms.number + ",text='" + sms.text + "'"
         try: 
-            mmcli_output = subprocess.check_output(mmcli_create_sms, stderr=subprocess.STDOUT).decode('utf-8')
+            mmcli_output = subprocess.check_output(mmcli_create_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
+
         except subprocess.CalledProcessError as error:
             print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
         else:
-            print(f"mmcli_output: {mmcli_output}")
-    
+            print(f"{mmcli_output}")
+            mmcli_output = mmcli_output.split(': ')
+            creation_status = mmcli_output[0]
+            sms_index = mmcli_output[1].split('/')[-1]
+
+            if not sms_index.isdigit():
+                print(f">> sms index isn't an index: {sms_index}")
+            else:
+                sms.index = sms_index
+                # self.__send(sms)
+        return sms
+
+    def __send(self, sms: SMS):
+        mmcli_send = self.mmcli_m + ["-s", sms.index, "--send"]
+        try: 
+            mmcli_output = subprocess.check_output(mmcli_send, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
+
+        except subprocess.CalledProcessError as error:
+            returncode = error.returncode
+            err_output = error.output.decode('utf-8').replace('\n', '')
+            print(f">> failed to send sms")
+            print(f"\treturn code: {returncode}")
+            print(f"\tstderr: {err_output}")
+            # raise Exception( error )
+        else:
+            print(f"{mmcli_output}")
+            return True
+
+
+    def set_sms(self, sms :SMS):
+        self.sms = self.__create( sms )
+        return self.sms
 
     def send_sms(self, sms :SMS):
-        self.__create( sms )
+        return self.__send( sms )
