@@ -29,10 +29,11 @@ for index in modems.list():
         continue
 
     sms = SMS()
-    sms.create_sms("0000", "sample sms message")
+    sms.create_sms("652156811", "sample sms message")
     sms = modem.set_sms( sms )
     print(f"sms info: {sms.info()}]")
-
+    print(f"sms info: {sms.list(modem)}]")
+    
     '''
     try:
         send_status = modem.send_sms( sms )

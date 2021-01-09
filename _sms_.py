@@ -14,6 +14,30 @@ class SMS():
         # check is index truly exist
         # else raise exception
 
+    def list(self, modem):
+        sms_list = []
+        sms_list += modem.mmcli_m + ["--messaging-list-sms"]
+
+        try: 
+            mmcli_output = subprocess.check_output(sms_list, stderr=subprocess.STDOUT).decode('utf-8')
+        except subprocess.CalledProcessError as error:
+            print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
+        else:
+            # print(f"mmcli_output: {mmcli_output}")
+            mmcli_output = mmcli_output.split('\n')
+            n_modems = int(mmcli_output[0].split(': ')[1])
+            # print(f"[=] #modems: {n_modems}")
+            sms = []
+            for i in range(1, (n_modems + 1)):
+                sms_index = mmcli_output[i].split('/')[-1]
+                if not sms_index.isdigit():
+                    continue
+                # print(f"[{i}]: index of>> {modem_index}")
+                sms.append( sms_index )
+
+            return sms
+
+
     def create_sms(self, number, text, delivery_report_request=False, validity=None):
         # print(f"Text: {text}")
         # print(f"Number: {number}")
