@@ -33,8 +33,10 @@ for index in modems.list():
     sms = modem.set_sms( sms )
     print(f"sms info: {sms.info()}]")
 
+    '''
     try:
         send_status = modem.send_sms( sms )
         print(f"[=]SMS sent: {send_status}")
     except Exception as error:
         print( error )
+    '''
