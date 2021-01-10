@@ -11,8 +11,15 @@ class SMS():
         self.validity = None
         self.delivery_report_request = None
 
+
         # check is index truly exist
         # else raise exception
+
+    def get(self, key):
+        return {
+                "text" : "sms.content.text", 
+                "number" : "sms.content.number", 
+                "type" : "sms.properties.pdu-type"}[key]
 
     def list(self, modem):
         sms_list = []
@@ -46,15 +53,19 @@ class SMS():
             raise Exception("sms has index, cannot edit")
 
         else:
-            self.text = text
-            self.number = number
-            self.validity = validity
-            self.delivery_report_request = delivery_report_request
+            sms = SMS()
+            sms.text = text
+            sms.number = number
+            sms.validity = validity
+            sms.delivery_report_request = delivery_report_request
+
+            return sms
 
     # TODO: Parse the output of this to make it cleaner
     def info(self):
         info = []
-        info += ["mmcli", "-s", self.index]
+        info += ["mmcli", "-Ks", self.index]
+
         try: 
             mmcli_output = subprocess.check_output(info, stderr=subprocess.STDOUT).decode('utf-8')
         except subprocess.CalledProcessError as error:
@@ -62,11 +73,12 @@ class SMS():
         else:
             # print(f"mmcli_output: {mmcli_output}")
             mmcli_output = mmcli_output.split('\n')
-            m_details = {}
+            s_details = {}
             for output in mmcli_output:
-                m_detail = output.split(': ')
-                if len(m_detail) < 2:
+                s_detail = output.split(': ')
+                if len(s_detail) < 2:
                     continue
-                m_details[m_detail[0].replace(' ', '')] = m_detail[1]
+                key = s_detail[0].replace(' ', '')
+                s_details[key] = s_detail[1]
 
-            return m_details
+            return s_details

@@ -29,15 +29,22 @@ for index in modems.list():
         continue
 
     sms = SMS()
-    sms.create_sms("652156811", "sample sms message")
+    sms = sms.create_sms("00000", "sample sms message")
     sms = modem.set_sms( sms )
-    print(f"sms info: {sms.info()}]")
-    print(f"sms info: {sms.list(modem)}]")
+    # print(f"sms info: {sms.info()}]")
+
+    for sms_index in sms.list(modem):
+        _sms = SMS()
+        _sms.index = sms_index
+        # print(_sms.info())
+        sms_details = _sms.info()
+        print(f"[=]SMS text: {sms_details[_sms.get('text')]}")
+        print(f"[=]SMS type: {sms_details[_sms.get('type')]}")
+        print(f"[=]SMS number: {sms_details[_sms.get('number')]}")
+        print()
     
-    '''
     try:
         send_status = modem.send_sms( sms )
         print(f"[=]SMS sent: {send_status}")
     except Exception as error:
         print( error )
-    '''
