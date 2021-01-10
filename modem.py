@@ -2,6 +2,8 @@
 import subprocess
 from subprocess import Popen, PIPE
 from _sms_ import SMS 
+import logging
+import threading
 
 class Modem():
     def __init__( self, index ):
@@ -21,6 +23,22 @@ class Modem():
         self.signal_quality_value = "modem.generic.signal-quality.value"
         self.access_technologies_values = "modem.generic.access-technologies.value[1]"
 
+
+    def listen_for_sms(self, mutex):
+        format = "%(asctime)s: %(message)s"
+        logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
+        logging.info(f"{self.mmcli_m}")
+        # TODO: Can begin checking for sms messages wherever there are
+        try:
+            mutex.acquire()
+            print(">> Acquired mutex")
+            # print( mutex )
+        except Exception as error:
+            raise Exception( error )
+
+        mutex.release()
+        # print( mutex )
+            
 
     def info(self):
         try: 
