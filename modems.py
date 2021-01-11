@@ -33,8 +33,10 @@ class Modems():
     def listen_for_modems( self ):
         # TODO: Get list of modems, keep monitoring list.
         # TODO: If list changes (size or content), check for change 
+        p_l_modems = []
         while True:
             l_modems = self.list()
+            p_l_modems = l_modems
 
             for modem_index in l_modems:
                 modem = Modem( modem_index)

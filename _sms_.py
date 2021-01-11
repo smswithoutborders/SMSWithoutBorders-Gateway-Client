@@ -45,7 +45,7 @@ class SMS():
             return sms
 
 
-    def create_sms(self, number, text, delivery_report_request=False, validity=None):
+    def create_sms(self, number, text, delivery_report_request :bool=False, validity :int=None):
         # print(f"Text: {text}")
         # print(f"Number: {number}")
 
