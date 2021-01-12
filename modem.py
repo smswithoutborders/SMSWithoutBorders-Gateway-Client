@@ -25,14 +25,20 @@ class Modem():
 
 
     def listen_for_sms(self, mutex):
-        format = "%(asctime)s: %(message)s"
-        logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
         # logging.info(f"{self.mmcli_m}")
         # TODO: Can begin checking for sms messages wherever there are
         try:
             mutex.acquire()
-            # print(">> Acquired mutex")
-            # print( mutex )
+            logging.info(f"[{self.info()[self.imei]}]: Modem output")
+            try:
+                pending_request = db_connector.get_pending_request()
+                if len(pending_request) < 1:
+                    logging.info(f"")
+                else:
+                    # update it
+                    pass
+            except mysql.connector.Error as err:
+                raise Exception( err )
         except Exception as error:
             raise Exception( error )
 

@@ -33,6 +33,7 @@ for index in modems.list():
     sms = modem.set_sms( sms )
     # print(f"sms info: {sms.info()}]")
 
+    '''
     for sms_index in sms.list(modem):
         _sms = SMS()
         _sms.index = sms_index
@@ -42,13 +43,13 @@ for index in modems.list():
         print(f"[=]SMS type: {sms_details[_sms.get('type')]}")
         print(f"[=]SMS number: {sms_details[_sms.get('number')]}")
         print()
-    
-    '''
+
     try:
         send_status = modem.send_sms( sms )
         print(f"[=]SMS sent: {send_status}")
     except Exception as error:
         print( error )
     '''
+
 
 modems.listen_for_modems()
