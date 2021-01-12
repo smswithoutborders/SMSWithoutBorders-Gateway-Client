@@ -58,7 +58,7 @@ class USSD():
         try: 
             mmcli_output = subprocess.check_output(ussd_command, stderr=subprocess.STDOUT).decode('utf-8')
         except subprocess.CalledProcessError as error:
-            print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
+            raise Exception(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
         else:
             # print(f"mmcli_output: {mmcli_output}")
             mmcli_output = mmcli_output.split('\n')
