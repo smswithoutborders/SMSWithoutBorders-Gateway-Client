@@ -27,11 +27,11 @@ class Modem():
     def listen_for_sms(self, mutex):
         format = "%(asctime)s: %(message)s"
         logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
-        logging.info(f"{self.mmcli_m}")
+        # logging.info(f"{self.mmcli_m}")
         # TODO: Can begin checking for sms messages wherever there are
         try:
             mutex.acquire()
-            print(">> Acquired mutex")
+            # print(">> Acquired mutex")
             # print( mutex )
         except Exception as error:
             raise Exception( error )
@@ -54,7 +54,6 @@ class Modem():
                 if len(m_detail) < 2:
                     continue
                 m_details[m_detail[0].replace(' ', '')] = m_detail[1]
-
             return m_details
 
 
@@ -79,7 +78,6 @@ class Modem():
             mmcli_output = mmcli_output.split(': ')
             creation_status = mmcli_output[0]
             sms_index = mmcli_output[1].split('/')[-1]
-
             if not sms_index.isdigit():
                 print(f">> sms index isn't an index: {sms_index}")
             else:

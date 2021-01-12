@@ -3,6 +3,7 @@ import subprocess
 import threading
 from modem import Modem 
 import time
+import logging
 
 # TODO: Listen for modems and use events
 class Modems():
@@ -35,13 +36,16 @@ class Modems():
         # TODO: If list changes (size or content), check for change 
         p_l_modems = []
         while True:
-            l_modems = self.list()
-            p_l_modems = l_modems
+            format = "%(asctime)s>> %(message)s"
+            logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
 
+            l_modems = self.list()
             for modem_index in l_modems:
                 modem = Modem( modem_index)
+                if not modem_index in p_l_modems:
+                    logging.info(f"[+] New modem found: {modem.info()[modem.operator_code]} => {modem_index}")
                 t_modem = threading.Thread(target=modem.listen_for_sms, args=(self.mutex,), daemon=False)
                 t_modem.start()
-            time.sleep( 5 )
 
-        
+            p_l_modems = l_modems
+            time.sleep( 5 )
