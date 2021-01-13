@@ -35,7 +35,7 @@ class Modem():
                 if len(pending_request) < 1:
                     logging.info(f"")
                 else:
-                    # update it
+                    # update the db
                     pass
             except mysql.connector.Error as err:
                 raise Exception( err )
