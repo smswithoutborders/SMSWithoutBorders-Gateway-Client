@@ -5,14 +5,6 @@ from _sms_ import SMS
 from modems import Modems 
 from modem import Modem 
 
-''' modems.py
-- Acquire all plugged in modems
-- Acquire specific modem
-'''
-
-''' modem.py
-- Acquire modem's details
-'''
 
 modems = Modems()
 print(f">>Modems indexes: {modems.list()}")
