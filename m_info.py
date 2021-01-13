@@ -43,5 +43,4 @@ for index in modems.list():
         print( error )
     '''
 
-
 modems.listen_for_modems()
