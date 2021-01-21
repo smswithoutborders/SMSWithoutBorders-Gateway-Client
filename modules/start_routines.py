@@ -14,6 +14,7 @@ columns = {
         "other_id": "INT NULL",
         "state": "ENUM('pending','sent','claimed','invalid') NOT NULL DEFAULT 'pending'",
         "key_claimed": "VARCHAR(255) NULL",
+        "key_claimed_time": "TIMESTAMP NULL",
         "text": "TEXT NOT NULL",
         "phonenumber": "VARCHAR(24) NOT NULL",
         "source_id": "INT NULL",
@@ -39,11 +40,11 @@ def check_tables(DATABASE, TABLE):
                 value = False
         for col in columns.keys():
             if col not in cols:
-                minus.append( col )
+                minus.append( [col,columns[col]] )
                 value = False
     except mysql.connector.Error as err:
         raise Exception( err )
-    return {"value": value, "supplus": supplus, "minus": minus}
+    return {"value": value, "extra": supplus, "missing": minus}
 
 def create_table( mysqlcursor, DATABASE, TABLE):
     # TODO: Maybe add a value to account for test SMS messages
@@ -60,6 +61,15 @@ def create_table( mysqlcursor, DATABASE, TABLE):
         mysqlcursor.execute( statement )
     except mysql.connector.Error as err:
         raise Exception( err )
+
+def alter_table( DATABASE, TABLE, alters ):
+    global mysqlcursor
+    for alter in alters:
+        statement = f"ALTER TABLE {TABLE} ADD COLUMN {alter[0]} {alter[1]}"
+        try:
+            mysqlcursor.execute( statement )
+        except mysql.connector.Error as err:
+            raise Exception( err )
 
 # CHECK DATABASE
 def sr_database_checks():
@@ -102,6 +112,11 @@ def sr_database_checks():
             # Do something like repair or rebuild entire table
             print("\t>> Table does not match with requirements")
             print(f"\t>> {check_state}")
+            try:
+                alter_table( DATABASE, TABLE, check_state["missing"] )
+                print("\t[+] Changes to table added!")
+            except Exception as err:
+                raise Exception( err)
     else:
         print("\t>> Table not found...")
         # Do something about it
