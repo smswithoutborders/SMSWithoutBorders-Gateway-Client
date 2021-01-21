@@ -16,6 +16,7 @@ def create_table( mysqlcursor, DATABASE, TABLE):
         CREATE TABLE {TABLE} (\
             id INT NOT NULL AUTO_INCREMENT,\
             other_id INT NULL,\
+            state ENUM('pending','sent','invalid') NOT NULL DEFAULT 'pending',\
             text TEXT NOT NULL,\
             phonenumber VARCHAR(24) NOT NULL,\
             source_id INT NULL,\
@@ -76,17 +77,20 @@ def sr_database_checks():
 
     return {"value": True}
 
-def insert_sms( mycursor, data :dict):
-    statement = f"\
-            INSERT INTO {TABLE} SET\
-            text=\"{data['text']}\",\
-            phonenumber=\"{data['phonenumber']}\""
+def insert_sms( data :dict):
+    global mysqlcursor, mydb
+    statement = f"INSERT INTO {data['table']} SET text=\"{data['text']}\", phonenumber=\"{data['phonenumber']}\""
+    # statement = f"INSERT INTO {data['table']}(text, phonenumber) values (%s, %s)"
+    data = (data["text"], data["phonenumber"])
 
     try:
-        insert_id = mycursor.execute( statement )
+        # insert_id = mysqlcursor.execute( statement, data )
+        mysqlcursor.execute( statement )
+        insert_id = mydb.commit()
     except mysql.connector.Error as err:
         raise Exception( err )
     else:
+        # if insert_id == None, there's an issue
         return {"insert_id":insert_id, "value": True}
 
 
@@ -98,8 +102,7 @@ if __name__ == "__main__":
             text = f"[DEKU|TEST_SMS]: {date.today()}"
             phonenumber = "000000000"
             try:
-                print( mysqlcursor )
-                insert_state = insert_sms( mysqlcursor, {"text":text, "phonenumber":phonenumber})
+                insert_state = insert_sms({"table":TABLE, "text":text, "phonenumber":phonenumber})
                 print("\t[+] Insert successful")
                 print(f"\t>> Insert log: {insert_state}")
             except Exception as error:
