@@ -12,6 +12,7 @@ def create_database(mysqlcursor, name :str ):
     mysqlcursor.execute(f"CREATE DATABASE {name}")
 
 def create_table( mysqlcursor, DATABASE, TABLE):
+    # TODO: Maybe add a value to account for test SMS messages
     statement = f"\
         CREATE TABLE {TABLE} (\
             id INT NOT NULL AUTO_INCREMENT,\
