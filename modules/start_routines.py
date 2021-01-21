@@ -9,7 +9,7 @@ mydb = None
 mysqlcursor = None
 
 def create_database(mysqlcursor, name :str ):
-    mycursor.execute(f"CREATE DATABASE {name}")
+    mysqlcursor.execute(f"CREATE DATABASE {name}")
 
 def create_table( mysqlcursor, DATABASE, TABLE):
     statement = f"\
