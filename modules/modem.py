@@ -63,7 +63,6 @@ class Modem():
                 m_details[m_detail[0].replace(' ', '')] = m_detail[1]
             return m_details
 
-
     def ready_state(self):
         m_details = self.info()
         if m_details[self.operator_code].isdigit() and m_details[self.signal_quality_value].isdigit() and m_details[self.sim] != '--':
@@ -107,7 +106,6 @@ class Modem():
         else:
             print(f"{mmcli_output}")
             return True
-
 
     def set_sms(self, sms :SMS):
         self.sms = self.__create( sms )

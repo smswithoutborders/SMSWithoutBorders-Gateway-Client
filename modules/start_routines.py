@@ -8,24 +8,51 @@ TABLE = "sms"
 mydb = None
 mysqlcursor = None
 
+# A little bit too extensive
+columns = {
+        "id": "INT NOT NULL AUTO_INCREMENT",
+        "other_id": "INT NULL",
+        "state": "ENUM('pending','sent','claimed','invalid') NOT NULL DEFAULT 'pending'",
+        "key_claimed": "VARCHAR(255) NULL",
+        "text": "TEXT NOT NULL",
+        "phonenumber": "VARCHAR(24) NOT NULL",
+        "source_id": "INT NULL",
+        "date": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "mdate": "TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+    }
+
 def create_database(mysqlcursor, name :str ):
     mysqlcursor.execute(f"CREATE DATABASE {name}")
 
+def check_tables(DATABASE, TABLE):
+    global mysqlcursor
+    supplus = []
+    minus = []
+    try:
+        mysqlcursor.execute(f"SHOW COLUMNS FROM {TABLE}")
+        cols = mysqlcursor.fetchall()
+        cols = [list(col)[0] for col in cols]
+        for col in cols:
+            if col not in columns.keys():
+                supplus.append( col )
+        for col in columns.keys():
+            if col not in cols:
+                minus.append( col )
+    except mysql.connector.Error as err:
+        raise Exception( err )
+    return {"value": False, "supplus": supplus, "minus": minus}
+
 def create_table( mysqlcursor, DATABASE, TABLE):
     # TODO: Maybe add a value to account for test SMS messages
-    statement = f"\
-        CREATE TABLE {TABLE} (\
-            id INT NOT NULL AUTO_INCREMENT,\
-            other_id INT NULL,\
-            state ENUM('pending','sent','invalid') NOT NULL DEFAULT 'pending',\
-            text TEXT NOT NULL,\
-            phonenumber VARCHAR(24) NOT NULL,\
-            source_id INT NULL,\
-            date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\
-            mdate TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\
-            PRIMARY KEY(id),\
-            UNIQUE(other_id)\
-        )"
+    statement = None
+    for col in columns:
+        if statement == None:
+            statement = f"CREATE TABLE {TABLE} ("
+        else:
+            statement += ","
+        statement += f"{col} {columns[col]}"
+    statement += ",PRIMARY KEY(id), UNIQUE(other_id))"
+    # print( statement )
     try:
         mysqlcursor.execute( statement )
     except mysql.connector.Error as err:
@@ -67,6 +94,8 @@ def sr_database_checks():
     print(">> Checking Tables...")
     if TABLE in tables:
         print("\t>> Table found...")
+        check_state = check_tables( DATABASE, TABLE)
+        print(check_state )
     else:
         print("\t>> Table not found...")
         # Do something about it
@@ -74,7 +103,7 @@ def sr_database_checks():
             create_table( mysqlcursor, DATABASE, TABLE)
             print("\t[+] Table created!")
         except Exception as error:
-            print( error )
+            raise Exception( error )
 
     return {"value": True}
 
