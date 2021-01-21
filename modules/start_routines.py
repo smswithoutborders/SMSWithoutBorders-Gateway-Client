@@ -71,10 +71,14 @@ def alter_table( DATABASE, TABLE, alters ):
         except mysql.connector.Error as err:
             raise Exception( err )
 
+def set_connection( host, user, password, database=None):
+    global mysqlcursor, mydb
+    mydb = mysql.connector.connect( host= host, user= user, password= password, database=database)
+    mysqlcursor = mydb.cursor()
+
 # CHECK DATABASE
 def sr_database_checks():
-    global mysqlcursor, mydb
-    mydb = mysql.connector.connect( host = "localhost", user = "root", password = "asshole")
+    set_connection(host="localhost", user="root", password="asshole")
     mysqlcursor = mydb.cursor()
     mysqlcursor.execute("SHOW DATABASES")
 
@@ -96,7 +100,7 @@ def sr_database_checks():
 
 
     # CHECK TABLES
-    mydb = mysql.connector.connect( host = "localhost", user = "root", password = "asshole", database=DATABASE)
+    set_connection(host = "localhost", user = "root", password = "asshole", database=DATABASE)
     # TODO: Check if connected
     mysqlcursor = mydb.cursor()
     mysqlcursor.execute("SHOW TABLES")
@@ -144,6 +148,10 @@ def insert_sms( data :dict):
         # if insert_id == None, there's an issue
         return {"insert_id":insert_id, "value": True}
 
+def calculate_pending():
+    global mysqlcursor
+    set_connection(host = "localhost", user = "root", password = "asshole", database=DATABASE)
+    # TODO: Calculate the time difference for all pending messages and see if to release them or let them be
 
 if __name__ == "__main__":
     try:

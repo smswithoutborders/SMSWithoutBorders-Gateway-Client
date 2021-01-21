@@ -28,6 +28,7 @@ class Modem():
         # Dependency, checks if MySQL is installed on the system
         # logging.info(f"{self.mmcli_m}")
         # TODO: Can begin checking for sms messages wherever there are
+        # TODO: Checks for all pending messages attached to it before asking for new ones
         try:
             mutex.acquire()
             logging.info(f"[{self.info()[self.imei]}]: Modem output")
