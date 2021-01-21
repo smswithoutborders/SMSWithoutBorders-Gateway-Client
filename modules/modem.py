@@ -25,6 +25,7 @@ class Modem():
 
 
     def listen_for_sms(self, mutex):
+        # Dependency, checks if MySQL is installed on the system
         # logging.info(f"{self.mmcli_m}")
         # TODO: Can begin checking for sms messages wherever there are
         try:
