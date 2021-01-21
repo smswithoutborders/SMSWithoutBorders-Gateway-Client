@@ -1,68 +1,108 @@
 #!/bin/python
 
 import mysql.connector
+from datetime import date
 
 DATABASE = "deku"
 TABLE = "sms"
+mydb = None
+mysqlcursor = None
 
 def create_database(mysqlcursor, name :str ):
     mycursor.execute(f"CREATE DATABASE {name}")
 
 def create_table( mysqlcursor, DATABASE, TABLE):
     statement = f"\
-    CREATE TABLE {TABLE} (\
-        id INT NOT NULL AUTO_INCREMENT,\
-        other_id INT NULL,\
-        text TEXT NOT NULL,\
-        phonenumber VARCHAR(24) NOT NULL,\
-        source_id INT NULL,\
-        date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\
-        mdate TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\
-        PRIMARY KEY(id),\
-        UNIQUE(other_id)\
-    )"
+        CREATE TABLE {TABLE} (\
+            id INT NOT NULL AUTO_INCREMENT,\
+            other_id INT NULL,\
+            text TEXT NOT NULL,\
+            phonenumber VARCHAR(24) NOT NULL,\
+            source_id INT NULL,\
+            date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\
+            mdate TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\
+            PRIMARY KEY(id),\
+            UNIQUE(other_id)\
+        )"
     try:
         mysqlcursor.execute( statement )
     except mysql.connector.Error as err:
         raise Exception( err )
 
-mydb = mysql.connector.connect( host = "localhost", user = "root", password = "asshole")
-mycursor = mydb.cursor()
-mycursor.execute("SHOW DATABASES")
+# CHECK DATABASE
+def sr_database_checks():
+    global mysqlcursor, mydb
+    mydb = mysql.connector.connect( host = "localhost", user = "root", password = "asshole")
+    mysqlcursor = mydb.cursor()
+    mysqlcursor.execute("SHOW DATABASES")
 
-databases = []
-for database in mycursor:
-    databases.append(list(database)[0])
+    databases = []
+    for database in mysqlcursor:
+        databases.append(list(database)[0])
 
-print(">> Checking Databases....")
-if DATABASE in databases:
-    print("\t>> Database found")
-else:
-    print("\t>> Database not found")
-    # Do something about it
+    print(">> Checking Databases....")
+    if DATABASE in databases:
+        print("\t>> Database found")
+    else:
+        print("\t>> Database not found")
+        # Do something about it
+        try:
+            create_database( mysqlcursor, DATABASE)
+            print("\t[+] Database created!")
+        except Exception as error:
+            print( error )
+
+
+    # CHECK TABLES
+    mydb = mysql.connector.connect( host = "localhost", user = "root", password = "asshole", database=DATABASE)
+    # TODO: Check if connected
+    mysqlcursor = mydb.cursor()
+    mysqlcursor.execute("SHOW TABLES")
+    tables = []
+    for table in mysqlcursor:
+        tables.append(list(table)[0])
+
+    print(">> Checking Tables...")
+    if TABLE in tables:
+        print("\t>> Table found...")
+    else:
+        print("\t>> Table not found...")
+        # Do something about it
+        try: 
+            create_table( mysqlcursor, DATABASE, TABLE)
+            print("\t[+] Table created!")
+        except Exception as error:
+            print( error )
+
+    return {"value": True}
+
+def insert_sms( mycursor, data :dict):
+    statement = f"\
+            INSERT INTO {TABLE} SET\
+            text=\"{data['text']}\",\
+            phonenumber=\"{data['phonenumber']}\""
+
     try:
-        create_database( mycursor, DATABASE)
-        print("\t[+] Database created!")
+        insert_id = mycursor.execute( statement )
+    except mysql.connector.Error as err:
+        raise Exception( err )
+    else:
+        return {"insert_id":insert_id, "value": True}
+
+
+if __name__ == "__main__":
+    try:
+        sr_check_state = sr_database_checks()
+        if sr_check_state["value"]:
+            print( ">> Start check passed - Inserting test values")
+            text = f"[DEKU|TEST_SMS]: {date.today()}"
+            phonenumber = "000000000"
+            try:
+                print( mysqlcursor )
+                insert_state = insert_sms( mysqlcursor, {"text":text, "phonenumber":phonenumber})
+                print("\t[+] Insert successful")
+                print(f"\t>> Insert log: {insert_state}")
+            except Exception as error:
+                print( error )
     except Exception as error:
-        print( error )
-
-
-mydb = mysql.connector.connect( host = "localhost", user = "root", password = "asshole", database=DATABASE)
-mycursor = mydb.cursor()
-mycursor.execute("SHOW TABLES")
-tables = []
-for table in mycursor:
-    tables.append(list(table)[0])
-
-print(">> Checking Tables...")
-if TABLE in tables:
-    print("\t>> Table found...")
-else:
-    print("\t>> Table not found...")
-    # Do something about it
-    try: 
-        create_table( mycursor, DATABASE, TABLE)
-        print("\t[+] Table created!")
-    except Exception as error:
-        print( error )
-
+        print(error)
