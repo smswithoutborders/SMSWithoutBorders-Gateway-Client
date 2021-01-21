@@ -32,15 +32,18 @@ def check_tables(DATABASE, TABLE):
         mysqlcursor.execute(f"SHOW COLUMNS FROM {TABLE}")
         cols = mysqlcursor.fetchall()
         cols = [list(col)[0] for col in cols]
+        value = True
         for col in cols:
             if col not in columns.keys():
                 supplus.append( col )
+                value = False
         for col in columns.keys():
             if col not in cols:
                 minus.append( col )
+                value = False
     except mysql.connector.Error as err:
         raise Exception( err )
-    return {"value": False, "supplus": supplus, "minus": minus}
+    return {"value": value, "supplus": supplus, "minus": minus}
 
 def create_table( mysqlcursor, DATABASE, TABLE):
     # TODO: Maybe add a value to account for test SMS messages
@@ -95,7 +98,10 @@ def sr_database_checks():
     if TABLE in tables:
         print("\t>> Table found...")
         check_state = check_tables( DATABASE, TABLE)
-        print(check_state )
+        if not check_state["value"]:
+            # Do something like repair or rebuild entire table
+            print("\t>> Table does not match with requirements")
+            print(f"\t>> {check_state}")
     else:
         print("\t>> Table not found...")
         # Do something about it
