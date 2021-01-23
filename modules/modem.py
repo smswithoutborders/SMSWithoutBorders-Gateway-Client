@@ -32,15 +32,6 @@ class Modem():
         try:
             mutex.acquire()
             logging.info(f"[{self.info()[self.imei]}]: Modem output")
-            try:
-                pending_request = db_connector.get_pending_request()
-                if len(pending_request) < 1:
-                    logging.info(f"")
-                else:
-                    # update the db
-                    pass
-            except mysql.connector.Error as err:
-                raise Exception( err )
         except Exception as error:
             raise Exception( error )
 
