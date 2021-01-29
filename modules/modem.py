@@ -1,7 +1,10 @@
 #!/bin/python
 import subprocess
 from subprocess import Popen, PIPE
-from _sms_ import SMS 
+if __name__ == "__main__":
+    from _sms_ import SMS 
+else:
+    from modules._sms_ import SMS 
 import logging
 import threading
 

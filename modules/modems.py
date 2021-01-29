@@ -1,7 +1,10 @@
 #!/bin/python
 import subprocess
 import threading
-from modem import Modem 
+if __name__ == "__main__":
+    from modem import Modem 
+else:
+    from modules.modem import Modem 
 import time
 import logging
 

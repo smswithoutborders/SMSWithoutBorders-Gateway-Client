@@ -1,10 +1,10 @@
 #!/bin/python
 
 import subprocess
-from _sms_ import SMS 
-from modem import Modem 
-from modems import Modems 
-import start_routines
+from modules._sms_ import SMS 
+from modules.modem import Modem 
+from modules.modems import Modems 
+from modules import start_routines
 
 # Beginning daemon from here
 modems = Modems()
@@ -16,7 +16,8 @@ try:
     if not check_state:
         print("\t- Start routine check failed...")
 except Exception as error:
-    print("Error raised:", error)
+    # print("Error raised:", error)
+    print( error )
 else:
     print("\t- All checks passed.... proceeding...")
     try:
