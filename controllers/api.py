@@ -6,7 +6,7 @@ CONFIGS = configparser.ConfigParser(interpolation=None)
 CONFIGS.read("config.ini")
 
 
-from flask import Flask
+from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # Get current state of the daemon [idle, busy, help]
@@ -16,10 +16,11 @@ def daemon_state():
 
 @app.route('/messages', methods=['POST'])
 def new_messages():
-    return True
+    request_body = request.json
+    return jsonify({"status": 200})
 
-if CONFIGS["DEBUG"] == "True":
+if CONFIGS["API"]["DEBUG"] == "1":
     # Allows server reload once code changes
     app.debug = True
 
-app.run(host=CONFIGS["HOST"], port=CONFIGS["PORT"], debug=app.debug )
+app.run(host=CONFIGS["API"]["HOST"], port=CONFIGS["API"]["PORT"], debug=app.debug )
