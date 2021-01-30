@@ -12,19 +12,27 @@ class MessageStore:
             self.CONFIGS = configs
 
         elif configs_filepath != None:
+            # print(f">> reading configs filepath: {configs_filepath}")
             self.CONFIGS.read( configs_filepath )
+            # print( list(self.CONFIGS.keys()))
 
         else:
-            print(">> Defaulting to . config.ini")
+            # print(">> Defaulting to . config.ini")
             self.CONFIGS.read( "config.ini" )
 
         HOST = self.CONFIGS["MYSQL"]["HOST"]
         USER = self.CONFIGS["MYSQL"]["USER"]
         PASSWORD = self.CONFIGS["MYSQL"]["PASSWORD"]
         DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
+        
+        print(">> Mysql connection details..")
+        print(f"\t-HOST: {HOST}")
+        print(f"\t-USER: {USER}")
+        print(f"\t-PASSWORD: {PASSWORD}")
+        print(f"\t-DATABASE: {DATABASE}")
 
         self.mysqlDBConnector = mysql.connector.connect( host=HOST, user=USER, password=PASSWORD, database=DATABASE)
-        self.mysqlDBcursor = mydb.cursor()
+        self.mysqlDBcursor = self.mysqlDBConnector.cursor()
 
     def insert( self, data :dict):
         query = f"INSERT INTO {tb_messages} SET text=\"{data['text']}\", phonenumber=\"{data['phonenumber']}\""
