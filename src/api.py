@@ -30,8 +30,8 @@ def new_bulk_message():
         try: 
             for row in csv_reader:
                 text = row['text']
-                number = row['number']
-                tstate = MessageStore.insert({"text":text, "number":number})
+                number = row['phonenumber']
+                tstate = MessageStore.insert({"text":text, "phonenumber":number})
                 c_tstate.append( tstate )
         except Exception as err:
             print( err )
@@ -44,20 +44,22 @@ def new_messages():
     if not 'text' in request_body:
         return jsonify({"status":400, "message":"missing text"})
 
-    if not 'number' in request_body:
-        return jsonify({"status":400, "message":"missing number"})
+    if not 'phonenumber' in request_body:
+        return jsonify({"status":400, "message":"missing phonenumber"})
 
     text = request_body["text"]
-    number = request_body["number"]
+    phonenumber = request_body["phonenumber"]
     
     # TODO: put logger in here to log everything
-    print(f"[+] New message...\n\t-text: {text}\n\t-number: {number}")
+    print(f"[+] New message...\n\t-text: {text}\n\t-phonenumber: {phonenumber}")
 
     return_json = {"status" :"", "tstate":""}
     try: 
-        tstate = MessageStore.insert({"text":text, "number":number})
+        tstate = messageStore.insert(data={"text":text, "phonenumber":phonenumber})
+        return_json["status"] = 200
+        return_json["tstate"] = tstate
     except Exception as err:
-        print( err )
+        print( f"[err]: {err}" )
     
     return jsonify(return_json)
 

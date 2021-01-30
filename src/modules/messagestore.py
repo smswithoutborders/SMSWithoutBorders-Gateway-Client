@@ -34,8 +34,8 @@ class MessageStore:
         self.mysqlDBConnector = mysql.connector.connect( host=HOST, user=USER, password=PASSWORD, database=DATABASE)
         self.mysqlDBcursor = self.mysqlDBConnector.cursor()
 
-    def insert( self, data :dict):
-        query = f"INSERT INTO {tb_messages} SET text=\"{data['text']}\", phonenumber=\"{data['phonenumber']}\""
+    def insert(self, data):
+        query = f"INSERT INTO {self.CONFIGS['MYSQL']['TABLE']} SET text=\"{data['text']}\", phonenumber=\"{data['phonenumber']}\""
 
         try:
             self.mysqlDBcursor.execute( query )
