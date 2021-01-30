@@ -25,7 +25,7 @@ class MessageStore:
         PASSWORD = self.CONFIGS["MYSQL"]["PASSWORD"]
         DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
         
-        print(">> Mysql connection details..")
+        print(">> Mysql connection details...")
         print(f"\t-HOST: {HOST}")
         print(f"\t-USER: {USER}")
         print(f"\t-PASSWORD: {PASSWORD}")
