@@ -6,11 +6,10 @@ CONFIGS = configparser.ConfigParser(interpolation=None)
 
 if __name__ == "__main__":
     CONFIGS.read("config.ini")
-    from ..modules.messagestore import MessageStore
+    from ..modules import MessageStore
 else:
     CONFIGS.read("controllers/config.ini")
     from modules.messagestore import MessageStore
-
 
 from flask import Flask, request, jsonify
 app = Flask(__name__)
@@ -24,12 +23,13 @@ def daemon_state():
     return "development"
 
 @app.route('/messages/bulk', methods=['POST'])
+def new_bulk_message():
     request_body = request.json
     
     if not 'file' in request_body:
         return jsonify({"status":400, "message":"missing file"})
 
-
+    c_tstate = []
     with open(filename) as bulkfile:
         csv_reader = csv.DictReader( bulkfile )
         try: 
@@ -37,9 +37,11 @@ def daemon_state():
                 text = row['text']
                 number = row['number']
                 tstate = MessageStore.insert({"text":text, "number":number})
+                c_tstate.append( tstate )
         except Exception as err:
             print( err )
 
+    return jsonify({"status":200, "c_tstate":c_tsate})
 
 @app.route('/messages', methods=['POST'])
 def new_messages():
