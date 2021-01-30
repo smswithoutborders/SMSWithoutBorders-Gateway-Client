@@ -1,20 +1,15 @@
 #!/bin/python
 
-
 import configparser
 CONFIGS = configparser.ConfigParser(interpolation=None)
 
-if __name__ == "__main__":
-    CONFIGS.read("config.ini")
-    from ..modules import MessageStore
-else:
-    CONFIGS.read("controllers/config.ini")
-    from modules.messagestore import MessageStore
+CONFIGS.read("config.ini")
+from modules.messagestore import MessageStore
 
 from flask import Flask, request, jsonify
 app = Flask(__name__)
 
-messageStore = MessageStore()
+messageStore = MessageStore(configs_filepath="modules/config.ini")
 # messageStore = MessageStore(config=CONFIGS)
 
 # Get current state of the daemon [idle, busy, help]
