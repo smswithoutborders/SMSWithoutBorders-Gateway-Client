@@ -31,3 +31,35 @@ class MessageStore:
             raise Exception( err )
         else:
             return {"insert_id":insert_id, "value": True}
+
+    def fetch( sort_latest=True):
+        query = f"SELECT * FROM {tb_messages} WHERE state='pending' ORDER BY date DESC LIMIT 1"
+
+    def fetch_for( data :dict):
+        query = f"SELECT * FROM {tb_messages} WHERE "
+        for key, value in data:
+
+            appended=False
+            # if one key needs to or many values
+            if type(value)==type({}):
+                query += "("
+                _appended=False
+                for _key, _value in value:
+                    if _appended:
+                        query += "OR "
+                    if type(_value)==type(0): #int
+                        query += f"{key}={value} "
+                    else:
+                        query += f"{key}='{value}' "
+                    _appended=True
+                query += ") "
+            if appended:
+                query+= "AND "
+            if type(_value)==type(0): #int
+                query += f"{key}={value} "
+            else:
+                query += f"{key}='{value}' "
+            appended=True
+
+        query += "WHERE state='pending' ORDER BY date DESC LIMIT 1"
+

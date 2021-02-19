@@ -45,7 +45,7 @@ class Modems():
         while True:
             l_modems = self.list()
             if len(l_modems) == 0 and not no_modem_shown:
-                    logging.info(f"No modem found")
+                    logging.info(f">> No modem found")
                     no_modem_shown = True
                     continue
             for modem_index in l_modems:

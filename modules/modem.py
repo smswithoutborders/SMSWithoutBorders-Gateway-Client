@@ -34,7 +34,7 @@ class Modem():
         # TODO: Checks for all pending messages attached to it before asking for new ones
         try:
             mutex.acquire()
-            logging.info(f"[{self.info()[self.imei]}]: Modem output")
+            # logging.info(f"[{self.info()[self.imei]}]: Modem output")
         except Exception as error:
             raise Exception( error )
 
