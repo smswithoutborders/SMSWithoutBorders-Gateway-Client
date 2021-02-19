@@ -17,15 +17,14 @@ class Modem():
         self.sim = "modem.generic.sim"
         self.state = "modem.generic.state"
         self.device = "modem.generic.device"
-        self.operator_code = "modem.3gpp.operator-code"
         self.operator_name = "modem.3gpp.operator-name"
+        self.operator_code = "modem.3gpp.operator-code"
         self.primary_port = "modem.generic.primary-port"
         self.device_identifier = "modem.generic.device-identifier"
         self.state_failed_reason = "modem.generic.state-failed-reason"
         self.equipment_identifier = "modem.generic.equipment-identifier"
         self.signal_quality_value = "modem.generic.signal-quality.value"
         self.access_technologies_values = "modem.generic.access-technologies.value[1]"
-
 
     def listen_for_sms(self, mutex):
         # Dependency, checks if MySQL is installed on the system
