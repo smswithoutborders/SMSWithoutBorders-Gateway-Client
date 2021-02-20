@@ -1,0 +1,10 @@
+# Create use cases
+- phases of sending {[1]Modem claims SMS - [2]Modem sends SMS - [3]Modem fails to send SMS - [4]Release failed messages - [5]Lower modem priority(all modems are created equal)}
+- messages in limbo (when to leave limbo)
+
+# expanding - every data is registered
+[1] - claimed message [ other_id is filled ]
+[2] - log table [message_id updated to sent, message removed from main table]
+[3] - log table [message_id marked as failed, error message stored - retries from [1] N times]
+[4] - main table [remove other_id and claimed_id setting the message free]
+[5] - modem table [priority down by 1]
