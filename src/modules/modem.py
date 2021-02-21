@@ -26,7 +26,7 @@ class Modem():
         self.signal_quality_value = "modem.generic.signal-quality.value"
         self.access_technologies_values = "modem.generic.access-technologies.value[1]"
 
-    def listen_for_sms(self, mutex):
+    def check_sms(self):
         # Dependency, checks if MySQL is installed on the system
         # logging.info(f"{self.mmcli_m}")
         # TODO: Can begin checking for sms messages wherever there are

@@ -48,17 +48,25 @@ class Modems():
                     logging.info(f">> No modem found")
                     no_modem_shown = True
                     continue
+            modem_claims = {}
             for modem_index in l_modems:
                 no_modem_shown = False
                 modem = Modem( modem_index)
                 if not modem_index in p_l_modems:
                     logging.info(f"[+] New modem found: [{modem.info()[modem.operator_code]}:{modem_index}]")
 
+                # Threading is bad architecture for here
+                '''
                 t_modem = threading.Thread(target=modem.listen_for_sms, args=(self.mutex,), daemon=False)
                 try:
                     t_modem.start()
                 except Exception as err:
                     logger.error( err )
+                '''
+                id_sms = modem.claim_sms()
+                if not id_sms == None:
+                    modem_claims[modem.info()[modem.imei]] = id_sms
+            
 
             p_l_modems = l_modems
             time.sleep( 5 )
