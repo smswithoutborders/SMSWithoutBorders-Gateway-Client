@@ -1,10 +1,8 @@
 #!/bin/python
 import subprocess
 from subprocess import Popen, PIPE
-if __name__ == "__main__":
-    from _sms_ import SMS 
-else:
-    from modules._sms_ import SMS 
+from modules._sms_ import SMS 
+from modules.messagestore import messagestore as ms
 import logging
 import threading
 
@@ -26,20 +24,6 @@ class Modem():
         self.signal_quality_value = "modem.generic.signal-quality.value"
         self.access_technologies_values = "modem.generic.access-technologies.value[1]"
 
-    def check_sms(self):
-        # Dependency, checks if MySQL is installed on the system
-        # logging.info(f"{self.mmcli_m}")
-        # TODO: Can begin checking for sms messages wherever there are
-        # TODO: Checks for all pending messages attached to it before asking for new ones
-        try:
-            mutex.acquire()
-            # logging.info(f"[{self.info()[self.imei]}]: Modem output")
-        except Exception as error:
-            raise Exception( error )
-
-        mutex.release()
-        # print( mutex )
-            
 
     def info(self):
         try: 

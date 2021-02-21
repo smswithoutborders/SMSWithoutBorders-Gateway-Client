@@ -1,10 +1,7 @@
 #!/bin/python
 import subprocess
 import threading
-if __name__ == "__main__":
-    from modem import Modem 
-else:
-    from modules.modem import Modem 
+from modules.modem import Modem 
 import time
 import logging
 
@@ -52,6 +49,9 @@ class Modems():
             for modem_index in l_modems:
                 no_modem_shown = False
                 modem = Modem( modem_index)
+                if not modem.ready_state():
+                    continue
+
                 if not modem_index in p_l_modems:
                     logging.info(f"[+] New modem found: [{modem.info()[modem.operator_code]}:{modem_index}]")
 
@@ -63,10 +63,30 @@ class Modems():
                 except Exception as err:
                     logger.error( err )
                 '''
-                id_sms = modem.claim_sms()
-                if not id_sms == None:
-                    modem_claims[modem.info()[modem.imei]] = id_sms
+                pending_sms = ms.fetch()
+                if not pending_sms == None:
+                    # TODO reverse if not possible
+                    modem_claims[modem] = pending_sms
+                    ms.update( pending_sms.id, {"claimed" : modem.info()[modem.imei]} )
             
+            # Thread sending out all messages
+            for modem in modem_claims:
+                if not modem.ready_state():
+                    # TODO: set message free - modem has gone away
+                    continue
+
+                pending_sms = modem_claims[modem]
+                sms = SMS()
+                sms.create_sms( pending_sms.phonenumber, pending_sms.text )
+                modem.set_sms( sms )
+
+                if not modem.ready_state():
+                    # TODO: set message free - modem has gone away
+                    continue
+
+                # Thread sending
+                # TODO set message log that this message is about to be sent
+                # modem.send_sms()
 
             p_l_modems = l_modems
             time.sleep( 5 )
