@@ -14,7 +14,7 @@ class Modems():
     def claim( self, modem: Modem ):
         pass
 
-    def list( self ):
+    def __list__( self ):
         try: 
             mmcli_output = subprocess.check_output(self.mmcli_L, stderr=subprocess.STDOUT).decode('utf-8')
         except subprocess.CalledProcessError as error:
@@ -34,31 +34,5 @@ class Modems():
 
             return modems
 
-    def listen_for_modems( self ):
-        prev_list_of_modems = []
-        fl_no_modem_shown = False
-
-        format = "[%(asctime)s] >> %(message)s"
-        logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
-
-
-        while True:
-            list_of_modems = self.list()
-
-            if len(list_of_modems) == 0 and not no_modem_shown:
-                    logging.info("No modem found...")
-                    fl_no_modem_shown = True
-                    continue
-
-            for modem_index in list_of_modems:
-                fl_no_modem_shown = False
-
-                modem = Modem( modem_index)
-                if not modem.ready_state():
-                    continue
-
-                if not modem_index in prev_list_of_modems:
-                    logging.info(f"[+] New modem found: [{modem.info()[modem.operator_code]}:{modem_index}]")
-
-            prev_list_of_modems = list_of_modems
-            time.sleep( 5 )
+    def get_modems( self ):
+        return self.__list__()

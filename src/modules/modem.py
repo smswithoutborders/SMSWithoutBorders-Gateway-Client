@@ -1,8 +1,10 @@
 #!/bin/python
+
 import subprocess
 from subprocess import Popen, PIPE
 from modules._sms_ import SMS 
-from modules.messagestore import messagestore as ms
+from modules.messagestore import MessageStore as ms
+
 import logging
 import threading
 
@@ -25,9 +27,10 @@ class Modem():
         self.access_technologies_values = "modem.generic.access-technologies.value[1]"
 
 
-    def info(self):
+    def extractInfo(self, mmcli_output=None):
         try: 
-            mmcli_output = subprocess.check_output(self.mmcli_m, stderr=subprocess.STDOUT).decode('utf-8')
+            if mmcli_output == None:
+                mmcli_output = subprocess.check_output(self.mmcli_m, stderr=subprocess.STDOUT).decode('utf-8')
         except subprocess.CalledProcessError as error:
             raise Exception(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
         else:
