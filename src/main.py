@@ -3,13 +3,8 @@
 
 import configparser
 CONFIGS = configparser.ConfigParser(interpolation=None)
-
-if __name__ == "__main__":
-    CONFIGS.read("config.ini")
-    from .. modules.messagestore import MessageStore
-else:
-    CONFIGS.read("controllers/config.ini")
-    from modules.messagestore import MessageStore
+CONFIGS.read("controllers/config.ini")
+from messagestore import MessageStore
 
 
 from flask import Flask, request, jsonify

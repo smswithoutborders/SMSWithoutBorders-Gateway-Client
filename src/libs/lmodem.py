@@ -42,17 +42,7 @@ class Modem():
                 if len(m_detail) < 2:
                     continue
                 key = m_detail[0].replace(' ', '')
-                # m_details[key] = m_detail[1]
-
-                # TODO: this doesn't work, work on it
-                tmp_m_details = {}
-                for pseudo_object in key.split('.'):
-                    tmp_m_details[pseudo_object] = {}
-                    tmp_m_details = tmp_m_details[pseudo_object]
-                print(tmp_m_details)
-
-                m_details.update(tmp_m_details)
-                m_details[key.split('.')[-1]] = m_detail[1]
+                m_details[key] = m_detail[1]
             # print("m_details:", m_details)
             return m_details
 

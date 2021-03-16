@@ -4,19 +4,19 @@ import mysql.connector
 from datetime import date
 
 class MessageStore:
-    def __init__( config=None ):
+    def __init__(self, config=None ):
         import configparser
         self.CONFIGS = configparser.ConfigParser(interpolation=None)
 
-        if configs==None:
+        if config==None:
             self.CONFIGS.read("config.ini")
         else:
             self.CONFIGS = config
 
-        HOST = CONFIGS["HOST"]
-        USER = CONFIGS["USER"]
-        PASSWORD = CONFIGS["PASSWORD"]
-        DATABASE = CONFIGS["DATABASE"]
+        HOST = self.CONFIGS["MYSQL"]["HOST"]
+        USER = self.CONFIGS["MYSQL"]["USER"]
+        PASSWORD = self.CONFIGS["MYSQL"]["PASSWORD"]
+        DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
 
         self.mysqlDBConnector = mysql.connector.connect( host=HOST, user=USER, password=PASSWORD, database=DATABASE)
         self.mysqlDBcursor = mydb.cursor()
