@@ -1,7 +1,7 @@
 #!/bin/python
 
 import unittest as utest
-from modules.modem import Modem
+from libs.lmodem import Modem
 
 class libModemTest(utest.TestCase):
     def test_info(self):
@@ -12,6 +12,7 @@ class libModemTest(utest.TestCase):
             simModemInfo = modem.extractInfo( simModem )
 
             self.assertEqual( simModemInfo['modem.3gpp.imei'], '358812037638331' )
+            self.assertEqual( simModemInfo['modem']['3gpp']['imei'], '358812037638331' )
 
     '''
     def test_send_sms(self):
