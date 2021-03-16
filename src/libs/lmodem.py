@@ -27,6 +27,16 @@ class Modem():
         self.access_technologies_values = "modem.generic.access-technologies.value[1]"
 
 
+    def __bindObject( self, key, _object, value=None):
+        for keys in _object.keys():
+            # check if object has attributes for the last inserted
+            if value==None:
+                _object[keys] = {key: {}}
+            else:
+                _object[keys] = {key: value}
+        return _object
+
+
     def extractInfo(self, mmcli_output=None):
         try: 
             if mmcli_output == None:
@@ -42,11 +52,23 @@ class Modem():
                 if len(m_detail) < 2:
                     continue
                 key = m_detail[0].replace(' ', '')
-                m_details[key] = m_detail[1]
-            # print("m_details:", m_details)
+                # m_details[key] = m_detail[1]
+
+                indie_keys = key.split('.')
+                tmp_details = {}
+                counter = 0
+                for _key in indie_keys:
+                    if counter + 1 == len(indie_keys):
+                        tmp_details = self.__bindObject( _key, tmp_details, m_details[1])
+                    else:
+                        tmp_details = self.__bindObject( _key, tmp_details)
+                    ++counter
+
+                m_details.update( tmp_details )
+            print("m_details:", m_details)
             return m_details
 
-    def ready_state(self):
+    def readyState(self):
         m_details = self.info()
         if m_details[self.operator_code].isdigit() and m_details[self.signal_quality_value].isdigit() and m_details[self.sim] != '--':
             return True

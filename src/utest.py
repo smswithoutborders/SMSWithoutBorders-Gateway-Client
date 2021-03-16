@@ -14,7 +14,7 @@ class libModemTest(utest.TestCase):
             self.assertEqual( simModemInfo['modem.3gpp.imei'], '358812037638331' )
 
             # TODO: Make this kind of serialization into an object possible
-            # self.assertEqual( simModemInfo['modem']['3gpp']['imei'], '358812037638331' )
+            self.assertEqual( simModemInfo['modem']['3gpp']['imei'], '358812037638331' )
 
     '''
     def test_send_sms(self):
