@@ -22,6 +22,12 @@ class libModemTest(utest.TestCase):
             self.assertEqual( simModemInfo['modem']['generic']['access-technologies']['length'], '1' )
             '''
 
+    def read_sms( self ):
+        pass
+
+    def read_paths( self ):
+        pass
+
 
 if __name__ == '__main__':
     utest.main()

@@ -78,8 +78,10 @@ class Modem():
             return self.details
 
     def readyState(self):
-        m_details = self.info()
-        if m_details[self.operator_code].isdigit() and m_details[self.signal_quality_value].isdigit() and m_details[self.sim] != '--':
+        self.extractInfo()
+
+        # if m_details[self.operator_code].isdigit() and m_details[self.signal_quality_value].isdigit() and m_details[self.sim] != '--':
+        if self.details["modem"]["operator-code"].isdigit() and self.details["modem"]["signal-quality"]["value"].isdigit() and self.details["modem"]["generic"]["sim"] != "--":
             return True
         return False
 
