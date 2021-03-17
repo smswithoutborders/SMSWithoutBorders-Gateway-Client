@@ -9,7 +9,7 @@ class libModemTest(utest.TestCase):
             simModem = fileSimModem.read()
 
             # modem = Modem('0')
-            simModemInfo = Modem.extractInfo( simModem )
+            simModemInfo = Modem.extractInfo( mmcli_output=simModem )
 
             # string single key
             self.assertEqual( simModemInfo['modem.generic.access-technologies.length'], '1' )

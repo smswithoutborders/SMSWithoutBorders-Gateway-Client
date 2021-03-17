@@ -60,7 +60,8 @@ class Modem():
         return kObject
 
 
-    def extractInfo(self, mmcli_output=None):
+    @classmethod
+    def extractInfo(cls, mmcli_output=None):
         try: 
             if mmcli_output == None:
                 if hasattr(self, 'mmcli_m' ):
@@ -81,9 +82,10 @@ class Modem():
                 m_details[key] = m_detail[1]
 
                 indie_keys = key.split('.')
-                tmp_details = self.__bindObject( keys=indie_keys, value=m_detail[1] )
+                # tmp_details = self.__bindObject( keys=indie_keys, value=m_detail[1] )
+                tmp_details = __bindObject( keys=indie_keys, value=m_detail[1] )
                 print("tmp_details>> ", tmp_details)
-                m_details = self.__appendObject(m_details, tmp_details)
+                m_details = __appendObject(m_details, tmp_details)
                 # print("m_details>> ", m_details)
                 # m_details.update( tmp_details )
             # print("m_details:", m_details)
