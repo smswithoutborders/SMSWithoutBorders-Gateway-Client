@@ -8,8 +8,8 @@ class libModemTest(utest.TestCase):
         with open("utest_files/mmcli_sim/sim_modem.txt") as fileSimModem:
             simModem = fileSimModem.read()
 
-            # modem = Modem('0')
-            simModemInfo = Modem.extractInfo( mmcli_output=simModem )
+            modem = Modem('0')
+            simModemInfo = modem.extractInfo( mmcli_output=simModem )
 
             # string single key
             self.assertEqual( simModemInfo['modem.generic.access-technologies.length'], '1' )

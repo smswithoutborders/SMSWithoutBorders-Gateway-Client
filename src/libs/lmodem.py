@@ -9,23 +9,10 @@ import logging
 import threading
 
 class Modem():
+    details = {}
+
     def __init__( self, index ):
         self.mmcli_m = ["mmcli", f"-Km", index]
-
-        # Modem parse keys
-        self.imei = "modem.3gpp.imei"
-        self.sim = "modem.generic.sim"
-        self.state = "modem.generic.state"
-        self.device = "modem.generic.device"
-        self.operator_name = "modem.3gpp.operator-name"
-        self.operator_code = "modem.3gpp.operator-code"
-        self.primary_port = "modem.generic.primary-port"
-        self.device_identifier = "modem.generic.device-identifier"
-        self.state_failed_reason = "modem.generic.state-failed-reason"
-        self.equipment_identifier = "modem.generic.equipment-identifier"
-        self.signal_quality_value = "modem.generic.signal-quality.value"
-        self.access_technologies_values = "modem.generic.access-technologies.value[1]"
-
 
     def __bindObject( self, keys :list, value, _object=None):
         if _object == None:
@@ -60,8 +47,7 @@ class Modem():
         return kObject
 
 
-    @classmethod
-    def extractInfo(cls, mmcli_output=None):
+    def extractInfo(self, mmcli_output=None):
         try: 
             if mmcli_output == None:
                 if hasattr(self, 'mmcli_m' ):
@@ -73,23 +59,23 @@ class Modem():
         else:
             # print(f"mmcli_output: {mmcli_output}")
             mmcli_output = mmcli_output.split('\n')
-            m_details = {}
+            self.details = {}
             for output in mmcli_output:
                 m_detail = output.split(': ')
                 if len(m_detail) < 2:
                     continue
                 key = m_detail[0].replace(' ', '')
-                m_details[key] = m_detail[1]
+                self.details[key] = m_detail[1]
 
                 indie_keys = key.split('.')
                 # tmp_details = self.__bindObject( keys=indie_keys, value=m_detail[1] )
-                tmp_details = __bindObject( keys=indie_keys, value=m_detail[1] )
-                print("tmp_details>> ", tmp_details)
-                m_details = __appendObject(m_details, tmp_details)
-                # print("m_details>> ", m_details)
-                # m_details.update( tmp_details )
-            # print("m_details:", m_details)
-            return m_details
+                tmp_details = self.__bindObject( keys=indie_keys, value=m_detail[1] )
+                # print("tmp_details>> ", tmp_details)
+                self.details = self.__appendObject(self.details, tmp_details)
+                # print("self.details>> ", self.details)
+                # self.details.update( tmp_details )
+            # print("self.details:", self.details)
+            return self.details
 
     def readyState(self):
         m_details = self.info()
