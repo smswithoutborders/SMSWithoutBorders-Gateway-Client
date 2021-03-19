@@ -1,7 +1,8 @@
 #!/bin/python
 import subprocess
 import threading
-from modules.modem import Modem 
+from libs.lmodem import Modem 
+from ldatastore import Datastore 
 import time
 import logging
 
@@ -9,12 +10,10 @@ import logging
 class Modems(Datastore):
     datastore = None
     def __init__( self ):
-        super.__init__()
+        super().__init__()
         self.mmcli_L = ["mmcli", "-KL"]
         self.mutex = threading.Lock()
 
-        # what would happen if we returned super from here
-        self.datastore = self.get_datastore()
 
     def __list__( self ):
         try: 
@@ -37,4 +36,7 @@ class Modems(Datastore):
             return modems
 
     def get_modems( self ):
+
+        # what would happen if we returned super from here
+        self.datastore = super(Modems, self).get_datastore()
         return self.__list__()

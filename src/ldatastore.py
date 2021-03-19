@@ -1,26 +1,26 @@
 #!/bin/python import mysql.connector
+import mysql.connector
 from datetime import date
 
 # rewrite message store to allow for using as a class extension
-class MessageStore:
+class Datastore(object):
     def __init__(self, config=None ):
         import configparser
         self.CONFIGS = configparser.ConfigParser(interpolation=None)
 
         if config==None:
-            self.CONFIGS.read("config.ini")
+            self.CONFIGS.read("libs/config.ini")
         else:
             self.CONFIGS = config
 
-        HOST = self.CONFIGS["MYSQL"]["HOST"]
-        USER = self.CONFIGS["MYSQL"]["USER"]
-        PASSWORD = self.CONFIGS["MYSQL"]["PASSWORD"]
-        DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
-
-        self.cursor = mysql.connector.connect( host=HOST, user=USER, password=PASSWORD, database=DATABASE)
-        self.cursor = mydb.cursor()
+        self.HOST = self.CONFIGS["MYSQL"]["HOST"]
+        self.USER = self.CONFIGS["MYSQL"]["USER"]
+        self.PASSWORD = self.CONFIGS["MYSQL"]["PASSWORD"]
+        self.DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
 
     def get_datastore(self):
+        conn = mysql.connector.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, database=self.DATABASE)
+        self.cursor = conn.cursor()
         return self
 
     def new_log(self, messageID):

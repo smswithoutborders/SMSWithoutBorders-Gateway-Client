@@ -1,10 +1,12 @@
 #!/bin/python
 
 import subprocess
-from modules._sms_ import SMS 
-from modules.modem import Modem 
-from modules.modems import Modems 
-from modules import start_routines
+import start_routines
+import logging
+
+from libs.lsms import SMS 
+from libs.lmodem import Modem 
+from libs.lmodems import Modems 
 
 # Beginning daemon from here
 modems = Modems()
@@ -29,11 +31,12 @@ else:
 
         while True:
             list_of_modems = modems.get_modems()
-            if len(list_of_modems) == 0 and not no_modem_shown:
+            if len(list_of_modems) == 0 and not fl_no_modem_shown:
                     logging.info("No modem found...")
                     fl_no_modem_shown = True
                     continue
 
+            modemInstancesCollection=[]
             for modem_index in list_of_modems:
                 fl_no_modem_shown = False
 
@@ -43,10 +46,10 @@ else:
 
                 if not modem_index in prev_list_of_modems:
                     logging.info(f"[+] New modem found: [{modem.info()[modem.operator_code]}:{modem_index}]")
-                modemCollection.append( modem )
+                modemInstancesCollection.append( modem )
 
 
-            for modem in modemCollection:
+            for modem in modemInstancesCollection:
                 try: 
                     if modem.claim()==None:# claim updates messages and starts new log
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - No available message...")
@@ -58,6 +61,7 @@ else:
                 else:
                     # TODO: this should be threaded and detached if possible
                     # modem.send_sms() # updates counter for message and logs after sending
+                    pass
 
             prev_list_of_modems = list_of_modems
     except Exception as error:

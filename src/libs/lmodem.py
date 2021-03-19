@@ -3,8 +3,7 @@
 import subprocess
 from subprocess import Popen, PIPE
 from libs.lsms import SMS 
-from libs.ldatastore import Datastore 
-from messagestore import MessageStore as ms
+from ldatastore import Datastore 
 
 import logging
 import threading
@@ -13,8 +12,6 @@ class Modem:
     details = {}
 
     def __init__( self, index:int, datastore=None):
-        super.__init__()
-
         self.mmcli_m = ["mmcli", f"-Km", index]
         self.index = index
 
@@ -143,7 +140,7 @@ class Modem:
             else:
                 return None
 
-    def send_sms(self, sms=None :SMS, text=None, receipient=None):
+    def send_sms(self, sms :SMS, text=None, receipient=None):
         try:
             messageLogID = self.datastore.new_log(messageID=sms.messageID)
         except Exception as error:
