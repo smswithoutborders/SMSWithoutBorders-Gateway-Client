@@ -20,7 +20,7 @@ class Datastore(object):
 
     def get_datastore(self):
         self.conn = mysql.connector.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, database=self.DATABASE)
-        self.cursor = self.conn.cursor()
+        self.cursor = self.conn.cursor(buffered=True)
         return self
 
     def new_log(self, messageID):
@@ -78,8 +78,6 @@ class Datastore(object):
             sms_message = self.cursor.execute( query )
             if not sms_message==None:
                 self.claim_message(sms_message.id, modem_imei)
-            else:
-                return None
 
         except mysql.connector.Error as err:
             raise Exception( err )

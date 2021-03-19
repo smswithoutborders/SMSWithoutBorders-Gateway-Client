@@ -27,13 +27,14 @@ else:
     try:
         prev_list_of_modems = []
         fl_no_modem_shown = False
+        shownNoAvailableMessage=False
 
         format = "[%(asctime)s] >> %(message)s"
         logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
 
         while True:
             list_of_modems = modems.get_modems()
-            logging.info(f"[+] Scanning for modems...")
+            # logging.info(f"[+] Scanning for modems...")
             if len(list_of_modems) == 0 and not fl_no_modem_shown:
                     logging.info("No modem found...")
                     fl_no_modem_shown = True
@@ -47,26 +48,31 @@ else:
                 # logging.info(f"[+] Created modem instances")
                 if not modem.readyState():
                     continue
-                logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Modem is ready!")
 
                 if not modem_index in prev_list_of_modems:
+                    logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Modem is ready!")
                     logging.info(f"New modem found: {modem.details['modem.3gpp.imei']}::{modem.index}")
                 modemInstancesCollection.append( modem )
 
 
+            messageClaimed=False
             for modem in modemInstancesCollection:
                 try: 
-                    if modem.claim()==None:# claim updates messages and starts new log
-                        logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - No available message...")
-                    else:
+                    if not modem.claim()==None:# claim updates messages and starts new log
+                        messageClaimed=True
+                        shownNoAvailableMessage=False
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Message claimed!")
 
                 except Exception as error:
-                    print( error )
+                    logging.warning(error)
                 else:
                     # TODO: this should be threaded and detached if possible
                     # modem.send_sms() # updates counter for message and logs after sending
                     pass
+
+            if not messageClaimed and not shownNoAvailableMessage:
+                shownNoAvailableMessage=True
+                logging.info(f"No available message...")
 
             prev_list_of_modems = list_of_modems
             time.sleep(3)
