@@ -37,12 +37,27 @@ else:
             for modem_index in list_of_modems:
                 fl_no_modem_shown = False
 
-                modem = Modem( modem_index)
+                modem = Modem( modems.datastore, modem_index )
                 if not modem.ready_state():
                     continue
 
                 if not modem_index in prev_list_of_modems:
                     logging.info(f"[+] New modem found: [{modem.info()[modem.operator_code]}:{modem_index}]")
+                modemCollection.append( modem )
+
+
+            for modem in modemCollection:
+                try: 
+                    if modem.claim()==None:# claim updates messages and starts new log
+                        logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - No available message...")
+                    else:
+                        logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Message claimed!")
+
+                except Exception as error:
+                    print( error )
+                else:
+                    # TODO: this should be threaded and detached if possible
+                    # modem.send_sms() # updates counter for message and logs after sending
 
             prev_list_of_modems = list_of_modems
     except Exception as error:

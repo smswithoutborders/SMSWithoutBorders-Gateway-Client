@@ -6,13 +6,15 @@ import time
 import logging
 
 # TODO: Listen for modems and use events
-class Modems():
+class Modems(Datastore):
+    datastore = None
     def __init__( self ):
+        super.__init__()
         self.mmcli_L = ["mmcli", "-KL"]
         self.mutex = threading.Lock()
 
-    def claim( self, modem: Modem ):
-        pass
+        # what would happen if we returned super from here
+        self.datastore = self.get_datastore()
 
     def __list__( self ):
         try: 

@@ -3,16 +3,20 @@
 import subprocess
 from subprocess import Popen, PIPE
 from libs.lsms import SMS 
+from libs.ldatastore import Datastore 
 from messagestore import MessageStore as ms
 
 import logging
 import threading
 
-class Modem():
+class Modem:
     details = {}
 
-    def __init__( self, index ):
+    def __init__( self, index:int, datastore=None):
+        super.__init__()
+
         self.mmcli_m = ["mmcli", f"-Km", index]
+        self.index = index
 
     def __bindObject( self, keys :list, value, _object=None):
         if _object == None:
@@ -127,5 +131,36 @@ class Modem():
         self.sms = self.__create( sms )
         return self.sms
 
-    def send_sms(self, sms :SMS):
-        return self.__send( sms )
+    def claim(self):
+        try:
+            new_message = self.datastore.acquire_message(modem_index=self.index)
+        except Exception as error:
+            raise( error )
+        else:
+            if not new_message==None:
+                self.sms = SMS(msgID=new_message.id)
+                self.sms.create( number=new_message.phonenumber, text=new_message.text )
+            else:
+                return None
+
+    def send_sms(self, sms=None :SMS, text=None, receipient=None):
+        try:
+            messageLogID = self.datastore.new_log(messageID=sms.messageID)
+        except Exception as error:
+            raise( error )
+        else:
+            if sms == None:
+                send_status=self.__send( self.sms )
+            else:
+                send_status=self.__send( sms )
+
+            self.datastore.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
+            if not send_status:
+                logging.warn("[-] Failed to send...")
+                self.datastore.release_message(sms.messageID)
+                logging.warn("[-] Message released...")
+                return False
+            else:
+                logging.info("[+] Message sent!")
+                return True
+

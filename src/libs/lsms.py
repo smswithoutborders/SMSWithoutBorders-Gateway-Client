@@ -2,7 +2,7 @@
 import subprocess
 
 class SMS():
-    def __init__(self, index=None):
+    def __init__(self, index=None, messageID=None):
         self.mmcli_create_sms = ["--messaging-create-sms"]
 
         self.text = None
@@ -10,6 +10,7 @@ class SMS():
         self.number = None
         self.validity = None
         self.delivery_report_request = None
+        self.messageID=messageID
 
 
         # check is index truly exist
@@ -53,13 +54,12 @@ class SMS():
             raise Exception("sms has index, cannot edit")
 
         else:
-            sms = SMS()
-            sms.text = text
-            sms.number = number
-            sms.validity = validity
-            sms.delivery_report_request = delivery_report_request
+            self.text = text
+            self.number = number
+            self.validity = validity
+            self.delivery_report_request = delivery_report_request
 
-            return sms
+            return self
 
     # TODO: Parse the output of this to make it cleaner
     def info(self):
