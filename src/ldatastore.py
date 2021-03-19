@@ -19,8 +19,8 @@ class Datastore(object):
         self.DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
 
     def get_datastore(self):
-        conn = mysql.connector.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, database=self.DATABASE)
-        self.cursor = conn.cursor()
+        self.conn = mysql.connector.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, database=self.DATABASE)
+        self.cursor = self.conn.cursor()
         return self
 
     def new_log(self, messageID):

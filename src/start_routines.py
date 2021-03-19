@@ -4,7 +4,8 @@ import mysql.connector
 from datetime import date
 
 DATABASE = "deku"
-TABLE = "sms"
+TABLE = "messages"
+TABLE_LOG = "logs"
 mydb = None
 mysqlcursor = None
 
@@ -13,11 +14,20 @@ columns = {
         "id": "INT NOT NULL AUTO_INCREMENT",
         "other_id": "INT NULL",
         "state": "ENUM('pending','sent','claimed','invalid') NOT NULL DEFAULT 'pending'",
-        "key_claimed": "VARCHAR(255) NULL",
-        "key_claimed_time": "TIMESTAMP NULL",
+        "claimed_modem_imei": "VARCHAR(255) NULL",
+        "claimed_time": "TIMESTAMP NULL",
         "text": "TEXT NOT NULL",
         "phonenumber": "VARCHAR(24) NOT NULL",
         "source_id": "INT NULL",
+        "date": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "mdate": "TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+    }
+
+columns_logs = {
+        "id": "INT NOT NULL AUTO_INCREMENT",
+        "messageID": "INT NULL",
+        "status": "ENUM('pending','sent','claimed','invalid') NOT NULL DEFAULT 'pending'",
+        "message": "TEXT NOT NULL",
         "date": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
         "mdate": "TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
     }
@@ -110,9 +120,10 @@ def sr_database_checks():
 
     print(">> Checking Tables...")
     if TABLE in tables:
-        print("\t>> Table found...")
+        print(f"\t>> Table found{TABLE}...")
         check_state = check_tables( DATABASE, TABLE)
-        if not check_state["value"]:
+        # if not check_state["value"]:
+        if not "value" in check_state:
             # Do something like repair or rebuild entire table
             print("\t>> Table does not match with requirements")
             print(f"\t>> {check_state}")
@@ -122,7 +133,7 @@ def sr_database_checks():
             except Exception as err:
                 raise Exception( err)
     else:
-        print("\t>> Table not found...")
+        print(f"\t>> Table not found{TABLE}...")
         # Do something about it
         try: 
             create_table( mysqlcursor, DATABASE, TABLE)
@@ -130,41 +141,26 @@ def sr_database_checks():
         except Exception as error:
             raise Exception( error )
 
-    return {"value": True}
-
-def insert_sms( data :dict):
-    global mysqlcursor, mydb
-    statement = f"INSERT INTO {data['table']} SET text=\"{data['text']}\", phonenumber=\"{data['phonenumber']}\""
-    # statement = f"INSERT INTO {data['table']}(text, phonenumber) values (%s, %s)"
-    data = (data["text"], data["phonenumber"])
-
-    try:
-        # insert_id = mysqlcursor.execute( statement, data )
-        mysqlcursor.execute( statement )
-        insert_id = mydb.commit()
-    except mysql.connector.Error as err:
-        raise Exception( err )
-    else:
-        # if insert_id == None, there's an issue
-        return {"insert_id":insert_id, "value": True}
-
-def calculate_pending():
-    global mysqlcursor
-    set_connection(host = "localhost", user = "root", password = "asshole", database=DATABASE)
-    # TODO: Calculate the time difference for all pending messages and see if to release them or let them be
-
-if __name__ == "__main__":
-    try:
-        sr_check_state = sr_database_checks()
-        if sr_check_state["value"]:
-            print( ">> Start check passed - Inserting test values")
-            text = f"[DEKU|TEST_SMS]: {date.today()}"
-            phonenumber = "000000000"
+    if TABLE_LOG in tables:
+        print(f"\t>> Table found: {TABLE_LOG}...")
+        check_state = check_tables( DATABASE, TABLE_LOG)
+        # if not check_state["value"]:
+        if not "value" in check_state:
+            # Do something like repair or rebuild entire table
+            print("\t>> Table does not match with requirements")
+            print(f"\t>> {check_state}")
             try:
-                insert_state = insert_sms({"table":TABLE, "text":text, "phonenumber":phonenumber})
-                print("\t[+] Insert successful")
-                print(f"\t>> Insert log: {insert_state}")
-            except Exception as error:
-                print( error )
-    except Exception as error:
-        print(error)
+                alter_table( DATABASE, TABLE_LOG, check_state["missing"] )
+                print("\t[+] Changes to table added!")
+            except Exception as err:
+                raise Exception( err)
+    else:
+        print(f"\t>> Table not found: {TABLE_LOG}...")
+        # Do something about it
+        try: 
+            create_table( mysqlcursor, DATABASE, TABLE_LOG)
+            print("\t[+] Table created!")
+        except Exception as error:
+            raise Exception( error )
+
+    return {"value": True}

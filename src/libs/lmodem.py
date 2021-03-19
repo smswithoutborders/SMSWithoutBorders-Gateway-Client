@@ -14,6 +14,7 @@ class Modem:
     def __init__( self, index:int, datastore=None):
         self.mmcli_m = ["mmcli", f"-Km", index]
         self.index = index
+        self.datastore=datastore
 
     def __bindObject( self, keys :list, value, _object=None):
         if _object == None:
@@ -130,7 +131,8 @@ class Modem:
 
     def claim(self):
         try:
-            new_message = self.datastore.acquire_message(modem_index=self.index)
+            self.extractInfo()
+            new_message = self.datastore.acquire_message(modem_index=self.index, modem_imei=self.details["modem.3gpp.imei"])
         except Exception as error:
             raise( error )
         else:

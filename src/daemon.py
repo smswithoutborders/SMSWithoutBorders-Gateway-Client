@@ -3,6 +3,7 @@
 import subprocess
 import start_routines
 import logging
+import time
 
 from libs.lsms import SMS 
 from libs.lmodem import Modem 
@@ -10,6 +11,7 @@ from libs.lmodems import Modems
 
 # Beginning daemon from here
 modems = Modems()
+modems.get_datastore()
 
 # check to make sure everything is set for takefoff
 print(">> Starting system diagnosis...")
@@ -31,6 +33,7 @@ else:
 
         while True:
             list_of_modems = modems.get_modems()
+            logging.info(f"[+] Scanning for modems...")
             if len(list_of_modems) == 0 and not fl_no_modem_shown:
                     logging.info("No modem found...")
                     fl_no_modem_shown = True
@@ -40,12 +43,14 @@ else:
             for modem_index in list_of_modems:
                 fl_no_modem_shown = False
 
-                modem = Modem( modems.datastore, modem_index )
-                if not modem.ready_state():
+                modem = Modem( datastore=modems.datastore, index=modem_index )
+                # logging.info(f"[+] Created modem instances")
+                if not modem.readyState():
                     continue
+                logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Modem is ready!")
 
                 if not modem_index in prev_list_of_modems:
-                    logging.info(f"[+] New modem found: [{modem.info()[modem.operator_code]}:{modem_index}]")
+                    logging.info(f"New modem found: {modem.details['modem.3gpp.imei']}::{modem.index}")
                 modemInstancesCollection.append( modem )
 
 
@@ -64,5 +69,6 @@ else:
                     pass
 
             prev_list_of_modems = list_of_modems
+            time.sleep(3)
     except Exception as error:
         print( error)
