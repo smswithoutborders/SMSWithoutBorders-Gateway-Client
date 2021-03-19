@@ -45,12 +45,12 @@ def check_tables(DATABASE, TABLE):
         cols = [list(col)[0] for col in cols]
         value = True
         for col in cols:
-            if col not in columns.keys():
+            if col not in columns_logs.keys():
                 supplus.append( col )
                 value = False
-        for col in columns.keys():
+        for col in columns_logs.keys():
             if col not in cols:
-                minus.append( [col,columns[col]] )
+                minus.append( [col,columns_logs[col]] )
                 value = False
     except mysql.connector.Error as err:
         raise Exception( err )
