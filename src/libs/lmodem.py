@@ -111,6 +111,9 @@ class Modem:
 
     def __send(self, sms: SMS):
         mmcli_send = self.mmcli_m + ["-s", sms.index, "--send"]
+        state=None
+        message=""
+        status=""
         try: 
             mmcli_output = subprocess.check_output(mmcli_send, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
 
@@ -121,9 +124,18 @@ class Modem:
             print(f"\treturn code: {returncode}")
             print(f"\tstderr: {err_output}")
             # raise Exception( error )
+            state=False
+            status='failed'
+            message=err_output
+            raise Exception({"state":state, "message":message, "status":status, "returncode":returncode})
         else:
+            state=True
+            status="sent"
+            message=mmcli_output
             print(f"{mmcli_output}")
-            return True
+
+        return {"state":state, "message":message, "status":status}
+            
 
     def set_sms(self, sms :SMS):
         self.sms = self.__create( sms )
@@ -148,13 +160,17 @@ class Modem:
         except Exception as error:
             raise( error )
         else:
-            if sms == None:
-                send_status=self.__send( self.sms )
-            else:
-                send_status=self.__send( sms )
+            try:
+                if sms == None:
+                    send_status=self.__send( self.sms )
+                else:
+                    send_status=self.__send( sms )
+            except Exception as error:
+                print(f">> Exception error:", error )
+                sent_status = error
 
             self.datastore.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
-            if not send_status:
+            if not send_status["state"]:
                 logging.warn("[-] Failed to send...")
                 self.datastore.release_message(sms.messageID)
                 logging.warn("[-] Message released...")
