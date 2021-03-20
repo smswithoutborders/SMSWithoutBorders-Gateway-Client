@@ -50,8 +50,10 @@ def check_tables(DATABASE, TABLE, custom_columns):
                 supplus.append( col )
                 value = False
 
-        col_keys = custom_columns.keys()
+        col_keys = list(custom_columns.keys())
+        print( cols )
         for col in col_keys:
+            # print(f"{col} ---> {cols}")
             if col not in cols:
                 print("[+] Appending minus...", custom_columns[col])
                 minus.append( [col,custom_columns[col]] )
