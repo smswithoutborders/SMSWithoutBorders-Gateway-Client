@@ -89,7 +89,8 @@ class Datastore(object):
         query = f"INSERT INTO messages SET text='{text}', phonenumber='{phonenumber}', isp='{isp}'"
         try:
             self.cursor.execute( query )
-            messageID=self.conn.commit()
+            self.conn.commit()
+            messageID = self.cursor.lastrowid
             # messageID = self.cursor.commit()
         except mysql.connector.Error as err:
             raise Exception( err )
