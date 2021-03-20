@@ -36,7 +36,7 @@ columns_logs = {
 def create_database(mysqlcursor, name :str ):
     mysqlcursor.execute(f"CREATE DATABASE {name}")
 
-def check_tables(DATABASE, TABLE):
+def check_tables(DATABASE, TABLE, custom_columns):
     global mysqlcursor
     supplus = []
     minus = []
@@ -46,16 +46,21 @@ def check_tables(DATABASE, TABLE):
         cols = [list(col)[0] for col in cols]
         value = True
         for col in cols:
-            if col not in columns_logs.keys():
+            if col not in custom_columns.keys():
                 supplus.append( col )
                 value = False
-        for col in columns_logs.keys():
+
+        col_keys = custom_columns.keys()
+        for col in col_keys:
             if col not in cols:
-                minus.append( [col,columns_logs[col]] )
+                print("[+] Appending minus...", custom_columns[col])
+                minus.append( [col,custom_columns[col]] )
                 value = False
     except mysql.connector.Error as err:
         raise Exception( err )
-    return {"value": value, "extra": supplus, "missing": minus}
+    return_value= {"value": value, "extra": supplus, "missing": minus}
+    # print( return_value )
+    return return_value
 
 def create_table( mysqlcursor, DATABASE, TABLE):
     # TODO: Maybe add a value to account for test SMS messages
@@ -77,8 +82,10 @@ def alter_table( DATABASE, TABLE, alters ):
     global mysqlcursor
     for alter in alters:
         statement = f"ALTER TABLE {TABLE} ADD COLUMN {alter[0]} {alter[1]}"
+        print(f"[+] Altering with: {statement}")
         try:
             mysqlcursor.execute( statement )
+            mysqlcursor.commit( )
         except mysql.connector.Error as err:
             raise Exception( err )
 
@@ -122,9 +129,9 @@ def sr_database_checks():
     print(">> Checking Tables...")
     if TABLE in tables:
         print(f"\t>> Table found{TABLE}...")
-        check_state = check_tables( DATABASE, TABLE)
+        check_state = check_tables( DATABASE, TABLE, columns)
         # if not check_state["value"]:
-        if not "value" in check_state:
+        if not check_state["value"]:
             # Do something like repair or rebuild entire table
             print("\t>> Table does not match with requirements")
             print(f"\t>> {check_state}")
@@ -144,9 +151,9 @@ def sr_database_checks():
 
     if TABLE_LOG in tables:
         print(f"\t>> Table found: {TABLE_LOG}...")
-        check_state = check_tables( DATABASE, TABLE_LOG)
+        check_state = check_tables( DATABASE, TABLE_LOG, columns_logs)
         # if not check_state["value"]:
-        if not "value" in check_state:
+        if not check_state["value"]:
             # Do something like repair or rebuild entire table
             print("\t>> Table does not match with requirements")
             print(f"\t>> {check_state}")
