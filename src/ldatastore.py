@@ -4,14 +4,14 @@ from datetime import date
 
 # rewrite message store to allow for using as a class extension
 class Datastore(object):
-    def __init__(self, config=None ):
+    def __init__(self, configs_filepath=None ):
         import configparser
         self.CONFIGS = configparser.ConfigParser(interpolation=None)
 
-        if config==None:
+        if configs_filepath==None:
             self.CONFIGS.read("libs/config.ini")
         else:
-            self.CONFIGS = config
+            self.CONFIGS.read(configs_filepath)
 
         self.HOST = self.CONFIGS["MYSQL"]["HOST"]
         self.USER = self.CONFIGS["MYSQL"]["USER"]
@@ -85,19 +85,17 @@ class Datastore(object):
             return sms_message
 
 
-'''
-    def insert( data :dict):
-        query = f"INSERT INTO {tb_messages} SET text=\"{data['text']}\", phonenumber=\"{data['phonenumber']}\""
-
+    def new_message(self, text:str, phonenumber:str, isp:str):
+        query = f"INSERT INTO messages SET text='{text}', phonenumber='{phonenumber}', isp='{isp}'"
         try:
-            self.mysqlDBcursor.execute( query )
-            insert_id = self.mysqlDBConnector.commit()
+            self.cursor.execute( query )
+            messageID = self.cursor.commit()
         except mysql.connector.Error as err:
             raise Exception( err )
         else:
-            return {"insert_id":insert_id, "value": True}
+            return messageID
 
-
+'''
     def fetch_for( data :dict):
         query = f"SELECT * FROM {tb_messages} WHERE "
         for key, value in data:

@@ -18,6 +18,7 @@ columns = {
         "claimed_time": "TIMESTAMP NULL",
         "text": "TEXT NOT NULL",
         "phonenumber": "VARCHAR(24) NOT NULL",
+        "isp": "VARCHAR(255) NULL",
         "source_id": "INT NULL",
         "date": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
         "mdate": "TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"

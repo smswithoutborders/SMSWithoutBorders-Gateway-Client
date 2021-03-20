@@ -4,13 +4,14 @@ import configparser
 CONFIGS = configparser.ConfigParser(interpolation=None)
 
 CONFIGS.read("config.ini")
-from modules.messagestore import MessageStore
+from ldatastore import Datastore
 
 from flask import Flask, request, jsonify
 app = Flask(__name__)
 
-messageStore = MessageStore(configs_filepath="modules/config.ini")
-# messageStore = MessageStore(config=CONFIGS)
+datastore = Datastore(configs_filepath="libs/config.ini")
+datastore.get_datastore()
+# datastore = Datastore(config=CONFIGS)
 
 # Get current state of the daemon [idle, busy, help]
 @app.route('/state')
@@ -31,7 +32,7 @@ def new_bulk_message():
             for row in csv_reader:
                 text = row['text']
                 number = row['phonenumber']
-                tstate = MessageStore.insert({"text":text, "phonenumber":number})
+                tstate = Datastore.insert({"text":text, "phonenumber":number})
                 c_tstate.append( tstate )
         except Exception as err:
             print( err )
@@ -55,9 +56,9 @@ def new_messages():
 
     return_json = {"status" :"", "tstate":""}
     try: 
-        tstate = messageStore.insert(data={"text":text, "phonenumber":phonenumber})
+        messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp="MTN")
         return_json["status"] = 200
-        return_json["tstate"] = tstate
+        return_json["messageID"] = messageID
     except Exception as err:
         print( f"[err]: {err}" )
     
