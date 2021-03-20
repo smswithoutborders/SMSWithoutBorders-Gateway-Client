@@ -51,7 +51,7 @@ def check_tables(DATABASE, TABLE, custom_columns):
                 value = False
 
         col_keys = list(custom_columns.keys())
-        print( cols )
+        # print( cols )
         for col in col_keys:
             # print(f"{col} ---> {cols}")
             if col not in cols:
@@ -98,6 +98,7 @@ def set_connection( host, user, password, database=None):
 
 # CHECK DATABASE
 def sr_database_checks():
+    global mysqlcursor, mydb
     set_connection(host="localhost", user="root", password="asshole")
     mysqlcursor = mydb.cursor()
     mysqlcursor.execute("SHOW DATABASES")
@@ -173,4 +174,5 @@ def sr_database_checks():
         except Exception as error:
             raise Exception( error )
 
+    mydb.close()
     return {"value": True}

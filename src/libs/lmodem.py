@@ -8,13 +8,13 @@ from ldatastore import Datastore
 import logging
 import threading
 
-class Modem:
+class Modem(Datastore):
     details = {}
 
-    def __init__( self, index:int, datastore=None):
+    def __init__( self, index:int):
+        super().__init__()
         self.mmcli_m = ["mmcli", f"-Km", index]
         self.index = index
-        self.datastore=datastore
 
     def __bindObject( self, keys :list, value, _object=None):
         if _object == None:
@@ -144,13 +144,14 @@ class Modem:
     def claim(self):
         try:
             self.extractInfo()
-            new_message = self.datastore.acquire_message(modem_index=self.index, modem_imei=self.details["modem.3gpp.imei"])
+            new_message = self.acquire_message(modem_index=self.index, modem_imei=self.details["modem.3gpp.imei"])
         except Exception as error:
             raise( error )
         else:
             if not new_message==None:
-                self.sms = SMS(msgID=new_message.id)
-                self.sms.create( number=new_message.phonenumber, text=new_message.text )
+                self.sms = SMS(messageID=new_message["id"])
+                self.sms.create_sms( phonenumber=new_message["phonenumber"], text=new_message["text"] )
+                return True
             else:
                 return None
 

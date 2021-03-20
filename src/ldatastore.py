@@ -1,5 +1,6 @@
 #!/bin/python import mysql.connector
 import mysql.connector
+import pymysql
 from datetime import date
 
 # rewrite message store to allow for using as a class extension
@@ -18,16 +19,15 @@ class Datastore(object):
         self.PASSWORD = self.CONFIGS["MYSQL"]["PASSWORD"]
         self.DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
 
-    def get_datastore(self):
-        self.conn = mysql.connector.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, database=self.DATABASE)
-        self.cursor = self.conn.cursor(buffered=True)
-        return self
+        self.conn = pymysql.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, database=self.DATABASE, cursorclass=pymysql.cursors.SSDictCursor)
+        # self.cursor = self.conn.cursor(buffered=True)
+        self.cursor = self.conn.cursor()
 
     def new_log(self, messageID):
         query=f"INSERT INTO logs SET messageID={messageID}"
         try:
             self.cursor.execute( query )
-            messageLogID = self.cursor.commit()
+            messageLogID = self.conn.commit()
 
         except mysql.connector.Error as err:
             raise Exception( err )
@@ -38,7 +38,7 @@ class Datastore(object):
         query=f"UPDATE logs SET status={status}, message={message} WHERE id={messageLogID}"
         try:
             self.cursor.execute( query )
-            messageLogID = self.cursor.commit()
+            messageLogID = self.conn.commit()
 
         except mysql.connector.Error as err:
             raise Exception( err )
@@ -49,7 +49,7 @@ class Datastore(object):
         query=f"UPDATE messages SET claimed_modem_imei=NULL WHERE id={messageID}"
         try:
             self.cursor.execute( query )
-            messageID = self.cursor.commit()
+            messageID = self.conn.commit()
 
         except mysql.connector.Error as err:
             raise Exception( err )
@@ -58,9 +58,10 @@ class Datastore(object):
 
     def claim_message(self, messageID:int, modem_imei:str):
         query=f"UPDATE messages SET claimed_modem_imei={modem_imei} WHERE id={messageID}"
+        print(f"Claiming: {query}")
         try:
             self.cursor.execute( query )
-            messageID = self.cursor.commit()
+            # messageID = self.conn.commit()
 
         except mysql.connector.Error as err:
             raise Exception( err )
@@ -75,14 +76,24 @@ class Datastore(object):
 
         query = f"SELECT * FROM messages where claimed_modem_imei is NULL LIMIT 1"
         try:
-            sms_message = self.cursor.execute( query )
-            if not sms_message==None:
-                self.claim_message(sms_message.id, modem_imei)
+            self.cursor.execute( query )
+            sms_message = self.cursor.fetchall()
+            # print(sms_message, type(sms_message), len(sms_message))
+            counter = 0
+            mn_sms_message = None
+            for row in sms_message:
+                messageID = row["id"]
+                print(row["text"], messageID)
+                self.claim_message(messageID, modem_imei)
+                
+                if counter < 1:
+                    mn_sms_message = row
+                    ++counter
+
+            return mn_sms_message
 
         except mysql.connector.Error as err:
             raise Exception( err )
-        else:
-            return sms_message
 
 
     def new_message(self, text:str, phonenumber:str, isp:str):
@@ -91,7 +102,7 @@ class Datastore(object):
             self.cursor.execute( query )
             self.conn.commit()
             messageID = self.cursor.lastrowid
-            # messageID = self.cursor.commit()
+            # messageID = self.conn.commit()
         except mysql.connector.Error as err:
             raise Exception( err )
         else:

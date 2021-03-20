@@ -7,7 +7,7 @@ class SMS():
 
         self.text = None
         self.index = index
-        self.number = None
+        self.phonenumber = None
         self.validity = None
         self.delivery_report_request = None
         self.messageID=messageID
@@ -19,7 +19,7 @@ class SMS():
     def get(self, key):
         return {
                 "text" : "sms.content.text", 
-                "number" : "sms.content.number", 
+                "phonenumber" : "sms.content.phonenumber", 
                 "type" : "sms.properties.pdu-type"}[key]
 
     def list(self, modem):
@@ -46,16 +46,16 @@ class SMS():
             return sms
 
 
-    def create_sms(self, number, text, delivery_report_request :bool=False, validity :int=None):
+    def create_sms(self, phonenumber, text, delivery_report_request :bool=False, validity :int=None):
         # print(f"Text: {text}")
-        # print(f"Number: {number}")
+        # print(f"Number: {phonenumber}")
 
         if self.index != None:
             raise Exception("sms has index, cannot edit")
 
         else:
             self.text = text
-            self.number = number
+            self.phonenumber = phonenumber
             self.validity = validity
             self.delivery_report_request = delivery_report_request
 

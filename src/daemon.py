@@ -11,7 +11,6 @@ from libs.lmodems import Modems
 
 # Beginning daemon from here
 modems = Modems()
-modems.get_datastore()
 
 # check to make sure everything is set for takefoff
 print(">> Starting system diagnosis...")
@@ -44,7 +43,7 @@ else:
             for modem_index in list_of_modems:
                 fl_no_modem_shown = False
 
-                modem = Modem( datastore=modems.datastore, index=modem_index )
+                modem = Modem(index=modem_index )
                 # logging.info(f"[+] Created modem instances")
                 if not modem.readyState():
                     continue
@@ -58,9 +57,11 @@ else:
             messageClaimed=False
             for modem in modemInstancesCollection:
                 try: 
+                    logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Claiming message!")
                     if not modem.claim()==None:# claim updates messages and starts new log
                         messageClaimed=True
                         shownNoAvailableMessage=False
+                        print( modem.sms.text, modem.sms.phonenumber)
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Message claimed!")
 
                 except Exception as error:
