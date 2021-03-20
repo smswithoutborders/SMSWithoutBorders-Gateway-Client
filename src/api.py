@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 datastore = Datastore(configs_filepath="libs/config.ini")
-datastore.get_datastore()
+# datastore.get_datastore()
 # datastore = Datastore(config=CONFIGS)
 
 # Get current state of the daemon [idle, busy, help]
