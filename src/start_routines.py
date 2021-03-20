@@ -26,9 +26,10 @@ columns = {
 
 columns_logs = {
         "id": "INT NOT NULL AUTO_INCREMENT",
+        "other_id": "INT NULL",
         "messageID": "INT NULL",
-        "status": "ENUM('pending','sent','claimed','invalid') NOT NULL DEFAULT 'pending'",
-        "message": "TEXT NOT NULL",
+        "status": "ENUM('pending','sent','failed', 'claimed','invalid') NOT NULL DEFAULT 'pending'",
+        "message": "TEXT NULL",
         "date": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
         "mdate": "TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
     }
@@ -64,15 +65,15 @@ def check_tables(DATABASE, TABLE, custom_columns):
     # print( return_value )
     return return_value
 
-def create_table( mysqlcursor, DATABASE, TABLE):
+def create_table( mysqlcursor, DATABASE, TABLE, custom_columns):
     # TODO: Maybe add a value to account for test SMS messages
     statement = None
-    for col in columns:
+    for col in custom_columns:
         if statement == None:
             statement = f"CREATE TABLE {TABLE} ("
         else:
             statement += ","
-        statement += f"{col} {columns[col]}"
+        statement += f"{col} {custom_columns[col]}"
     statement += ",PRIMARY KEY(id), UNIQUE(other_id))"
     # print( statement )
     try:
@@ -87,7 +88,7 @@ def alter_table( DATABASE, TABLE, alters ):
         print(f"[+] Altering with: {statement}")
         try:
             mysqlcursor.execute( statement )
-            mysqlcursor.commit( )
+            mydb.commit( )
         except mysql.connector.Error as err:
             raise Exception( err )
 
@@ -147,7 +148,7 @@ def sr_database_checks():
         print(f"\t>> Table not found{TABLE}...")
         # Do something about it
         try: 
-            create_table( mysqlcursor, DATABASE, TABLE)
+            create_table( mysqlcursor, DATABASE, TABLE, columns)
             print("\t[+] Table created!")
         except Exception as error:
             raise Exception( error )
@@ -169,7 +170,7 @@ def sr_database_checks():
         print(f"\t>> Table not found: {TABLE_LOG}...")
         # Do something about it
         try: 
-            create_table( mysqlcursor, DATABASE, TABLE_LOG)
+            create_table( mysqlcursor, DATABASE, TABLE_LOG, columns_logs)
             print("\t[+] Table created!")
         except Exception as error:
             raise Exception( error )

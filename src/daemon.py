@@ -57,19 +57,16 @@ else:
             messageClaimed=False
             for modem in modemInstancesCollection:
                 try: 
-                    logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Claiming message!")
+                    # logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Claiming message!")
                     if not modem.claim()==None:# claim updates messages and starts new log
                         messageClaimed=True
                         shownNoAvailableMessage=False
-                        print( modem.sms.text, modem.sms.phonenumber)
+                        # logging.info(f"text={modem.sms.text}\phonenumber={modem.sms.phonenumber})
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Message claimed!")
+                        modem.send_sms( modem.sms ) # updates counter for message and logs after sending
 
                 except Exception as error:
                     logging.warning(error)
-                else:
-                    # TODO: this should be threaded and detached if possible
-                    # modem.send_sms() # updates counter for message and logs after sending
-                    pass
 
             if not messageClaimed and not shownNoAvailableMessage:
                 shownNoAvailableMessage=True

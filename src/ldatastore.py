@@ -27,46 +27,45 @@ class Datastore(object):
         query=f"INSERT INTO logs SET messageID={messageID}"
         try:
             self.cursor.execute( query )
-            messageLogID = self.conn.commit()
+            self.conn.commit()
 
         except mysql.connector.Error as err:
             raise Exception( err )
         else:
-            return messageLogID
+            return self.cursor.lastrowid
 
     def update_log(self, messageLogID:int, status:str, message:str):
-        query=f"UPDATE logs SET status={status}, message={message} WHERE id={messageLogID}"
+        query=f"UPDATE logs SET status='{status}', message=\"{message}\" WHERE id={messageLogID}"
         try:
             self.cursor.execute( query )
-            messageLogID = self.conn.commit()
+            self.conn.commit()
 
         except mysql.connector.Error as err:
             raise Exception( err )
         else:
-            return messageLogID
+            self.cursor.lastrowid
 
     def release_message(self, messageID:int):
         query=f"UPDATE messages SET claimed_modem_imei=NULL WHERE id={messageID}"
         try:
             self.cursor.execute( query )
-            messageID = self.conn.commit()
+            self.conn.commit()
 
         except mysql.connector.Error as err:
             raise Exception( err )
         else:
-            return messageID
+            self.cursor.lastrowid
 
     def claim_message(self, messageID:int, modem_imei:str):
         query=f"UPDATE messages SET claimed_modem_imei={modem_imei} WHERE id={messageID}"
-        print(f"Claiming: {query}")
         try:
             self.cursor.execute( query )
-            # messageID = self.conn.commit()
+            self.conn.commit()
 
         except mysql.connector.Error as err:
             raise Exception( err )
         else:
-            return messageID
+            self.cursor.lastrowid
 
     def acquire_message(self, modem_index:int, modem_imei:str):
         '''
@@ -83,7 +82,7 @@ class Datastore(object):
             mn_sms_message = None
             for row in sms_message:
                 messageID = row["id"]
-                print(row["text"], messageID)
+                # print(row["text"], messageID)
                 self.claim_message(messageID, modem_imei)
                 
                 if counter < 1:

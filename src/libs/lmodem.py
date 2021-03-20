@@ -91,7 +91,7 @@ class Modem(Datastore):
     def __create(self, sms :SMS):
         mmcli_create_sms = []
         mmcli_create_sms += self.mmcli_m + sms.mmcli_create_sms
-        mmcli_create_sms[-1] += '=number=' + sms.number + ",text='" + sms.text + "'"
+        mmcli_create_sms[-1] += '=number=' + sms.phonenumber + ",text='" + sms.text + "'"
         try: 
             mmcli_output = subprocess.check_output(mmcli_create_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
 
@@ -110,7 +110,8 @@ class Modem(Datastore):
         return sms
 
     def __send(self, sms: SMS):
-        mmcli_send = self.mmcli_m + ["-s", sms.index, "--send"]
+        logging.info(f"{self.details['modem.3gpp.imei']}::{self.index} - Sending SMS...")
+        mmcli_send = self.mmcli_m + ["-s", sms.index, "--send", "--timeout=4"]
         state=None
         message=""
         status=""
@@ -120,24 +121,26 @@ class Modem(Datastore):
         except subprocess.CalledProcessError as error:
             returncode = error.returncode
             err_output = error.output.decode('utf-8').replace('\n', '')
+            '''
             print(f">> failed to send sms")
             print(f"\treturn code: {returncode}")
             print(f"\tstderr: {err_output}")
             # raise Exception( error )
+            '''
             state=False
             status='failed'
             message=err_output
-            raise Exception({"state":state, "message":message, "status":status, "returncode":returncode})
+            return {"state":state, "message":message, "status":status, "returncode":returncode}
         else:
             state=True
             status="sent"
             message=mmcli_output
             print(f"{mmcli_output}")
-
-        return {"state":state, "message":message, "status":status}
+            return {"state":state, "message":message, "status":status}
             
 
     def set_sms(self, sms :SMS):
+        # print("Setting SMS...")
         self.sms = self.__create( sms )
         return self.sms
 
@@ -146,37 +149,33 @@ class Modem(Datastore):
             self.extractInfo()
             new_message = self.acquire_message(modem_index=self.index, modem_imei=self.details["modem.3gpp.imei"])
         except Exception as error:
-            raise( error )
+            raise Exception( error )
         else:
             if not new_message==None:
-                self.sms = SMS(messageID=new_message["id"])
-                self.sms.create_sms( phonenumber=new_message["phonenumber"], text=new_message["text"] )
+                sms = SMS(messageID=new_message["id"])
+                sms.create_sms( phonenumber=new_message["phonenumber"], text=new_message["text"] )
+                self.set_sms( sms )
                 return True
             else:
                 return None
 
     def send_sms(self, sms :SMS, text=None, receipient=None):
+        send_status=None
         try:
-            messageLogID = self.datastore.new_log(messageID=sms.messageID)
+            messageLogID = self.new_log(messageID=sms.messageID)
         except Exception as error:
             raise( error )
         else:
             try:
-                if sms == None:
-                    send_status=self.__send( self.sms )
+                send_status=self.__send( sms )
+                if not send_status["state"]:
+                    logging.warning("[-] Failed to send...")
+                    self.release_message(sms.messageID)
+                    logging.warning("[-] Message released...")
+                    # self.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
+                    logging.warning("[+] Updated logs...")
                 else:
-                    send_status=self.__send( sms )
+                    logging.info("[+] Message sent!")
+                self.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
             except Exception as error:
                 print(f">> Exception error:", error )
-                sent_status = error
-
-            self.datastore.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
-            if not send_status["state"]:
-                logging.warn("[-] Failed to send...")
-                self.datastore.release_message(sms.messageID)
-                logging.warn("[-] Message released...")
-                return False
-            else:
-                logging.info("[+] Message sent!")
-                return True
-
