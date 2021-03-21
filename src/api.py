@@ -5,6 +5,7 @@ CONFIGS = configparser.ConfigParser(interpolation=None)
 
 CONFIGS.read("config.ini")
 from ldatastore import Datastore
+from libs.lmodems import Modems
 
 from flask import Flask, request, jsonify
 app = Flask(__name__)
@@ -18,31 +19,8 @@ datastore = Datastore(configs_filepath="libs/config.ini")
 def daemon_state():
     return "development"
 
-@app.route('/messages/bulk', methods=['POST'])
-def new_bulk_message():
-    request_body = request.json
-    
-    if not 'file' in request_body:
-        return jsonify({"status":400, "message":"missing file"})
-
-    c_tstate = []
-    with open(filename) as bulkfile:
-        csv_reader = csv.DictReader( bulkfile )
-        try: 
-            for row in csv_reader:
-                text = row['text']
-                number = row['phonenumber']
-                tstate = Datastore.insert({"text":text, "phonenumber":number})
-                c_tstate.append( tstate )
-        except Exception as err:
-            print( err )
-
-    return jsonify({"status":200, "c_tstate":c_tsate})
-
 @app.route('/messages', methods=['POST', 'GET'])
 def new_messages():
-    
-
     if request.method == 'POST':
         request_body = request.json
         if not 'text' in request_body:
@@ -59,7 +37,8 @@ def new_messages():
 
         return_json = {"status" :"", "tstate":""}
         try: 
-            messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp="MTN")
+            # TODO: Determine ISP before sending messages
+            messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp="MTN", _type="sending")
             return_json["status"] = 200
             return_json["messageID"] = messageID
         except Exception as err:
@@ -68,6 +47,14 @@ def new_messages():
 
     elif request.method == 'GET':
         print("[?] Fetching messages....")
+        return_json = {"status" :"", "tstate":""}
+        try:
+            messages = datastore.get_all_received_messages()
+            return_json["status"] = 200
+            return_json["messages"] = messages
+        except Exception as err:
+            print( f"[err]: {err}" )
+
 
     return jsonify(return_json)
 

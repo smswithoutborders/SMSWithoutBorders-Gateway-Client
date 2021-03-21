@@ -111,7 +111,7 @@ class Modem(Datastore):
 
     def __send(self, sms: SMS):
         logging.info(f"{self.details['modem.3gpp.imei']}::{self.index} - Sending SMS...")
-        mmcli_send = self.mmcli_m + ["-s", sms.index, "--send", "--timeout=4"]
+        mmcli_send = self.mmcli_m + ["-s", sms.index, "--send", "--timeout=10"] 
         state=None
         message=""
         status=""

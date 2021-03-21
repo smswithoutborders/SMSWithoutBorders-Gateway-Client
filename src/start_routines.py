@@ -13,12 +13,12 @@ mysqlcursor = None
 columns = {
         "id": "INT NOT NULL AUTO_INCREMENT",
         "other_id": "INT NULL",
-        "state": "ENUM('pending','sent','claimed','invalid') NOT NULL DEFAULT 'pending'",
         "claimed_modem_imei": "VARCHAR(255) NULL",
         "claimed_time": "TIMESTAMP NULL",
         "text": "TEXT NOT NULL",
         "phonenumber": "VARCHAR(24) NOT NULL",
         "isp": "VARCHAR(255) NULL",
+        "type": "ENUM('sending', 'received') NOT NULL",
         "source_id": "INT NULL",
         "date": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
         "mdate": "TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
@@ -132,7 +132,7 @@ def sr_database_checks():
 
     print(">> Checking Tables...")
     if TABLE in tables:
-        print(f"\t>> Table found{TABLE}...")
+        print(f"\t>> Table found <<{TABLE}>>")
         check_state = check_tables( DATABASE, TABLE, columns)
         # if not check_state["value"]:
         if not check_state["value"]:
@@ -145,7 +145,7 @@ def sr_database_checks():
             except Exception as err:
                 raise Exception( err)
     else:
-        print(f"\t>> Table not found{TABLE}...")
+        print(f"\t>> Table not found <<{TABLE}>>")
         # Do something about it
         try: 
             create_table( mysqlcursor, DATABASE, TABLE, columns)
@@ -154,7 +154,7 @@ def sr_database_checks():
             raise Exception( error )
 
     if TABLE_LOG in tables:
-        print(f"\t>> Table found: {TABLE_LOG}...")
+        print(f"\t>> Table found: <<TABLE_LOG>>")
         check_state = check_tables( DATABASE, TABLE_LOG, columns_logs)
         # if not check_state["value"]:
         if not check_state["value"]:
@@ -167,7 +167,7 @@ def sr_database_checks():
             except Exception as err:
                 raise Exception( err)
     else:
-        print(f"\t>> Table not found: {TABLE_LOG}...")
+        print(f"\t>> Table not found: <<TABLE_LOG>>")
         # Do something about it
         try: 
             create_table( mysqlcursor, DATABASE, TABLE_LOG, columns_logs)

@@ -73,7 +73,7 @@ class Datastore(object):
                 - Filter by last come first out
         '''
 
-        query = f"SELECT * FROM messages where claimed_modem_imei is NULL LIMIT 1"
+        query = f"SELECT * FROM messages where type='sending' AND claimed_modem_imei is NULL LIMIT 1"
         try:
             self.cursor.execute( query )
             sms_message = self.cursor.fetchall()
@@ -95,8 +95,8 @@ class Datastore(object):
             raise Exception( err )
 
 
-    def new_message(self, text:str, phonenumber:str, isp:str):
-        query = f"INSERT INTO messages SET text='{text}', phonenumber='{phonenumber}', isp='{isp}'"
+    def new_message(self, text:str, phonenumber:str, isp:str, _type:str):
+        query = f"INSERT INTO messages SET text='{text}', phonenumber='{phonenumber}', isp='{isp}', type='{_type}'"
         try:
             self.cursor.execute( query )
             self.conn.commit()
@@ -106,6 +106,15 @@ class Datastore(object):
             raise Exception( err )
         else:
             return messageID
+
+    def get_all_received_messages(self):
+        query = "SELECT * FROM messages WHERE type='received'"
+        try:
+            self.cursor.execute( query )
+            messages = self.cursor.fetchall()
+            return messages
+        except mysql.connector.Error as err:
+            raise Exception( err )
 
 '''
     def fetch_for( data :dict):
