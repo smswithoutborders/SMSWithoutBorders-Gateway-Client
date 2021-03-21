@@ -154,7 +154,7 @@ def sr_database_checks():
             raise Exception( error )
 
     if TABLE_LOG in tables:
-        print(f"\t>> Table found: <<TABLE_LOG>>")
+        print(f"\t>> Table found: <<{TABLE_LOG}>>")
         check_state = check_tables( DATABASE, TABLE_LOG, columns_logs)
         # if not check_state["value"]:
         if not check_state["value"]:
@@ -167,7 +167,7 @@ def sr_database_checks():
             except Exception as err:
                 raise Exception( err)
     else:
-        print(f"\t>> Table not found: <<TABLE_LOG>>")
+        print(f"\t>> Table not found: <<{TABLE_LOG}>>")
         # Do something about it
         try: 
             create_table( mysqlcursor, DATABASE, TABLE_LOG, columns_logs)

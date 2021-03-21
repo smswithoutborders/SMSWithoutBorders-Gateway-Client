@@ -91,7 +91,7 @@ class Modem(Datastore):
     def __create(self, sms :SMS):
         mmcli_create_sms = []
         mmcli_create_sms += self.mmcli_m + sms.mmcli_create_sms
-        mmcli_create_sms[-1] += '=number=' + sms.phonenumber + ",text='" + sms.text + "'"
+        mmcli_create_sms[-1] += f'=number={sms.phonenumber},text="{sms.text}",delivery-report-request=\'yes\''
         try: 
             mmcli_output = subprocess.check_output(mmcli_create_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
 
@@ -179,3 +179,13 @@ class Modem(Datastore):
                 self.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
             except Exception as error:
                 print(f">> Exception error:", error )
+
+    def get_received_messages(self):
+        lsms = SMS().get_messages(self)
+        sms_received = []
+        for sms in lsms:
+            sms.extract_message()
+            if sms.details["sms.properties.state"] == "received":
+                sms_received.append( sms )
+
+        return sms_received

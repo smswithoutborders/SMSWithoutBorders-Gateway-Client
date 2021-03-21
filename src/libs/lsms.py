@@ -10,6 +10,8 @@ class SMS():
         self.phonenumber = None
         self.validity = None
         self.delivery_report_request = None
+        self.timestamp = None
+        self.discharge_time = None
         self.messageID=messageID
 
 
@@ -22,7 +24,7 @@ class SMS():
                 "phonenumber" : "sms.content.phonenumber", 
                 "type" : "sms.properties.pdu-type"}[key]
 
-    def list(self, modem):
+    def __list(self, modem):
         sms_list = []
         sms_list += modem.mmcli_m + ["--messaging-list-sms"]
 
@@ -44,6 +46,75 @@ class SMS():
                 sms.append( sms_index )
 
             return sms
+
+    def __bindObject( self, keys :list, value, _object=None):
+        if _object == None:
+            _object = {}
+
+        if len(keys) > 1:
+            if not keys[0] in _object:
+                _object[keys[0]] = {}
+            new_object = self.__bindObject(keys[1:], value, _object[keys[0]])
+            # print(f"{len(keys)}: {new_object}")
+            _object[keys[0]] = new_object
+        else:
+            _object = {keys[0] : value}
+        return _object
+
+    def __appendObject( self, kObject, tObject ):
+        try:
+            if type(tObject) == type(""):
+                return {}
+            if list(tObject.keys())[0] in kObject:
+                key = list(tObject.keys())[0]
+                new_object = self.__appendObject( kObject[key], tObject[key] )
+                # print( new_object )
+                if not new_object == {}:
+                    kObject.update(new_object)
+            else:
+                kObject.update(tObject)
+        except Exception as error:
+            print(f"errtObject: ", tObject, type(tObject))
+            print(error, "\n")
+
+        return kObject
+
+    def extract_message(self):
+        sms_info = ["mmcli", "-Ks", self.index]
+        try: 
+            mmcli_output = subprocess.check_output(sms_info, stderr=subprocess.STDOUT).decode('utf-8')
+        except subprocess.CalledProcessError as error:
+            print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
+        else:
+            # print(f"mmcli_output: {mmcli_output}")
+            mmcli_output = mmcli_output.split('\n')
+            self.details = {}
+            for output in mmcli_output:
+                m_detail = output.split(': ')
+                if len(m_detail) < 2:
+                    continue
+                key = m_detail[0].replace(' ', '')
+                self.details[key] = m_detail[1]
+
+                indie_keys = key.split('.')
+                # tmp_details = self.__bindObject( keys=indie_keys, value=m_detail[1] )
+                tmp_details = self.__bindObject( keys=indie_keys, value=m_detail[1] )
+                # print("tmp_details>> ", tmp_details)
+                self.details = self.__appendObject(self.details, tmp_details)
+                # print("self.details>> ", self.details)
+                # self.details.update( tmp_details )
+            # print("self.details:", self.details)
+            return self.details
+
+
+    def get_messages(self, modem):
+        sms_indexes = self.__list(modem)
+        lsms = []
+        for index in sms_indexes:
+            sms = SMS(index=index)
+            lsms.append( sms )
+
+        return lsms
 
 
     def create_sms(self, phonenumber, text, delivery_report_request :bool=False, validity :int=None):
