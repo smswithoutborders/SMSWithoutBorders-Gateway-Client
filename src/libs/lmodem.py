@@ -15,6 +15,7 @@ class Modem(Datastore):
         super().__init__()
         self.mmcli_m = ["mmcli", f"-Km", index]
         self.index = index
+        self.extractInfo()
 
     def __bindObject( self, keys :list, value, _object=None):
         if _object == None:

@@ -1,0 +1,2 @@
+mysql-connector==2.2.9
+PyMySQL==1.0.2
