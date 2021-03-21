@@ -6,13 +6,14 @@ class SMS():
         self.mmcli_create_sms = ["--messaging-create-sms"]
 
         self.text = None
+        self.state = None
         self.index = index
-        self.phonenumber = None
         self.validity = None
-        self.delivery_report_request = None
         self.timestamp = None
-        self.discharge_time = None
+        self.phonenumber = None
         self.messageID=messageID
+        self.discharge_time = None
+        self.delivery_report_request = None
 
 
         # check is index truly exist
@@ -104,6 +105,11 @@ class SMS():
                 # print("self.details>> ", self.details)
                 # self.details.update( tmp_details )
             # print("self.details:", self.details)
+            self.text = self.details["sms.content.text"]
+            self.state = self.details["sms.properties.state"]
+            self.phonenumber = self.details["sms.content.number"]
+            self.timestamp = self.details["sms.properties.timestamp"]
+            self.discharge_time = self.details["sms.properties.discharge-timestamp"]
             return self.details
 
 

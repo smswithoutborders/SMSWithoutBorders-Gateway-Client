@@ -4,6 +4,7 @@ import subprocess
 import start_routines
 import logging
 import time
+import traceback
 
 from libs.lsms import SMS 
 from libs.lmodem import Modem 
@@ -62,16 +63,18 @@ else:
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - New Message Found!")
                         for message in messages:
                             logging.info(f"[+] Reading new messages...")
-                            # logging.info(f"text>> {message.text}\nphonenumber>> {message.phonenumber}\ntimestamp>> {message.timestamp}\ndischarge timestamp>> {message.discharge_time}")
+                            logging.info(f"\n\ttext>> {message.text}\n\tphonenumber>> {message.phonenumber}\n\ttimestamp>> {message.timestamp}\n\tdischarge timestamp>> {message.discharge_time}\n\tstate>> {message.state}")
 
                 except Exception as error:
                     logging.warning(error)
 
-            if not messageClaimed and not shownNoAvailableMessage:
+            if not newReceivedMessage and not shownNoAvailableMessage:
                 shownNoAvailableMessage=True
                 logging.info(f"No received message...")
 
             prev_list_of_modems = list_of_modems
             time.sleep(3)
     except Exception as error:
-        print("GLobal error: ", error)
+        track = traceback.format_exc()
+        # print("GLobal error: ", error)
+        print(track)

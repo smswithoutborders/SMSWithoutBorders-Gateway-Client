@@ -186,7 +186,7 @@ class Modem(Datastore):
         sms_received = []
         for sms in lsms:
             sms.extract_message()
-            if sms.details["sms.properties.state"] == "received":
+            if sms.state == "received":
                 sms_received.append( sms )
 
         return sms_received
