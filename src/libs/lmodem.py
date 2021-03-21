@@ -98,6 +98,7 @@ class Modem(Datastore):
 
         except subprocess.CalledProcessError as error:
             print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
+            raise Exception(error)
         else:
             print(f"{mmcli_output}")
             mmcli_output = mmcli_output.split(': ')
@@ -186,7 +187,20 @@ class Modem(Datastore):
         sms_received = []
         for sms in lsms:
             sms.extract_message()
-            if sms.state == "received":
+            if sms.state == "received" and sms.details["sms.properties.pdu-type"] == "deliver":
                 sms_received.append( sms )
 
         return sms_received
+
+    def remove_sms(self, sms :SMS):
+        mmcli_delete_sms = self.mmcli_m 
+        mmcli_delete_sms += ["--messaging-delete-sms", sms.index] 
+        try: 
+            mmcli_output = subprocess.check_output(mmcli_delete_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
+
+        except subprocess.CalledProcessError as error:
+            print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
+            raise Exception(error)
+        else:
+            print(f"{mmcli_output}")
+            return True

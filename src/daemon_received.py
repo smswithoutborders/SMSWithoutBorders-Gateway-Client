@@ -61,9 +61,16 @@ else:
                         newReceivedMessage=True
                         shownNoAvailableMessage=False
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - New Message Found!")
-                        for message in messages:
+                        for sms in messages:
                             logging.info(f"[+] Reading new messages...")
-                            logging.info(f"\n\ttext>> {message.text}\n\tphonenumber>> {message.phonenumber}\n\ttimestamp>> {message.timestamp}\n\tdischarge timestamp>> {message.discharge_time}\n\tstate>> {message.state}")
+                            logging.info(f"\n\ttext>> {sms.text}\n\tphonenumber>> {sms.phonenumber}\n\ttimestamp>> {sms.timestamp}\n\tdischarge timestamp>> {sms.discharge_time}\n\tstate>> {sms.state}")
+                            # It's just to store and then get rid of them from the modems
+                            modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp="")
+                            if modem.remove_sms(sms):
+                                logging.info(f"[-] SMS removed from modem")
+                            else:
+                                logging.warning(f">> Failed to remove SMS from modem")
+                                raise Exception("Failed to remove SMS from modem")
 
                 except Exception as error:
                     logging.warning(error)
