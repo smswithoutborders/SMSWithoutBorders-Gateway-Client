@@ -22,7 +22,7 @@ pip install -r requirements.txt
 ###### Start the API
 ```bash
 cd src/
-python api.py
+python3 api.py
 ```
 ##### Run Daemons
 ###### To send out SMS messages
