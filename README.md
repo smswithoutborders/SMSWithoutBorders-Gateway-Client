@@ -1,7 +1,7 @@
 ##### Begin by configuring databases
 ###### MySQL
 - Copy the _example.config.ini_ file into _config.ini_ in the same dir
->> libs/example.config.ini
+> src/libs/example.config.ini
 ##### How to Run
 
 ###### Create venv
