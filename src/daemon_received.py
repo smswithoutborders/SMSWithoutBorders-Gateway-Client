@@ -65,7 +65,7 @@ else:
                             logging.info(f"[+] Reading new messages...")
                             logging.info(f"\n\ttext>> {sms.text}\n\tphonenumber>> {sms.phonenumber}\n\ttimestamp>> {sms.timestamp}\n\tdischarge timestamp>> {sms.discharge_time}\n\tstate>> {sms.state}")
                             # It's just to store and then get rid of them from the modems
-                            modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp="")
+                            modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp="", claimed_modem_imei=modem.details["modem.3gpp.imei"])
                             if modem.remove_sms(sms):
                                 logging.info(f"[-] SMS removed from modem")
                             else:

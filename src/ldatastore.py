@@ -95,8 +95,10 @@ class Datastore(object):
             raise Exception( err )
 
 
-    def new_message(self, text:str, phonenumber:str, isp:str, _type:str):
+    def new_message(self, text:str, phonenumber:str, isp:str, _type:str, claimed_modem_imei=None):
         query = f"INSERT INTO messages SET text='{text}', phonenumber='{phonenumber}', isp='{isp}', type='{_type}'"
+        if not claimed_modem_imei==None:
+            query += f", claimed_modem_imei='{claimed_modem_imei}'"
         try:
             self.cursor.execute( query )
             self.conn.commit()
