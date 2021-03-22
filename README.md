@@ -22,18 +22,18 @@ pip install -r requirements.txt
 ###### Start the API
 ```bash
 cd src/
-python api.py
+python3 api.py
 ```
 ##### Run Daemons
 ###### To send out SMS messages
 ```bash
 cd src/
-python daemon.py
+python3 daemon.py
 ```
 ###### To read received SMS messages
 ```bash
 cd src/
-python daemon_received.py
+python3 daemon_received.py
 ```
 
 ##### How to test
