@@ -28,12 +28,12 @@ python api.py
 ###### To send out SMS messages
 ```bash
 cd src/
-python daemon.py
+python3 daemon.py
 ```
 ###### To read received SMS messages
 ```bash
 cd src/
-python daemon_received.py
+python3 daemon_received.py
 ```
 
 ##### How to test
