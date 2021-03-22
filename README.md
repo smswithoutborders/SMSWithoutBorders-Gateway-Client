@@ -24,14 +24,13 @@ pip install -r requirements.txt
 cd src/
 python api.py
 ```
-
-###### Run send SMS Messages 
+##### Run Daemons
+###### To send out SMS messages
 ```bash
 cd src/
 python daemon.py
 ```
-
-###### Run read received Messages 
+###### To read received SMS messages
 ```bash
 cd src/
 python daemon_received.py
