@@ -11,7 +11,7 @@ python3 -m virtualenv .venv
 
 ###### Activate venv
 ```bash
-source . venv/bin/activate
+source .venv/bin/activate
 ```
 
 ###### Install requirements
