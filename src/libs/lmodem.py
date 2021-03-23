@@ -11,7 +11,7 @@ import threading
 class Modem(Datastore):
     details = {}
 
-    def __init__( self, index:int, route=False):
+    def __init__( self, index:int):
         super().__init__()
         self.mmcli_m = ["mmcli", f"-Km", index]
         self.index = index
@@ -196,11 +196,13 @@ class Modem(Datastore):
         mmcli_delete_sms = self.mmcli_m 
         mmcli_delete_sms += ["--messaging-delete-sms", sms.index] 
         try: 
-            mmcli_output = subprocess.check_output(mmcli_delete_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
+           # mmcli_output = subprocess.check_output(mmcli_delete_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
+
+           pass
 
         except subprocess.CalledProcessError as error:
             print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
             raise Exception(error)
         else:
-            print(f"{mmcli_output}")
+            # print(f"{mmcli_output}")
             return True

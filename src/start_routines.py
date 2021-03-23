@@ -185,7 +185,8 @@ def sr_database_checks():
                 print("\t[+] Table created!")
                 if TABLE == "configs":
                     CONFIGS.read("config.ini")
-                    insert_default_route(CONFIGS["ROUTER"]["default"])
+                    if "default" in CONFIGS["ROUTER"]:
+                        insert_default_route(CONFIGS["ROUTER"]["default"])
             except Exception as error:
                 raise Exception( error )
 

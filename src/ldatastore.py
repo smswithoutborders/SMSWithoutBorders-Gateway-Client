@@ -120,7 +120,7 @@ class Datastore(object):
             raise Exception( err )
 
     def get_deku_configs(self):
-        query = f"SELECT * FROM configs"
+        query = f"SELECT * FROM configs LIMIT 1"
         try:
             self.cursor.execute( query )
             configs = self.cursor.fetchall()
