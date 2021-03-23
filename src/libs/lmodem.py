@@ -196,10 +196,7 @@ class Modem(Datastore):
         mmcli_delete_sms = self.mmcli_m 
         mmcli_delete_sms += ["--messaging-delete-sms", sms.index] 
         try: 
-           # mmcli_output = subprocess.check_output(mmcli_delete_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
-
-           pass
-
+           mmcli_output = subprocess.check_output(mmcli_delete_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
         except subprocess.CalledProcessError as error:
             print(f"[stderr]>> return code[{error.returncode}], output[{error.output.decode('utf-8')}")
             raise Exception(error)
