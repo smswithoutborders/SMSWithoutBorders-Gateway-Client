@@ -6,6 +6,7 @@ import logging
 import time
 import traceback
 import configparser
+import requests
 
 from libs.lsms import SMS 
 from libs.lmodem import Modem 
@@ -17,11 +18,13 @@ CONFIGS.read("config.ini")
 ROUTE = CONFIGS["ROUTER"]["route"]
 
 modems = Modems()
-DEKU_CONFIGS = modems.get_deku_configs()
 # route_url = DEKU_CONFIGS["router_url"]
 
 # check to make sure everything is set for takefoff
 print(">> Starting system diagnosis...")
+format = "[%(asctime)s] >> %(message)s"
+logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
+
 try:
     check_state = start_routines.sr_database_checks()
     if not check_state:
@@ -30,20 +33,20 @@ except Exception as error:
     # print("Error raised:", error)
     print( error )
 else:
+    DEKU_CONFIGS = modems.get_deku_configs()[0]
     print("\t- All checks passed.... proceeding...")
     try:
         prev_list_of_modems = []
         fl_no_modem_shown = False
         shownNoAvailableMessage=False
 
-        if configs_filepath==None:
-            if ROUTE == 1:
-                ROUTE = True
-            else:
-                ROUTE = False
-
-        format = "[%(asctime)s] >> %(message)s"
-        logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
+        # Change route values
+        if ROUTE == "1": # on
+            ROUTE = True
+            logging.info("Routing on")
+        else: # off
+            ROUTE = False
+            logging.info("Routing off")
 
         while True:
             list_of_modems = modems.get_modems()
@@ -57,7 +60,7 @@ else:
             for modem_index in list_of_modems:
                 fl_no_modem_shown = False
 
-                modem = Modem(index=modem_index, route=ROUTE)
+                modem = Modem(index=modem_index)
 
                 if not modem_index in prev_list_of_modems:
                     logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Modem is ready!")
@@ -84,9 +87,13 @@ else:
 
                                 # Routing if available
                                 if ROUTE:
-                                    request = requests.post(DEKU_CONFIG["router_url"], data={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time})
+                                    router_url = DEKU_CONFIGS['router_url']
+                                    logging.info(f"Routing to: <<{router_url}>>")
+                                    request = requests.post(DEKU_CONFIGS["router_url"], data={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time})
                                     print( request.text )
                                     logging.info(f"[+] Successfully routed SMS message")
+                                else:
+                                    print(f"ROUTE: {ROUTE}")
                                 
                             else:
                                 logging.warning(f">> Failed to remove SMS from modem")
