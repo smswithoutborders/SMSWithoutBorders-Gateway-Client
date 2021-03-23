@@ -89,12 +89,8 @@ else:
                                 if ROUTE:
                                     router_url = DEKU_CONFIGS['router_url']
                                     logging.info(f"Routing to: <<{router_url}>>")
-                                    request = requests.post(DEKU_CONFIGS["router_url"], data={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time})
+                                    request = requests.post(DEKU_CONFIGS["router_url"], json={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time})
                                     print( request.text )
-                                    logging.info(f"[+] Successfully routed SMS message")
-                                else:
-                                    print(f"ROUTE: {ROUTE}")
-                                
                             else:
                                 logging.warning(f">> Failed to remove SMS from modem")
                                 raise Exception("Failed to remove SMS from modem")
