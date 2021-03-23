@@ -11,7 +11,7 @@ import threading
 class Modem(Datastore):
     details = {}
 
-    def __init__( self, index:int):
+    def __init__( self, index:int, route=False):
         super().__init__()
         self.mmcli_m = ["mmcli", f"-Km", index]
         self.index = index

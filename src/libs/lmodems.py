@@ -6,9 +6,10 @@ from ldatastore import Datastore
 import logging
 
 # TODO: Listen for modems and use events
-class Modems():
+class Modems(Datastore):
     datastore = None
     def __init__( self ):
+        super().__init__()
         self.mmcli_L = ["mmcli", "-KL"]
         self.mutex = threading.Lock()
 
@@ -35,3 +36,4 @@ class Modems():
 
     def get_modems( self ):
         return self.__list__()
+

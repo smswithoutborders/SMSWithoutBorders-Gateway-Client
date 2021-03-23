@@ -5,17 +5,17 @@ from datetime import date
 
 import configparser
 CONFIGS = configparser.ConfigParser(interpolation=None)
-CONFIGS.read("libs/config.ini")
 
 DATABASE = "deku"
-TABLE = "messages"
+TABLE_SMS = "messages"
 TABLE_LOG = "logs"
+TABLE_CONFIGS = "configs"
 mydb = None
 mysqlcursor = None
 
 # A little bit too extensive
 columns = {
-        "id": "INT NOT NULL AUTO_INCREMENT",
+        "id": "INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
         "other_id": "INT NULL",
         "claimed_modem_imei": "VARCHAR(255) NULL",
         "claimed_time": "TIMESTAMP NULL",
@@ -29,11 +29,18 @@ columns = {
     }
 
 columns_logs = {
-        "id": "INT NOT NULL AUTO_INCREMENT",
-        "other_id": "INT NULL",
+        "id": "INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
+        "other_id": "INT NULL UNIQUE",
         "messageID": "INT NULL",
         "status": "ENUM('pending','sent','failed', 'claimed','invalid') NOT NULL DEFAULT 'pending'",
         "message": "TEXT NULL",
+        "date": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "mdate": "TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+    }
+
+columns_configs = {
+        "id": "INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
+        "router_url": "TEXT NULL",
         "date": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
         "mdate": "TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
     }
@@ -71,14 +78,20 @@ def check_tables(DATABASE, TABLE, custom_columns):
 
 def create_table( mysqlcursor, DATABASE, TABLE, custom_columns):
     # TODO: Maybe add a value to account for test SMS messages
-    statement = None
+    statement = f"CREATE TABLE {TABLE} ("
+    comma=False
     for col in custom_columns:
-        if statement == None:
-            statement = f"CREATE TABLE {TABLE} ("
-        else:
-            statement += ","
+        if comma:
+            statement+=','
         statement += f"{col} {custom_columns[col]}"
-    statement += ",PRIMARY KEY(id), UNIQUE(other_id))"
+        comma=True
+    statement += ")"
+    '''
+    if TABLE == "messages":
+        statement += ",PRIMARY KEY(id), UNIQUE(other_id))"
+    else:
+        statement += ",PRIMARY KEY(id))"
+    '''
     # print( statement )
     try:
         mysqlcursor.execute( statement )
@@ -101,8 +114,17 @@ def set_connection( host, user, password, database=None):
     mydb = mysql.connector.connect( host= host, user= user, password= password, database=database)
     mysqlcursor = mydb.cursor()
 
+def insert_default_route( router_url):
+    query = f"INSERT INTO configs SET router_url={router_url}"
+    try:
+        mysqlcursor.execute( query )
+        mydb.commit( )
+    except mysql.connector.Error as err:
+        raise Exception( err )
+
 # CHECK DATABASE
 def sr_database_checks():
+    CONFIGS.read("libs/config.ini")
     global mysqlcursor, mydb
 
     HOST = CONFIGS["MYSQL"]["HOST"]
@@ -130,6 +152,7 @@ def sr_database_checks():
             print( error )
 
 
+    list_tables = {TABLE_SMS:columns, TABLE_LOG:columns_logs, TABLE_CONFIGS:columns_configs}
     # CHECK TABLES
     set_connection(host=HOST, user=USER, password=PASSWORD, database=DATABASE)
     # TODO: Check if connected
@@ -139,50 +162,35 @@ def sr_database_checks():
     for table in mysqlcursor:
         tables.append(list(table)[0])
 
-    print(">> Checking Tables...")
-    if TABLE in tables:
-        print(f"\t>> Table found <<{TABLE}>>")
-        check_state = check_tables( DATABASE, TABLE, columns)
-        # if not check_state["value"]:
-        if not check_state["value"]:
-            # Do something like repair or rebuild entire table
-            print("\t>> Table does not match with requirements")
-            print(f"\t>> {check_state}")
-            try:
-                alter_table( DATABASE, TABLE, check_state["missing"] )
-                print("\t[+] Changes to table added!")
-            except Exception as err:
-                raise Exception( err)
-    else:
-        print(f"\t>> Table not found <<{TABLE}>>")
-        # Do something about it
-        try: 
-            create_table( mysqlcursor, DATABASE, TABLE, columns)
-            print("\t[+] Table created!")
-        except Exception as error:
-            raise Exception( error )
+    for TABLE in list_tables:
+        print(">> Checking Tables...")
+        if TABLE in tables:
+            print(f"\t>> Table found <<{TABLE}>>")
+            check_state = check_tables( DATABASE, TABLE, list_tables[TABLE])
+            # if not check_state["value"]:
+            if not check_state["value"]:
+                # Do something like repair or rebuild entire table
+                print("\t>> Table does not match with requirements")
+                print(f"\t>> {check_state}")
+                try:
+                    alter_table( DATABASE, TABLE, check_state["missing"] )
+                    print("\t[+] Changes to table added!")
+                except Exception as err:
+                    raise Exception( err)
+        else:
+            print(f"\t>> Table not found <<{TABLE}>>")
+            # Do something about it
+            try: 
+                create_table( mysqlcursor, DATABASE, TABLE, list_tables[TABLE])
+                print("\t[+] Table created!")
+                if TABLE == "configs":
+                    CONFIGS.read("config.ini")
+                    insert_default_route(CONFIGS["ROUTER"]["default"])
+            except Exception as error:
+                raise Exception( error )
 
-    if TABLE_LOG in tables:
-        print(f"\t>> Table found: <<{TABLE_LOG}>>")
-        check_state = check_tables( DATABASE, TABLE_LOG, columns_logs)
-        # if not check_state["value"]:
-        if not check_state["value"]:
-            # Do something like repair or rebuild entire table
-            print("\t>> Table does not match with requirements")
-            print(f"\t>> {check_state}")
-            try:
-                alter_table( DATABASE, TABLE_LOG, check_state["missing"] )
-                print("\t[+] Changes to table added!")
-            except Exception as err:
-                raise Exception( err)
-    else:
-        print(f"\t>> Table not found: <<{TABLE_LOG}>>")
-        # Do something about it
-        try: 
-            create_table( mysqlcursor, DATABASE, TABLE_LOG, columns_logs)
-            print("\t[+] Table created!")
-        except Exception as error:
-            raise Exception( error )
+    # Insert default route
+
 
     mydb.close()
     return {"value": True}

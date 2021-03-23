@@ -5,13 +5,20 @@ import start_routines
 import logging
 import time
 import traceback
+import configparser
 
 from libs.lsms import SMS 
 from libs.lmodem import Modem 
 from libs.lmodems import Modems 
 
 # Beginning daemon from here
+CONFIGS = configparser.ConfigParser(interpolation=None)
+CONFIGS.read("config.ini")
+ROUTE = CONFIGS["ROUTER"]["route"]
+
 modems = Modems()
+DEKU_CONFIGS = modems.get_deku_configs()
+# route_url = DEKU_CONFIGS["router_url"]
 
 # check to make sure everything is set for takefoff
 print(">> Starting system diagnosis...")
@@ -29,6 +36,12 @@ else:
         fl_no_modem_shown = False
         shownNoAvailableMessage=False
 
+        if configs_filepath==None:
+            if ROUTE == 1:
+                ROUTE = True
+            else:
+                ROUTE = False
+
         format = "[%(asctime)s] >> %(message)s"
         logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
 
@@ -44,7 +57,7 @@ else:
             for modem_index in list_of_modems:
                 fl_no_modem_shown = False
 
-                modem = Modem(index=modem_index )
+                modem = Modem(index=modem_index, route=ROUTE)
 
                 if not modem_index in prev_list_of_modems:
                     logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Modem is ready!")
@@ -64,10 +77,17 @@ else:
                         for sms in messages:
                             logging.info(f"[+] Reading new messages...")
                             logging.info(f"\n\ttext>> {sms.text}\n\tphonenumber>> {sms.phonenumber}\n\ttimestamp>> {sms.timestamp}\n\tdischarge timestamp>> {sms.discharge_time}\n\tstate>> {sms.state}")
-                            # It's just to store and then get rid of them from the modems
                             modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp="", claimed_modem_imei=modem.details["modem.3gpp.imei"])
+
                             if modem.remove_sms(sms):
                                 logging.info(f"[-] SMS removed from modem")
+
+                                # Routing if available
+                                if ROUTE:
+                                    request = requests.post(DEKU_CONFIG["router_url"], data={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time})
+                                    print( request.text )
+                                    logging.info(f"[+] Successfully routed SMS message")
+                                
                             else:
                                 logging.warning(f">> Failed to remove SMS from modem")
                                 raise Exception("Failed to remove SMS from modem")
