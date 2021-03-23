@@ -119,6 +119,15 @@ class Datastore(object):
         except mysql.connector.Error as err:
             raise Exception( err )
 
+    def get_deku_configs(self):
+        query = f"SELECT * FROM configs"
+        try:
+            self.cursor.execute( query )
+            configs = self.cursor.fetchall()
+            return configs
+        except mysql.connector.Error as err:
+            raise Exception( err )
+
 '''
     def fetch_for( data :dict):
         query = f"SELECT * FROM {tb_messages} WHERE "
