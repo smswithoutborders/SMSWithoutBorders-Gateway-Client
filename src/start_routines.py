@@ -3,6 +3,10 @@
 import mysql.connector
 from datetime import date
 
+import configparser
+CONFIGS = configparser.ConfigParser(interpolation=None)
+CONFIGS.read("libs/config.ini")
+
 DATABASE = "deku"
 TABLE = "messages"
 TABLE_LOG = "logs"
@@ -100,7 +104,12 @@ def set_connection( host, user, password, database=None):
 # CHECK DATABASE
 def sr_database_checks():
     global mysqlcursor, mydb
-    set_connection(host="localhost", user="root", password="asshole")
+
+    HOST = CONFIGS["MYSQL"]["HOST"]
+    USER = CONFIGS["MYSQL"]["USER"]
+    PASSWORD = CONFIGS["MYSQL"]["PASSWORD"]
+    set_connection(host=HOST, user=USER, password=PASSWORD)
+
     mysqlcursor = mydb.cursor()
     mysqlcursor.execute("SHOW DATABASES")
 
@@ -122,7 +131,7 @@ def sr_database_checks():
 
 
     # CHECK TABLES
-    set_connection(host = "localhost", user = "root", password = "asshole", database=DATABASE)
+    set_connection(host=HOST, user=USER, password=PASSWORD, database=DATABASE)
     # TODO: Check if connected
     mysqlcursor = mydb.cursor()
     mysqlcursor.execute("SHOW TABLES")
