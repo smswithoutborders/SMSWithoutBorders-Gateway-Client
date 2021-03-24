@@ -10,7 +10,6 @@ from libs.lmodems import Modems
 from flask import Flask, request, jsonify
 app = Flask(__name__)
 
-datastore = Datastore(configs_filepath="libs/config.ini")
 # datastore.get_datastore()
 # datastore = Datastore(config=CONFIGS)
 
@@ -38,6 +37,7 @@ def new_messages():
         return_json = {"status" :"", "tstate":""}
         try: 
             # TODO: Determine ISP before sending messages
+            datastore = Datastore(configs_filepath="libs/config.ini")
             messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp="MTN", _type="sending")
             return_json["status"] = 200
             return_json["messageID"] = messageID
@@ -49,6 +49,7 @@ def new_messages():
         print("[?] Fetching messages....")
         return_json = {"status" :"", "tstate":""}
         try:
+            datastore = Datastore(configs_filepath="libs/config.ini")
             messages = datastore.get_all_received_messages()
             return_json["status"] = 200
             return_json["messages"] = messages
