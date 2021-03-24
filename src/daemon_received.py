@@ -17,7 +17,6 @@ CONFIGS = configparser.ConfigParser(interpolation=None)
 CONFIGS.read("config.ini")
 ROUTE = CONFIGS["ROUTER"]["route"]
 
-modems = Modems()
 # route_url = DEKU_CONFIGS["router_url"]
 
 # check to make sure everything is set for takefoff
@@ -33,7 +32,14 @@ except Exception as error:
     # print("Error raised:", error)
     print( error )
 else:
-    DEKU_CONFIGS = modems.get_deku_configs()[0]
+    modems = Modems()
+    DEKU_CONFIGS = None
+    try:
+        DEKU_CONFIGS = modems.get_deku_configs()[0]
+    except Exception as error:
+        print(">> Check if configs have been enabled, could get not them from database")
+        print(error)
+
     print("\t- All checks passed.... proceeding...")
     try:
         prev_list_of_modems = []
