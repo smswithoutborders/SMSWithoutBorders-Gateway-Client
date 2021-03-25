@@ -124,7 +124,7 @@ def insert_default_route( router_url):
 
 # CHECK DATABASE
 def sr_database_checks():
-    CONFIGS.read("libs/config.ini")
+    CONFIGS.read("libs/configs/config.ini")
     global mysqlcursor, mydb
 
     HOST = CONFIGS["MYSQL"]["HOST"]

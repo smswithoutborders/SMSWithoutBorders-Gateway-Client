@@ -1,34 +1,10 @@
-#### Begin by configuring databases
-##### MySQL
-- Copy the _example.config.ini_ file into _config.ini_ in the same dir
+##### requirements
+* python3
 
-> config 1: src/example.config.ini
-
+#### Begin by installing dependencies
 ```bash
-cp example.config.ini config.ini
-```
-
-> config 2: src/libs/example.config.ini
-
-```bash
-cp example.config.ini config.ini
-```
-
-#### How to Run
-
-##### Create venv
-```bash
-python3 -m virtualenv .venv
-```
-
-##### Activate venv
-```bash
-source .venv/bin/activate
-```
-
-##### Install requirements
-```bash
-pip install -r requirements.txt
+make
+make install
 ```
 
 ######Start the API

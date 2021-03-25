@@ -10,7 +10,7 @@ class Datastore(object):
         self.CONFIGS = configparser.ConfigParser(interpolation=None)
 
         if configs_filepath==None:
-            self.CONFIGS.read("libs/config.ini")
+            self.CONFIGS.read("libs/configs/config.ini")
         else:
             self.CONFIGS.read(configs_filepath)
 

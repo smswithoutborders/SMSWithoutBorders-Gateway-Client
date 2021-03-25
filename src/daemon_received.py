@@ -14,7 +14,7 @@ from libs.lmodems import Modems
 
 # Beginning daemon from here
 CONFIGS = configparser.ConfigParser(interpolation=None)
-CONFIGS.read("config.ini")
+CONFIGS.read("configs/config.ini")
 ROUTE = CONFIGS["ROUTER"]["route"]
 
 # route_url = DEKU_CONFIGS["router_url"]
