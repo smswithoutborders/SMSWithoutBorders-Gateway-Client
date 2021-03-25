@@ -1,5 +1,6 @@
 ##### requirements
 * python3
+* virtualenv
 
 #### Begin by installing dependencies
 ```bash

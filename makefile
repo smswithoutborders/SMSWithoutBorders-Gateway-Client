@@ -10,14 +10,15 @@ copy_configs:
 	cp -iv $(CONFIGS_PATH)/$(EXAMPLE_CONFIG_FILE) $(CONFIGS_PATH)/$(CONFIG_FILE)
 	cp -iv $(MYSQL_CONFIGS_PATH)/$(EXAMPLE_CONFIG_FILE) $(MYSQL_CONFIGS_PATH)/$(CONFIG_FILE)
 
-install_dependencies:
+install_deps:
 	pip install virtualenv
 
-install: install_dependencies $(venv_path)/bin/activate requirements.txt
+install: requirements.txt install_deps
+	virtualenv $(venv_path); \
 	. $(venv_path)/bin/activate; \
-	pip install -r requirements.txt
+	pip install -r requirements.txt; \
+	deactivate
 
 reset:
 	rm -iv $(CONFIGS_PATH)/$(EXAMPLE_CONFIG_FILE) $(CONFIGS_PATH)/$(CONFIG_FILE)
 	rm -iv $(MYSQL_CONFIGS_PATH)/$(EXAMPLE_CONFIG_FILE) $(MYSQL_CONFIGS_PATH)/$(CONFIG_FILE)
-
