@@ -10,17 +10,20 @@ make install
 
 ######Start the API
 ```bash
+source .venv/bin/activate
 cd src/
 python3 api.py
 ```
 #### Run Daemons
 ##### To send out SMS messages
 ```bash
+source .venv/bin/activate
 cd src/
 python3 daemon.py
 ```
 ##### To read received SMS messages
 ```bash
+source .venv/bin/activate
 cd src/
 python3 daemon_received.py
 ```
