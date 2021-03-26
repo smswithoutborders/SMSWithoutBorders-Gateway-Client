@@ -1,5 +1,5 @@
-CONFIGS_PATH=src/configs
-MYSQL_CONFIGS_PATH=src/libs/configs
+CONFIGS_PATH=configs
+MYSQL_CONFIGS_PATH=src/configs
 
 CONFIG_FILE=config.ini
 EXAMPLE_CONFIG_FILE=example.config.ini
