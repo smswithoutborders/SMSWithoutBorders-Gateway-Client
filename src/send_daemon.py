@@ -5,9 +5,9 @@ import start_routines
 import logging
 import time
 
-from libs.lsms import SMS 
-from libs.lmodem import Modem 
-from libs.lmodems import Modems 
+from lsms import SMS 
+from lmodem import Modem 
+from lmodems import Modems 
 
 def send_sms():
     # Beginning daemon from here

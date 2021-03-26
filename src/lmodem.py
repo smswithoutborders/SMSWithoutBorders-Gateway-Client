@@ -3,7 +3,7 @@
 import subprocess
 from subprocess import Popen, PIPE
 
-from libs.lsms import SMS 
+from lsms import SMS 
 from ldatastore import Datastore 
 
 import logging
