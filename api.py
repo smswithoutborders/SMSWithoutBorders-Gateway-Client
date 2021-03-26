@@ -1,11 +1,12 @@
 #!/bin/python
 
+import os
 import configparser
 CONFIGS = configparser.ConfigParser(interpolation=None)
 
-CONFIGS.read("configs/config.ini")
-from ldatastore import Datastore
-from libs.lmodems import Modems
+CONFIGS.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+from src.ldatastore import Datastore
+from src.libs.lmodems import Modems
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -40,7 +41,8 @@ def new_messages():
         return_json = {"status" :"", "tstate":""}
         try: 
             # TODO: Determine ISP before sending messages
-            datastore = Datastore(configs_filepath="libs/configs/config.ini")
+            # datastore = Datastore(configs_filepath="libs/configs/config.ini")
+            datastore = Datastore()
             messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp="MTN", _type="sending")
             return_json["status"] = 200
             return_json["messageID"] = messageID
@@ -52,7 +54,8 @@ def new_messages():
         print("[?] Fetching messages....")
         return_json = {"status" :"", "tstate":""}
         try:
-            datastore = Datastore(configs_filepath="libs/configs/config.ini")
+            # datastore = Datastore(configs_filepath="libs/configs/config.ini")
+            datastore = Datastore()
             messages = datastore.get_all_received_messages()
             return_json["status"] = 200
             return_json["messages"] = messages
