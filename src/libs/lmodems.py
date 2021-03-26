@@ -1,8 +1,10 @@
 #!/bin/python
 import subprocess
 import threading
-from libs.lmodem import Modem 
-from ldatastore import Datastore 
+
+from src.ldatastore import Datastore 
+from src.libs.lmodem import Modem 
+
 import logging
 
 # TODO: Listen for modems and use events

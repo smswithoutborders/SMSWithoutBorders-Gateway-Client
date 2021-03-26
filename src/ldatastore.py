@@ -1,18 +1,15 @@
 #!/bin/python import mysql.connector
-import mysql.connector
+import os
 import pymysql
+import mysql.connector
 from datetime import date
 
 # rewrite message store to allow for using as a class extension
 class Datastore(object):
-    def __init__(self, configs_filepath=None ):
+    def __init__(self):
         import configparser
         self.CONFIGS = configparser.ConfigParser(interpolation=None)
-
-        if configs_filepath==None:
-            self.CONFIGS.read("libs/configs/config.ini")
-        else:
-            self.CONFIGS.read(configs_filepath)
+        self.CONFIGS.read(os.path.join(os.path.dirname(__file__), '', 'config.mysql.ini'))
 
         self.HOST = self.CONFIGS["MYSQL"]["HOST"]
         self.USER = self.CONFIGS["MYSQL"]["USER"]
