@@ -79,4 +79,7 @@ def send_sms():
             print( error)
 
 if __name__ == "__main__":
-    send_sms()
+    try:
+        send_sms()
+    except Exception as error:
+        print( error )
