@@ -9,7 +9,11 @@ class Datastore(object):
     def __init__(self):
         import configparser
         self.CONFIGS = configparser.ConfigParser(interpolation=None)
-        self.CONFIGS.read(os.path.join(os.path.dirname(__file__), '', 'config.mysql.ini'))
+        PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.mysql.ini')
+        if os.path.exists( PATH_CONFIG_FILE ):
+            self.CONFIGS.read(PATH_CONFIG_FILE)
+        else:
+            raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
 
         self.HOST = self.CONFIGS["MYSQL"]["HOST"]
         self.USER = self.CONFIGS["MYSQL"]["USER"]
