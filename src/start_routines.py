@@ -1,11 +1,12 @@
 #!/bin/python
 
+import os
 import mysql.connector
+import configparser
+
 from datetime import date
 
-import configparser
 CONFIGS = configparser.ConfigParser(interpolation=None)
-
 DATABASE = "deku"
 TABLE_SMS = "messages"
 TABLE_LOG = "logs"
@@ -111,7 +112,7 @@ def alter_table( DATABASE, TABLE, alters ):
 
 def set_connection( host, user, password, database=None):
     global mysqlcursor, mydb
-    mydb = mysql.connector.connect( host= host, user= user, password= password, database=database)
+    mydb = mysql.connector.connect( host= host, user= user, password= password, database=database, auth_plugin='mysql_native_password')
     mysqlcursor = mydb.cursor()
 
 def insert_default_route( router_url):
@@ -124,7 +125,11 @@ def insert_default_route( router_url):
 
 # CHECK DATABASE
 def sr_database_checks():
-    CONFIGS.read("libs/configs/config.ini")
+    PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.mysql.ini')
+    if os.path.exists( PATH_CONFIG_FILE ):
+        CONFIGS.read(PATH_CONFIG_FILE)
+    else:
+        raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
     global mysqlcursor, mydb
 
     HOST = CONFIGS["MYSQL"]["HOST"]
@@ -184,7 +189,12 @@ def sr_database_checks():
                 create_table( mysqlcursor, DATABASE, TABLE, list_tables[TABLE])
                 print("\t[+] Table created!")
                 if TABLE == "configs":
-                    CONFIGS.read("config.ini")
+                    PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.ini')
+                    if os.path.exists( PATH_CONFIG_FILE ):
+                        CONFIGS.read(PATH_CONFIG_FILE)
+                    else:
+                        raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
+                    # CONFIGS.read("config.ini")
                     if "default" in CONFIGS["ROUTER"]:
                         insert_default_route(CONFIGS["ROUTER"]["default"])
             except Exception as error:

@@ -2,8 +2,8 @@
 import subprocess
 import threading
 
-from src.ldatastore import Datastore 
-from src.libs.lmodem import Modem 
+from ldatastore import Datastore 
+from libs.lmodem import Modem 
 
 import logging
 
