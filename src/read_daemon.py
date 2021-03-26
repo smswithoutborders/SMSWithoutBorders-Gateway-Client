@@ -9,9 +9,9 @@ import subprocess
 import configparser
 import start_routines
 
-from libs.lsms import SMS 
-from libs.lmodem import Modem 
-from libs.lmodems import Modems 
+from lsms import SMS 
+from lmodem import Modem 
+from lmodems import Modems 
 
 def read_sms():
     format = "[%(asctime)s] >> %(message)s"
