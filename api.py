@@ -17,7 +17,7 @@ CORS(app)
 
 # Get current state of the daemon [idle, busy, help]
 CONFIGS = configparser.ConfigParser(interpolation=None)
-PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configs', 'config.mysql.ini')
+PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configs', 'config.ini')
 if os.path.exists( PATH_CONFIG_FILE ):
     CONFIGS.read(PATH_CONFIG_FILE)
 else:
