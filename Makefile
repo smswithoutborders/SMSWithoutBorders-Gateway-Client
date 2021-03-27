@@ -34,4 +34,5 @@ remove:
 	sudo rm -rv $(INSTALL_PATH)
 	sudo rm -v $(SYSTEMD_PATH)/deku.service
 	sudo systemctl daemon-reload
-	sudo systemctl stop deku.service
+	sudo systemctl kill deku.service
+	sudo systemctl disable deku.service
