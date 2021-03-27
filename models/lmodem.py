@@ -3,8 +3,8 @@
 import subprocess
 from subprocess import Popen, PIPE
 
-from lsms import SMS 
-from ldatastore import Datastore 
+from models.lsms import SMS 
+from models.ldatastore import Datastore 
 
 import logging
 import threading

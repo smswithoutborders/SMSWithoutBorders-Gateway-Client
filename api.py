@@ -2,11 +2,7 @@
 
 import os
 import configparser
-CONFIGS = configparser.ConfigParser(interpolation=None)
-
-CONFIGS.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 from src.ldatastore import Datastore
-from src.libs.lmodems import Modems
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -18,6 +14,13 @@ CORS(app)
 # datastore = Datastore(config=CONFIGS)
 
 # Get current state of the daemon [idle, busy, help]
+CONFIGS = configparser.ConfigParser(interpolation=None)
+try:
+    CONFIGS.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+except Exception as error:
+    print(error)
+    exit()
+
 @app.route('/state')
 def daemon_state():
     return "development"
