@@ -125,7 +125,7 @@ def insert_default_route( router_url):
 
 # CHECK DATABASE
 def sr_database_checks():
-    PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.mysql.ini')
+    PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configs', 'config.mysql.ini')
     if os.path.exists( PATH_CONFIG_FILE ):
         CONFIGS.read(PATH_CONFIG_FILE)
     else:
@@ -189,7 +189,7 @@ def sr_database_checks():
                 create_table( mysqlcursor, DATABASE, TABLE, list_tables[TABLE])
                 print("\t[+] Table created!")
                 if TABLE == "configs":
-                    PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.ini')
+                    PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configs', 'config.ini')
                     if os.path.exists( PATH_CONFIG_FILE ):
                         CONFIGS.read(PATH_CONFIG_FILE)
                     else:
