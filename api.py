@@ -2,10 +2,12 @@
 
 import os
 import configparser
-from src.ldatastore import Datastore
-
+import threading
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
+from models.ldatastore import Datastore
+import daemon
 
 app = Flask(__name__)
 CORS(app)
@@ -15,10 +17,11 @@ CORS(app)
 
 # Get current state of the daemon [idle, busy, help]
 CONFIGS = configparser.ConfigParser(interpolation=None)
-try:
-    CONFIGS.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
-except Exception as error:
-    print(error)
+PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configs', 'config.mysql.ini')
+if os.path.exists( PATH_CONFIG_FILE ):
+    CONFIGS.read(PATH_CONFIG_FILE)
+else:
+    raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
     exit()
 
 @app.route('/state')
@@ -72,4 +75,8 @@ if CONFIGS["API"]["DEBUG"] == "1":
     # Allows server reload once code changes
     app.debug = True
 
+tDaemon = threading.Thread(target=daemon.start, daemon=True)
+tDaemon.start()
+
 app.run(host=CONFIGS["API"]["HOST"], port=CONFIGS["API"]["PORT"], debug=app.debug )
+tDaemon.join()
