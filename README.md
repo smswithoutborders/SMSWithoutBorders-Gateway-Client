@@ -1,41 +1,29 @@
-##### requirements
+#### Requirements
 * python3
-* virtualenv
+* pip3
+* MySQL (mariadb)
+* ModemManager (default on linux systems)
 
-#### Begin by installing dependencies
+#### Installation
 ```bash
 make
-make install
+sudo make install
+sudo make run
 ```
 
-######Start the API
-```bash
-source .venv/bin/activate
-cd src/
-python3 api.py
-```
-#### Run Daemons
-##### To send out SMS messages
-```bash
-source .venv/bin/activate
-cd src/
-python3 daemon.py
-```
-##### To read received SMS messages
-```bash
-source .venv/bin/activate
-cd src/
-python3 daemon_received.py
+### API Endpoints
+#### Sending SMS
+> POST: localhost:6868/messages
+```JSON
+{
+  "text" : "",
+  "phonenumber" : ""
+}
 ```
 
-#### How to test
-
-##### Send SMS
+#### Reading received SMS messages
+> GET: localhost:6868/messages
 ```bash
-./test_script.sh --send <receiving phonenumber>
-# example: ./test_script.sh --send 00000000
-```
-##### See all received SMS messages
-```bash
-./test_script.sh --received
+{
+}
 ```
