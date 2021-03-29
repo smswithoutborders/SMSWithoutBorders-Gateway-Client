@@ -20,6 +20,15 @@ else:
     raise Exception(f"ISP config file not found: {ISP_PATH_CONFIG_FILE}")
     exit()
 
+def rm_country_code(phonenumber):
+    country_code = ISP_CONFIGS[CONFIGS["ISP"]["country"]]["..country_code"]
+    if country_code[0] == "+":
+        country_code = '\\' + country_code
+    if re.search(str('^' + country_code), phonenumber):
+        return phonenumber[(len(country_code)-1):]
+    else:
+        return phonenumber
+
 
 def deduce_isp(phonenumber):
     region_isp = ISP_CONFIGS[CONFIGS["ISP"]["country"]]
@@ -30,7 +39,6 @@ def deduce_isp(phonenumber):
         rgexs = region_isp[isp].split(',')
         for rgex in rgexs:
             if re.search(rgex, phonenumber):
-                print(">>Found match")
                 return isp
     
     return None
@@ -40,5 +48,8 @@ if __name__ == "__main__":
     ORANGE="6921"
     NEXTTELL="6621"
 
-    isp = deduce_isp("652156")
-    print(isp)
+    phonenumber = "+237652156"
+    phonenumber=rm_country_code(phonenumber)
+    isp = deduce_isp(phonenumber)
+    assert(phonenumber=="652156")
+    assert(isp == "mtn")
