@@ -7,8 +7,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from models.datastore import Datastore
-import daemon
 import deduce_isp as isp
+import daemon
 
 app = Flask(__name__)
 CORS(app)
@@ -40,17 +40,19 @@ def new_messages():
             return jsonify({"status":400, "message":"missing phonenumber"})
 
         text = request_body["text"]
-        phonenumber = request_body["phonenumber"]
-        
+        phonenumber = isp.rm_country_code(request_body["phonenumber"])
+        dec_isp=isp.deduce_isp(phonenumber)
+
+        # TODO: authenticate min length
         # TODO: put logger in here to log everything
-        print(f"[+] New message...\n\t-text: {text}\n\t-phonenumber: {phonenumber}")
+        print(f"[+] New sending message...\n\t-text: {text}\n\t-phonenumber: {phonenumber},\n\t-isp: {dec_isp}")
 
         return_json = {"status" :"", "tstate":""}
         try: 
             # TODO: Determine ISP before sending messages
             # datastore = Datastore(configs_filepath="libs/configs/config.ini")
             datastore = Datastore()
-            messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp=isp.deduce_isp(phonenumber), _type="sending")
+            messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp=dec_isp, _type="sending")
             return_json["status"] = 200
             return_json["messageID"] = messageID
         except Exception as err:

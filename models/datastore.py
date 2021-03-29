@@ -99,10 +99,12 @@ class Datastore(object):
 
     def new_message(self, text:str, phonenumber:str, isp:str, _type:str, claimed_modem_imei=None):
         query = f"INSERT INTO messages SET text=%s, phonenumber=%s, isp=%s, type=%s"
+        query_vars = [text, phonenumber, isp, _type]
         if not claimed_modem_imei==None:
             query += f", claimed_modem_imei=%s"
+            query_vars.append( claimed_modem_imei )
         try:
-            self.cursor.execute( query, [text, phonenumber, isp, _type, claimed_modem_imei] )
+            self.cursor.execute( query, query_vars )
             self.conn.commit()
             messageID = self.cursor.lastrowid
             # messageID = self.conn.commit()

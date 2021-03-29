@@ -7,6 +7,7 @@ import requests
 import traceback
 import subprocess
 import configparser
+import deduce_isp as isp
 
 from models.lsms import SMS 
 from models.lmodem import Modem 
@@ -80,6 +81,7 @@ def daemon():
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - New Message Found!")
                         for sms in messages:
                             logging.info(f"[+] Reading new messages...")
+                            sms.phonenumber = isp.rm_country_code(sms.phonenumber)
                             logging.info(f"\n\ttext>> {sms.text}\n\tphonenumber>> {sms.phonenumber}\n\ttimestamp>> {sms.timestamp}\n\tdischarge timestamp>> {sms.discharge_time}\n\tstate>> {sms.state}")
                             modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp="", claimed_modem_imei=modem.details["modem.3gpp.imei"])
 
