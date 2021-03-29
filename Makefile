@@ -23,8 +23,8 @@ install_deps:requirements.txt
 install:install_deps
 	# sudo ln -s "$(pwd)" $(INSTALL_PATH)
 	sudo cp -rv "$(PWD)" $(INSTALL_PATH)
-	test -f "$(INSTALL_PATH)"/system/deku.service || \
-		sudo ln -s "$(INSTALL_PATH)"/system/deku.service $(SYSTEMD_PATH)/ 
+	test -f "$(INSTALL_PATH)"/system/deku.service && \
+		sudo ln -s "$(INSTALL_PATH)"/system/deku.service $(SYSTEMD_PATH)/deku.service
 	sudo systemctl daemon-reload
 
 run: 
