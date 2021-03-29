@@ -8,6 +8,7 @@ from flask_cors import CORS
 
 from models.datastore import Datastore
 import daemon
+import deduce_isp as isp
 
 app = Flask(__name__)
 CORS(app)
@@ -49,7 +50,7 @@ def new_messages():
             # TODO: Determine ISP before sending messages
             # datastore = Datastore(configs_filepath="libs/configs/config.ini")
             datastore = Datastore()
-            messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp="MTN", _type="sending")
+            messageID = datastore.new_message(text=text, phonenumber=phonenumber, isp=isp.deduce_isp(phonenumber), _type="sending")
             return_json["status"] = 200
             return_json["messageID"] = messageID
         except Exception as err:

@@ -37,9 +37,9 @@ class Datastore(object):
             return self.cursor.lastrowid
 
     def update_log(self, messageLogID:int, status:str, message:str):
-        query=f"UPDATE logs SET status='{status}', message=\"{message}\" WHERE id={messageLogID}"
+        query=f"UPDATE logs SET status='{status}', message=%s WHERE id={messageLogID}"
         try:
-            self.cursor.execute( query )
+            self.cursor.execute( query, [message])
             self.conn.commit()
 
         except mysql.connector.Error as err:
@@ -98,11 +98,11 @@ class Datastore(object):
 
 
     def new_message(self, text:str, phonenumber:str, isp:str, _type:str, claimed_modem_imei=None):
-        query = f"INSERT INTO messages SET text='{text}', phonenumber='{phonenumber}', isp='{isp}', type='{_type}'"
+        query = f"INSERT INTO messages SET text=%s, phonenumber=%s, isp=%s, type=%s"
         if not claimed_modem_imei==None:
-            query += f", claimed_modem_imei='{claimed_modem_imei}'"
+            query += f", claimed_modem_imei=%s"
         try:
-            self.cursor.execute( query )
+            self.cursor.execute( query, [text, phonenumber, isp, _type, claimed_modem_imei] )
             self.conn.commit()
             messageID = self.cursor.lastrowid
             # messageID = self.conn.commit()
