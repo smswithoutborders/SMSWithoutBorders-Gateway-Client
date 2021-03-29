@@ -6,7 +6,7 @@ import threading
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-from models.ldatastore import Datastore
+from models.datastore import Datastore
 import daemon
 
 app = Flask(__name__)

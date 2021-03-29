@@ -4,7 +4,7 @@ import subprocess
 from subprocess import Popen, PIPE
 
 from models.lsms import SMS 
-from models.ldatastore import Datastore 
+from models.datastore import Datastore 
 
 import logging
 import threading
