@@ -13,7 +13,7 @@ class Router:
     @staticmethod
     def is_connected():
         try:
-            requests.get("https://mail.google.com").status_code
+            requests.get("https://mail.google.com", timeout=5).status_code
             return True
         except:
             pass
