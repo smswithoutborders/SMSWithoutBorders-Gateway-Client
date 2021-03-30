@@ -29,7 +29,6 @@ else:
     exit()
 
 
-
 @app.route('/state')
 def daemon_state():
     systemd_output=None
@@ -43,6 +42,23 @@ def daemon_state():
         pass
         # print(f"{mmcli_output}")
     return jsonify({"status": 200, "state": systemd_output})
+
+
+@app.route('/logs')
+def get_logs():
+    return_json = {"status" :""}
+    try: 
+        # TODO: Determine ISP before sending messages
+        # datastore = Datastore(configs_filepath="libs/configs/config.ini")
+        datastore = Datastore()
+        logs = datastore.get_logs()
+        return_json["status"] = 200
+        return_json["logs"] = logs
+        return_json["size"] = len(logs)
+    except Exception as err:
+        print( f"[err]: {err}" )
+
+    return jsonify(return_json)
 
 @app.route('/messages', methods=['POST', 'GET'])
 def new_messages():
@@ -62,7 +78,7 @@ def new_messages():
         # TODO: put logger in here to log everything
         print(f"[+] New sending message...\n\t-text: {text}\n\t-phonenumber: {phonenumber},\n\t-isp: {dec_isp}")
 
-        return_json = {"status" :"", "tstate":""}
+        return_json = {"status" :""}
         try: 
             # TODO: Determine ISP before sending messages
             # datastore = Datastore(configs_filepath="libs/configs/config.ini")
@@ -83,6 +99,7 @@ def new_messages():
             messages = datastore.get_all_received_messages()
             return_json["status"] = 200
             return_json["messages"] = messages
+            return_json["size"] = len(messages)
         except Exception as err:
             print( f"[err]: {err}" )
 

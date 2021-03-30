@@ -19,6 +19,10 @@ elif [ "$d_command" == "--received" ] ; then
 	curl -X GET "${url}/messages"
 
 elif [ "$d_command" == "--state" ] ; then
-	echo ">> Fetching received..."
+	echo ">> Checking state..."
 	curl -X GET "${url}/state"
+
+elif [ "$d_command" == "--logs" ] ; then
+	echo ">> Fetching logs..."
+	curl -X GET "${url}/logs"
 fi
