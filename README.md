@@ -38,4 +38,5 @@ sudo make run
 ```
 If `status != 200` : No Daemon has not been installed, and is not running manually
 If `status == 200` and `state == "inactive"`: Daemon has not been installed, but is running manually
+If `status == 200` and `state == "failed"`: Daemon successfully installed, but failed to start 
 If `status == 200` and `state == "active"`: Daemon has been installed
