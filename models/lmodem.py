@@ -188,14 +188,14 @@ class Modem(Datastore):
         sms_received = []
         for sms in lsms:
             sms.extract_message()
-            if sms.state == "received" and sms.details["sms.properties.pdu-type"] == "deliver":
+            if sms.state == "received" and (sms.details["sms.properties.pdu-type"] == "deliver" or sms.details["sms.properties.pdu-type"] == "status-report"):
                 sms_received.append( sms )
 
         return sms_received
 
     def remove_sms(self, sms :SMS):
         mmcli_delete_sms = self.mmcli_m 
-        mmcli_delete_sms += ["--messaging-delete-sms", sms.index] 
+        mmcli_delete_sms += [f"--messaging-delete-sms={sms.index}"] 
         try: 
            mmcli_output = subprocess.check_output(mmcli_delete_sms, stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
         except subprocess.CalledProcessError as error:

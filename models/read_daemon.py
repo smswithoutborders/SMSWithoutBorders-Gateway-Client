@@ -12,10 +12,14 @@ import deduce_isp as isp
 from models.lsms import SMS 
 from models.lmodem import Modem 
 from models.lmodems import Modems 
+from models.router import Router
+
+format = "[%(asctime)s] [reading daemon]>> %(message)s"
+logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
 
 def daemon():
-    format = "[%(asctime)s] [reading daemon]>> %(message)s"
-    logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
+    # format = "[%(asctime)s] [reading daemon]>> %(message)s"
+    # logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
 
     # Beginning daemon from here
     CONFIGS = configparser.ConfigParser(interpolation=None)
@@ -90,10 +94,15 @@ def daemon():
 
                                 # Routing if available
                                 if ROUTE:
-                                    router_url = DEKU_CONFIGS['router_url']
-                                    logging.info(f"Routing to: <<{router_url}>>")
-                                    request = requests.post(DEKU_CONFIGS["router_url"], json={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time})
-                                    print( request.text )
+                                    if Router.is_connected():
+                                        logging.warning("ACTIVE INTERNET CONNECTION...")
+                                        router_url = DEKU_CONFIGS['router_url']
+                                        router = Router(router_url)
+                                        router_response = router.publish(sms)
+                                        print( router_response )
+                                    else:
+                                        logging.warning("NO INTERNET CONNECTION...")
+                                        logging.info("Moving to route to Twilio")
                             else:
                                 logging.warning(f">> Failed to remove SMS from modem")
                                 raise Exception("Failed to remove SMS from modem")
