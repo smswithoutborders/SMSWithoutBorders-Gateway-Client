@@ -17,4 +17,8 @@ if [ "$d_command" == "--send" ] ; then
 elif [ "$d_command" == "--received" ] ; then
 	echo ">> Fetching received..."
 	curl -X GET "${url}/messages"
+
+elif [ "$d_command" == "--state" ] ; then
+	echo ">> Fetching received..."
+	curl -X GET "${url}/state"
 fi
