@@ -131,32 +131,11 @@ class Datastore(object):
         except mysql.connector.Error as err:
             raise Exception( err )
 
-'''
-    def fetch_for( data :dict):
-        query = f"SELECT * FROM {tb_messages} WHERE "
-        for key, value in data:
-
-            appended=False
-            # if one key needs to or many values
-            if type(value)==type({}):
-                query += "("
-                _appended=False
-                for _key, _value in value:
-                    if _appended:
-                        query += "OR "
-                    if type(_value)==type(0): #int
-                        query += f"{key}={value} "
-                    else:
-                        query += f"{key}='{value}' "
-                    _appended=True
-                query += ") "
-            if appended:
-                query+= "AND "
-            if type(_value)==type(0): #int
-                query += f"{key}={value} "
-            else:
-                query += f"{key}='{value}' "
-            appended=True
-
-        query += "WHERE state='pending' ORDER BY date DESC LIMIT 1"
-'''
+    def get_logs(self):
+        query=f"SELECT * FROM logs"
+        try:
+            self.cursor.execute( query )
+            configs = self.cursor.fetchall()
+            return configs
+        except mysql.connector.Error as err:
+            raise Exception( err )
