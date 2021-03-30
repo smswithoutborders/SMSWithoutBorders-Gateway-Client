@@ -3,6 +3,9 @@
 import os
 import configparser
 import threading
+import subprocess
+
+from subprocess import Popen, PIPE
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -25,9 +28,21 @@ else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
     exit()
 
+
+
 @app.route('/state')
 def daemon_state():
-    return "development"
+    systemd_output=None
+    try: 
+       systemd_output = subprocess.check_output(["systemctl", "is-active", "deku.service"], stderr=subprocess.STDOUT).decode('utf-8')
+    except subprocess.CalledProcessError as error:
+        print( error.output )
+        # raise Exception(error)
+        # return jsonify({status: 200, state: systemd_output})
+        systemd_output=error.output.decode('utf-8').replace('\n', '')
+        pass
+        # print(f"{mmcli_output}")
+    return jsonify({"status": 200, "state": systemd_output})
 
 @app.route('/messages', methods=['POST', 'GET'])
 def new_messages():
