@@ -1,3 +1,8 @@
+# lsb_release -> check versions of linux
+# cat /etc/*release
+# cat /etc/issue
+# cat /etc/issue.net
+# cat /etc/lsb-release
 SHELL := /usr/bin/bash
 venv_path=.venv
 pip=pip3
@@ -20,11 +25,21 @@ copy_configs:
 
 install_deps:requirements.txt
 	sudo $(pip) install -r requirements.txt
+
 install:install_deps
 	# sudo ln -s "$(pwd)" $(INSTALL_PATH)
 	sudo cp -rv "$(PWD)" $(INSTALL_PATH)
-	test -f "$(INSTALL_PATH)"/system/deku.service && \
-		sudo ln -s "$(INSTALL_PATH)"/system/deku.service $(SYSTEMD_PATH)/deku.service
+	if [ -f /etc/debian_version ]; then \
+		if [ -f "$(INSTALL_PATH)"/system/debian/deku.service ]; then \
+		sudo ln -s "$(INSTALL_PATH)"/system/debian/deku.service $(SYSTEMD_PATH)/deku.service; \
+		fi \
+	fi
+	
+	if [ -f /etc/manjaro-release ]; then \
+		if [ -f "$(INSTALL_PATH)"/system/arch/deku.service ]; then \
+		sudo ln -s "$(INSTALL_PATH)"/system/arch/deku.service $(SYSTEMD_PATH)/deku.service; \
+		fi \
+	fi
 	sudo systemctl daemon-reload
 
 run: 
