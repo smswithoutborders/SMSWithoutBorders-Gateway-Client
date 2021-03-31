@@ -1,0 +1,12 @@
+[Unit]
+Description=Deku Daemon - Linux based SMS manager
+After=network.target NetworkManager.service ModemManager.service mariadb.service mysqld.service httpd.service
+Requires=mysql.service apache2.service 
+Wants=ModemManager.service
+
+[Service]
+Type=simple
+ExecStart=python3 /usr/local/bin/deku/api.py
+
+[Install]
+WantedBy=multi-user.target
