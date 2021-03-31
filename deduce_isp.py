@@ -14,8 +14,12 @@ else:
     exit()
 
 ISP_PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'isp_configs', "isp.ini")
+ISP_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "default.ini")
 if os.path.exists( ISP_PATH_CONFIG_FILE ):
     ISP_CONFIGS.read(ISP_PATH_CONFIG_FILE)
+elif os.path.exists( ISP_PATH_CONFIG_FILE_DEFAULT ):
+    print(">> ISP comes from default.ini")
+    ISP_CONFIGS.read(ISP_PATH_CONFIG_FILE_DEFAULT)
 else:
     raise Exception(f"ISP config file not found: {ISP_PATH_CONFIG_FILE}")
     exit()
