@@ -3,7 +3,7 @@
 # cat /etc/issue
 # cat /etc/issue.net
 # cat /etc/lsb-release
-SHELL := /usr/bin/bash
+SHELL := $(shell which bash)
 venv_path=.venv
 pip=pip3
 
