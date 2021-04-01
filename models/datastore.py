@@ -58,6 +58,17 @@ class Datastore(object):
         else:
             self.cursor.lastrowid
 
+    def release_pending_messages(self, claimed_modem_imei):
+        query=f"UPDATE logs, messages SET logs.status='invalid', claimed_modem_imei=NULL where logs.status='pending' and (messages.id=logs.messageID and messages.claimed_modem_imei=%s)"
+        try:
+            self.cursor.execute( query, [claimed_modem_imei] )
+            self.conn.commit()
+
+        except mysql.connector.Error as err:
+            raise Exception( err )
+        else:
+            self.cursor.lastrowid
+
     def claim_message(self, messageID:int, modem_imei:str):
         query=f"UPDATE messages SET claimed_modem_imei={modem_imei} WHERE id={messageID}"
         try:
