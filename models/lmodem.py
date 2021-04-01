@@ -8,6 +8,7 @@ from models.datastore import Datastore
 
 import logging
 import threading
+import deduce_isp as ISP
 
 class Modem(Datastore):
     details = {}
@@ -147,10 +148,13 @@ class Modem(Datastore):
         self.sms = self.__create( sms )
         return self.sms
 
+
     def claim(self):
         try:
             self.extractInfo()
-            new_message = self.acquire_message(modem_index=self.index, modem_imei=self.details["modem.3gpp.imei"])
+            isp = ISP.acquire_isp(operator_code=self.details["modem.3gpp.operator-code"])
+            # print("[+] Deduced ISP:", isp)
+            new_message = self.acquire_message(modem_index=self.index, modem_imei=self.details["modem.3gpp.imei"], isp=isp )
         except Exception as error:
             raise Exception( error )
         else:
