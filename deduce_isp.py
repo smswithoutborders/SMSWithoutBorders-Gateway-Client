@@ -6,18 +6,23 @@ import configparser
 
 CONFIGS = configparser.ConfigParser(interpolation=None)
 ISP_CONFIGS = configparser.ConfigParser(interpolation=None)
+OPERATORS_CONFIGS = configparser.ConfigParser(interpolation=None)
+
 PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configs', 'config.ini')
+ISP_PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'isp_configs', "isp.ini")
+ISP_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "default.ini")
+OPERATORS_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "operators.ini")
+
 if os.path.exists( PATH_CONFIG_FILE ):
     CONFIGS.read(PATH_CONFIG_FILE)
 else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
     exit()
-
-ISP_PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'isp_configs', "isp.ini")
-ISP_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "default.ini")
 if os.path.exists( ISP_PATH_CONFIG_FILE ):
     ISP_CONFIGS.read(ISP_PATH_CONFIG_FILE)
 elif os.path.exists( ISP_PATH_CONFIG_FILE_DEFAULT ):
+    if os.path.exists( OPERATORS_PATH_CONFIG_FILE_DEFAULT ):
+        OPERATORS_CONFIGS.read( OPERATORS_PATH_CONFIG_FILE_DEFAULT)
     print(">> ISP comes from default.ini")
     ISP_CONFIGS.read(ISP_PATH_CONFIG_FILE_DEFAULT)
 else:
@@ -34,8 +39,21 @@ def rm_country_code(phonenumber):
         return phonenumber
 
 
+def acquire_isp(operator_code):
+    country = CONFIGS["ISP"]["country"]
+    OPERATORS_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "operators.ini")
+    OPERATORS_CONFIGS.read( OPERATORS_PATH_CONFIG_FILE_DEFAULT)
+    
+    for isp in OPERATORS_CONFIGS[country]:
+        if OPERATORS_CONFIGS[country][isp] == operator_code:
+            return isp
+
+    return None
+
+
 def deduce_isp(phonenumber):
-    region_isp = ISP_CONFIGS[CONFIGS["ISP"]["country"]]
+    country = CONFIGS["ISP"]["country"]
+    region_isp = ISP_CONFIGS[country]
     for isp in region_isp:
         if isp == "..country_code":
             continue
