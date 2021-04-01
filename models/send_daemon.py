@@ -1,5 +1,6 @@
 #!/bin/python
 
+import os
 import threading
 import subprocess
 import start_routines
@@ -9,6 +10,16 @@ import time
 from models.lsms import SMS 
 from models.lmodem import Modem 
 from models.lmodems import Modems 
+        
+import configparser
+CONFIGS = configparser.ConfigParser(interpolation=None)
+PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.ini')
+
+if os.path.exists( PATH_CONFIG_FILE ):
+    CONFIGS.read(PATH_CONFIG_FILE)
+else:
+    raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
+    exit()
 
 def daemon():
     # Beginning daemon from here
@@ -92,7 +103,7 @@ def daemon():
                 logging.info(f"No available message...")
 
             prev_list_of_modems = list_of_modems
-            time.sleep(3)
+            time.sleep( int(CONFIGS["MODEMS"]["sleep_time"]))
     except Exception as error:
         print( error)
 
