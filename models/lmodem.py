@@ -181,11 +181,15 @@ class Modem(Datastore):
                     logging.warning("[-] Message released...")
                     # self.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
                     logging.warning("[+] Updated logs...")
+                    self.remove_sms(sms)
                 else:
                     logging.info("[+] Message sent!")
                 self.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
             except Exception as error:
                 print(f">> Exception error:", error )
+                raise Exception(error)
+            return send_status["state"]
+
 
     def get_received_messages(self):
         lsms = SMS().get_messages(self)
