@@ -32,7 +32,7 @@ sudo make run
 > GET: localhost:6868/state
 ```JSON
 {
-	"status" : 200
+	"status" : 200,
 	"state" : "active" || "inactive"  
 }
 ```
