@@ -86,8 +86,9 @@ def daemon():
                         for sms in messages:
                             logging.info(f"[+] Reading new messages...")
                             sms.phonenumber = isp.rm_country_code(sms.phonenumber)
+                            # _isp = isp.deduce_isp( sms.phonenumber )
                             logging.info(f"\n\ttext>> {sms.text}\n\tphonenumber>> {sms.phonenumber}\n\ttimestamp>> {sms.timestamp}\n\tdischarge timestamp>> {sms.discharge_time}\n\tstate>> {sms.state}")
-                            modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp="", claimed_modem_imei=modem.details["modem.3gpp.imei"])
+                            modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp='', claimed_modem_imei=modem.details["modem.3gpp.imei"])
 
                             if modem.remove_sms(sms):
                                 logging.info(f"[-] SMS removed from modem")
@@ -103,6 +104,8 @@ def daemon():
                                     else:
                                         logging.warning("NO INTERNET CONNECTION...")
                                         logging.info("Moving to route to Twilio")
+
+                                        modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type="routing", isp="")
                             else:
                                 logging.warning(f">> Failed to remove SMS from modem")
                                 raise Exception("Failed to remove SMS from modem")
