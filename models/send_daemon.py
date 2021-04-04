@@ -21,6 +21,27 @@ else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
     exit()
 
+
+def claim(modem):
+    try:
+        modem.extractInfo()
+        isp = ISP.acquire_isp(operator_code=modem.details["modem.3gpp.operator-code"])
+        # print("[+] Deduced ISP:", isp)
+        router=False
+        if "isp" in CONFIGS["ROUTER"] and CONFIGS["ROUTER"]["isp"] == isp:
+            router=True
+        new_message = modem.acquire_message(modem_index=modem.index, modem_imei=modem.details["modem.3gpp.imei"], isp=isp, router=router)
+    except Exception as error:
+        raise Exception( error )
+    else:
+        if not new_message==None:
+            sms = SMS(messageID=new_message["id"])
+            sms.create_sms( phonenumber=new_message["phonenumber"], text=new_message["text"] )
+            modem.set_sms( sms )
+            return True
+        else:
+            return None
+
 def daemon():
     # Beginning daemon from here
     modems = Modems()
@@ -72,7 +93,7 @@ def daemon():
                         del threadCollections[modem_imei]
                 try: 
                     # logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Claiming message!")
-                    if modem.claim() is not None:# claim updates messages and starts new log
+                    if claim(modem) is not None:# claim updates messages and starts new log
                         messageClaimed=True
                         shownNoAvailableMessage=False
                         # logging.info(f"text={modem.sms.text}\phonenumber={modem.sms.phonenumber})

@@ -149,22 +149,6 @@ class Modem(Datastore):
         return self.sms
 
 
-    def claim(self):
-        try:
-            self.extractInfo()
-            isp = ISP.acquire_isp(operator_code=self.details["modem.3gpp.operator-code"])
-            # print("[+] Deduced ISP:", isp)
-            new_message = self.acquire_message(modem_index=self.index, modem_imei=self.details["modem.3gpp.imei"], isp=isp )
-        except Exception as error:
-            raise Exception( error )
-        else:
-            if not new_message==None:
-                sms = SMS(messageID=new_message["id"])
-                sms.create_sms( phonenumber=new_message["phonenumber"], text=new_message["text"] )
-                self.set_sms( sms )
-                return True
-            else:
-                return None
 
     def send_sms(self, sms :SMS, text=None, receipient=None):
         send_status=None

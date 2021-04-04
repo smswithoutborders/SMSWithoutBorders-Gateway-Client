@@ -80,13 +80,18 @@ class Datastore(object):
         else:
             self.cursor.lastrowid
 
-    def acquire_message(self, modem_index:int, modem_imei:str, isp:str):
+    def acquire_message(self, modem_index:int, modem_imei:str, isp:str, router:bool=True):
         '''
             TODO: 
                 - Filter by last come first out
         '''
 
-        query = f"SELECT * FROM messages where claimed_modem_imei is NULL and type='sending' and isp=%s LIMIT 1"
+        query=""
+        if router:
+            query = f"SELECT * FROM messages where claimed_modem_imei is NULL and (type='sending' or type='routing') and isp=%s LIMIT 1"
+
+        else:
+            query = f"SELECT * FROM messages where claimed_modem_imei is NULL and type='sending' and isp=%s LIMIT 1"
         try:
             self.cursor.execute( query, [isp])
             sms_message = self.cursor.fetchall()
