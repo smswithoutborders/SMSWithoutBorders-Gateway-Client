@@ -33,7 +33,7 @@ else:
 def daemon_state():
     systemd_output=None
     try: 
-       systemd_output = subprocess.check_output(["systemctl", "is-active", "deku.service"], stderr=subprocess.STDOUT).decode('utf-8')
+       systemd_output = subprocess.check_output(["systemctl", "is-active", "deku.service"], stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
     except subprocess.CalledProcessError as error:
         print( error.output )
         # raise Exception(error)
