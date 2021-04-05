@@ -16,18 +16,19 @@ from models.router import Router
 
 format = "[%(asctime)s] [reading daemon]>> %(message)s"
 logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
+    
+CONFIGS = configparser.ConfigParser(interpolation=None)
+PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.ini')
+if os.path.exists( PATH_CONFIG_FILE ):
+    CONFIGS.read(PATH_CONFIG_FILE)
+else:
+    raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
 
 def daemon():
     # format = "[%(asctime)s] [reading daemon]>> %(message)s"
     # logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
 
     # Beginning daemon from here
-    CONFIGS = configparser.ConfigParser(interpolation=None)
-    PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.ini')
-    if os.path.exists( PATH_CONFIG_FILE ):
-        CONFIGS.read(PATH_CONFIG_FILE)
-    else:
-        raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
 
     ROUTE = CONFIGS["ROUTER"]["route"]
     print(">> Starting system diagnosis...")
@@ -95,17 +96,23 @@ def daemon():
 
                                 # Routing if available
                                 if ROUTE:
-                                    if Router.is_connected():
+                                    if Router.is_connected() and not CONFIGS["ROUTER"]["offline_mode"] == "1":
                                         logging.warning("ACTIVE INTERNET CONNECTION...")
                                         router_url = DEKU_CONFIGS['router_url']
                                         router = Router(router_url)
                                         router_response = router.publish(sms)
                                         print( router_response )
                                     else:
-                                        logging.warning("NO INTERNET CONNECTION...")
+                                        logging.warning("ROUTING OFFLINE MODE")
                                         logging.info("Moving to route to Twilio")
 
-                                        modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type="routing", isp="")
+                                        # TODO: check if router is configured
+                                        route_num=None
+                                        if "router_phonenumber" in CONFIGS["ROUTER"]:
+                                            route_num = CONFIGS["ROUTER"]["router_phonenumber"]
+                                            modem.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp="")
+                                        else:
+                                            logging.warning("NO ROUTER NUM SET... MESSAGE WON'T BE ROUTED")
                             else:
                                 logging.warning(f">> Failed to remove SMS from modem")
                                 raise Exception("Failed to remove SMS from modem")

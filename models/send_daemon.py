@@ -6,6 +6,7 @@ import subprocess
 import start_routines
 import logging
 import time
+import deduce_isp as ISP
 
 from models.lsms import SMS 
 from models.lmodem import Modem 
@@ -30,6 +31,7 @@ def claim(modem):
         router=False
         if "isp" in CONFIGS["ROUTER"] and CONFIGS["ROUTER"]["isp"] == isp:
             router=True
+        # print("[+] ROUTER SET TO: ", router)
         new_message = modem.acquire_message(modem_index=modem.index, modem_imei=modem.details["modem.3gpp.imei"], isp=isp, router=router)
     except Exception as error:
         raise Exception( error )
