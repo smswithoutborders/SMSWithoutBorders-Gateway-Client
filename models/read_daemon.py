@@ -24,11 +24,19 @@ if os.path.exists( PATH_CONFIG_FILE ):
 else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
 
+DEKU_CONFIGS = None
+try:
+    DEKU_CONFIGS = modems.get_deku_configs()[0]
+except Exception as error:
+    print(">> Check if configs have been enabled, could get not them from database")
+    print(error)
+
 
 def route(mode, sms, modem=None):
     if mode == "online":
         logging.warning("ROUTING ONLINE MODE...")
-        router_url = DEKU_CONFIGS['router_url']
+        # router_url = DEKU_CONFIGS['router_url']
+        router_url = CONFIGS["ROUTER"]["default"]
         router = Router(router_url)
         router_response = router.publish(sms)
         print( router_response )
@@ -54,12 +62,6 @@ def daemon():
     print(">> Starting system diagnosis...")
 
     modems = Modems()
-    DEKU_CONFIGS = None
-    try:
-        DEKU_CONFIGS = modems.get_deku_configs()[0]
-    except Exception as error:
-        print(">> Check if configs have been enabled, could get not them from database")
-        print(error)
 
     print("\t- All checks passed.... proceeding...")
     try:
