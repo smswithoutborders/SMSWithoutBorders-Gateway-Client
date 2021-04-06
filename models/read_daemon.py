@@ -24,6 +24,25 @@ if os.path.exists( PATH_CONFIG_FILE ):
 else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
 
+
+def route(mode, sms, modem=None):
+    if mode == "online":
+        logging.warning("ROUTING ONLINE MODE...")
+        router_url = DEKU_CONFIGS['router_url']
+        router = Router(router_url)
+        router_response = router.publish(sms)
+        print( router_response )
+    elif mode == "offline":
+        logging.warning("ROUTING OFFLINE MODE...")
+        # logging.info("Moving to route to Twilio")
+        # TODO: check if router is configured
+        route_num=None
+        if "router_phonenumber" in CONFIGS["ROUTER"]:
+            route_num = CONFIGS["ROUTER"]["router_phonenumber"]
+            modem.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp="")
+        else:
+            logging.warning("NO ROUTER NUM SET... MESSAGE WON'T BE ROUTED")
+
 def daemon():
     logging.info("[+] Read daemon begun...")
     # format = "[%(asctime)s] [reading daemon]>> %(message)s"
@@ -56,7 +75,8 @@ def daemon():
             ROUTE = False
             logging.info("Routing off")
 
-        while True:
+        loopCounter=1
+        while loopCounter:
             list_of_modems = modems.get_modems()
             # logging.info(f"[+] Scanning for modems...")
             if len(list_of_modems) == 0 and not fl_no_modem_shown:
@@ -97,25 +117,22 @@ def daemon():
 
                                 # Routing if available
                                 if ROUTE:
-                                    if Router.is_connected() and not CONFIGS["ROUTER"]["offline_mode"] == "1":
-                                        logging.warning("ACTIVE INTERNET CONNECTION...")
-                                        router_url = DEKU_CONFIGS['router_url']
-                                        router = Router(router_url)
-                                        router_response = router.publish(sms)
+                                    if CONFIGS["ROUTER"]["offline_mode"] == "1":
+                                        router_response = route(mode="offline", modem=modem, sms=sms)
                                         print( router_response )
-                                    else:
-                                        logging.warning("ROUTING OFFLINE MODE")
-                                        logging.info("Moving to route to Twilio")
 
-                                        # TODO: check if router is configured
-                                        route_num=None
-                                        if "router_phonenumber" in CONFIGS["ROUTER"]:
-                                            route_num = CONFIGS["ROUTER"]["router_phonenumber"]
-                                            modem.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp="")
+                                    if CONFIGS["ROUTER"]["online_mode"] == "1":
+                                        router_response = route(mode="online", sms=sms)
+                                        print( router_response )
+
+                                    if CONFIGS["ROUTER"]["offline_mode"] == "0" and CONFIGS["ROUTER"]["online_mode"] == "0":
+                                        if Router.is_connected():
+                                            route(mode="online", sms=sms)
                                         else:
-                                            logging.warning("NO ROUTER NUM SET... MESSAGE WON'T BE ROUTED")
+                                            route(mode="offline", sms=sms, modem=modem)
                             else:
                                 logging.warning(f">> Failed to remove SMS from modem")
+                                exit() # TODO: DANGEROUS TO HAVE THIS EXCEPTION, MULTIPLE ROUTINGS WILL OCCUR 
                                 raise Exception("Failed to remove SMS from modem")
 
                 except Exception as error:
@@ -126,7 +143,8 @@ def daemon():
                 logging.info(f"No received message...")
 
             prev_list_of_modems = list_of_modems
-            time.sleep(3)
+            sleepTime = int(CONFIGS["MODEMS"]["sleep_time"])
+            time.sleep(sleepTime)
     except Exception as error:
         track = traceback.format_exc()
         # print("GLobal error: ", error)
