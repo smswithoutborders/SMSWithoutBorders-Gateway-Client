@@ -42,7 +42,7 @@ def send_sms(modem, sms):
 
             elif not send_status["state"]:
                 logging.warning("[-] Failed to send...")
-                datastore.release_message(messageID=sms.messageID, state="failed")
+                datastore.release_message(messageID=sms.messageID, status="failed")
                 modem.remove_sms(sms)
             else:
                 logging.info("[+] Message sent!")
@@ -92,7 +92,7 @@ def daemon():
         threadCollections={}
         loopCounter = 1
         while loopCounter:
-            print(f"[+] LC {loopCounter}")
+            # print(f"[+] LC {loopCounter}")
             loopCounter += 1
 
             list_of_modems = modems.get_modems()
@@ -144,7 +144,7 @@ def daemon():
                 except Exception as error:
                     logging.warning(error)
 
-            print(f"[+] Threaded: {len(newThreadCollections)} modems...")
+            # print(f"[+] Threaded: {len(newThreadCollections)} modems...")
             for modemIMEI in newThreadCollections:
                 if modemIMEI in threadCollections:
                     if not threadCollections[modemIMEI].is_alive():
@@ -162,7 +162,7 @@ def daemon():
             prev_list_of_modems = list_of_modems
             sleepTime = int(CONFIGS["MODEMS"]["sleep_time"])
             time.sleep(sleepTime)
-            logging.info("[-] DONE SLEEPING....")
+            # logging.info("[-] DONE SLEEPING....")
     except Exception as error:
         print( error)
 

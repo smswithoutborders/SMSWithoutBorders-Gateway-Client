@@ -48,7 +48,7 @@ class Datastore(object):
             self.cursor.lastrowid
 
     def release_message(self, messageID:int, status:str=None):
-        if state is not None:
+        if status is not None:
             query=f"UPDATE messages SET status='{status}' WHERE id={messageID}"
         else:
             query=f"UPDATE messages SET claimed_modem_imei=NULL WHERE id={messageID}"
