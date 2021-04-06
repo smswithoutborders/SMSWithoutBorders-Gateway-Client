@@ -11,6 +11,7 @@ import deduce_isp as ISP
 from models.lsms import SMS 
 from models.lmodem import Modem 
 from models.lmodems import Modems 
+from models.datastore import Datastore
         
 import configparser
 CONFIGS = configparser.ConfigParser(interpolation=None)
@@ -22,9 +23,41 @@ else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
     exit()
 
+format = "[%(asctime)s] >> %(message)s"
+logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
+
+
+def send_sms(modem, sms):
+    datastore = Datastore()
+    send_status=None
+    try:
+        messageLogID = datastore.new_log(messageID=sms.messageID)
+    except Exception as error:
+        raise( error )
+    else:
+        try:
+            send_status=modem.send_sms( modem.set_sms(sms) )
+            if send_status is None:
+                logging.warning("[-] Send status failed with sys error")
+
+            elif not send_status["state"]:
+                logging.warning("[-] Failed to send...")
+                datastore.release_message(messageID=sms.messageID, state="failed")
+                modem.remove_sms(sms)
+            else:
+                logging.info("[+] Message sent!")
+        except Exception as error:
+            print("[+] Exception as:", error )
+            raise Exception( error )
+        else:
+            datastore.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
+            print(">>send status:", send_status)
+            return send_status["state"]
+
 
 def claim(modem):
     try:
+        datastore = Datastore()
         modem.extractInfo()
         isp = ISP.acquire_isp(operator_code=modem.details["modem.3gpp.operator-code"])
         # print("[+] Deduced ISP:", isp)
@@ -32,38 +65,45 @@ def claim(modem):
         if "isp" in CONFIGS["ROUTER"] and CONFIGS["ROUTER"]["isp"] == isp:
             router=True
         # print("[+] ROUTER SET TO: ", router)
-        new_message = modem.acquire_message(modem_index=modem.index, modem_imei=modem.details["modem.3gpp.imei"], isp=isp, router=router)
+        new_message = datastore.acquire_message(modem_index=modem.index, modem_imei=modem.details["modem.3gpp.imei"], isp=isp, router=router)
     except Exception as error:
         raise Exception( error )
     else:
         if not new_message==None:
             sms = SMS(messageID=new_message["id"])
             sms.create_sms( phonenumber=new_message["phonenumber"], text=new_message["text"] )
-            modem.set_sms( sms )
-            return True
+            
+            return sms
         else:
             return None
 
 def daemon():
+    print("NAME:", threading.current_thread())
+    logging.info("[+] Write daemon begun...")
     # Beginning daemon from here
     modems = Modems()
 
     # check to make sure everything is set for takefoff
-    format = "[%(asctime)s] >> %(message)s"
-    logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
     try:
         prev_list_of_modems = []
         fl_no_modem_shown = False
         shownNoAvailableMessage=False
 
-
         threadCollections={}
-        while True:
+        loopCounter = 1
+        while loopCounter:
+            print(f"[+] LC {loopCounter}")
+            loopCounter += 1
+
             list_of_modems = modems.get_modems()
             # logging.info(f"[+] Scanning for modems...")
-            if len(list_of_modems) == 0 and not fl_no_modem_shown:
-                    logging.info("No modem found...")
-                    fl_no_modem_shown = True
+            if len(list_of_modems) == 0:
+                    if not fl_no_modem_shown:
+                        logging.info("No modem found...")
+                        fl_no_modem_shown = True
+
+                    sleepTime = int(CONFIGS["MODEMS"]["sleep_time"])
+                    time.sleep(sleepTime)
                     continue
 
             modemInstancesCollection=[]
@@ -81,52 +121,48 @@ def daemon():
                     modems.release_pending_messages(modem.extractInfo()["modem.3gpp.imei"])
                 modemInstancesCollection.append( modem )
 
-
             messageClaimed=False
             newThreadCollections={}
             for modem in modemInstancesCollection: 
                 modem_imei = modem.details["modem.3gpp.imei"]
+
+                # checks if the modem is currently trying to send out an SMS message
                 if modem_imei in threadCollections:
                     if threadCollections[modem_imei].is_alive():
-                        # print("[+] Thread still active for modem:", modem_imei)
                         continue
                     else:
-                        # print("[+] Thread is being released:", modem_imei)
                         del threadCollections[modem_imei]
                 try: 
-                    # logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Claiming message!")
-                    if claim(modem) is not None:# claim updates messages and starts new log
+                    sms = claim(modem)
+                    if sms is not None and sms is not False:# claim updates messages and starts new log
+                        print("[+] SMS message:", sms.text)
                         messageClaimed=True
                         shownNoAvailableMessage=False
-                        # logging.info(f"text={modem.sms.text}\phonenumber={modem.sms.phonenumber})
                         logging.info(f"{modem_imei}::{modem.index} - Message claimed!")
                         
-                        # threadCollections.append( threading.Thread( target=modem.send_sms, args=(modem.sms), daemon=True))
-                        newThreadCollections[modem_imei]=threading.Thread( target=modem.send_sms, args=(modem.sms,))
-                        # modem.send_sms( modem.sms ) # updates counter for message and logs after sending
-
+                        newThreadCollections[modem_imei]=threading.Thread( target=send_sms, args=(modem,sms,), daemon=True)
                 except Exception as error:
                     logging.warning(error)
 
-            for m_imei in newThreadCollections:
-                if m_imei in threadCollections:
+            print(f"[+] Threaded: {len(newThreadCollections)} modems...")
+            for modemIMEI in newThreadCollections:
+                if modemIMEI in threadCollections:
+                    if not threadCollections[modemIMEI].is_alive():
+                        print("[=====] something is wrong here....")
                     continue
-                '''
-                    if not threadCollections[m_imei].is_alive():
-                        del threadCollections[modem_imei]
-                '''
-                if not newThreadCollections[m_imei].is_alive():
-                    # print(f"[+] starting:", m_imei, newThreadCollections[m_imei])
-                    newThreadCollections[m_imei].start()
-                    threadCollections[m_imei] = newThreadCollections[m_imei]
-                    # print("[+]LEN:", len(threadCollections))
+
+                elif not newThreadCollections[modemIMEI].is_alive():
+                    newThreadCollections[modemIMEI].start()
+                    threadCollections[modemIMEI] = newThreadCollections[modemIMEI]
 
             if not messageClaimed and not shownNoAvailableMessage:
                 shownNoAvailableMessage=True
                 logging.info(f"No available message...")
 
             prev_list_of_modems = list_of_modems
-            time.sleep( int(CONFIGS["MODEMS"]["sleep_time"]))
+            sleepTime = int(CONFIGS["MODEMS"]["sleep_time"])
+            time.sleep(sleepTime)
+            logging.info("[-] DONE SLEEPING....")
     except Exception as error:
         print( error)
 

@@ -47,8 +47,11 @@ class Datastore(object):
         else:
             self.cursor.lastrowid
 
-    def release_message(self, messageID:int):
-        query=f"UPDATE messages SET claimed_modem_imei=NULL WHERE id={messageID}"
+    def release_message(self, messageID:int, status:str=None):
+        if state is not None:
+            query=f"UPDATE messages SET status='{status}' WHERE id={messageID}"
+        else:
+            query=f"UPDATE messages SET claimed_modem_imei=NULL WHERE id={messageID}"
         try:
             self.cursor.execute( query )
             self.conn.commit()
@@ -89,10 +92,10 @@ class Datastore(object):
         query=""
         query_vars = []
         if router:
-            query = f"SELECT * FROM messages where claimed_modem_imei is NULL and (type='sending' or type='routing') LIMIT 1"
+            query = f"SELECT * FROM messages where claimed_modem_imei is NULL and (type='sending' or type='routing') and status='pending' LIMIT 1"
 
         else:
-            query = f"SELECT * FROM messages where claimed_modem_imei is NULL and type='sending' and isp=%s LIMIT 1"
+            query = f"SELECT * FROM messages where claimed_modem_imei is NULL and type='sending' and isp=%s and status='pending' LIMIT 1"
             query_vars = [isp]
 
         # print("[+] Claim query: ", query)

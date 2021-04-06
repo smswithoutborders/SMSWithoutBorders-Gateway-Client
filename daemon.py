@@ -25,8 +25,18 @@ def start():
         send_thread = threading.Thread(target=sms_send.daemon, daemon=True)
         read_thread = threading.Thread(target=sms_read.daemon, daemon=True)
 
+        send_thread.name = "Sending daemon"
+        read_thread.name = "Reading daemon"
+
         send_thread.start()
         read_thread.start()
+
+        print(f"# Active threads: {threading.active_count()}")
+
+        print("NAME:", threading.current_thread())
+        for threads in threading.enumerate():
+            print(">>", threads.getName())
+            print("")
 
         send_thread.join()
         read_thread.join()

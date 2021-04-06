@@ -14,7 +14,7 @@ from models.lmodem import Modem
 from models.lmodems import Modems 
 from models.router import Router
 
-format = "[%(asctime)s] [reading daemon]>> %(message)s"
+format = "[%(asctime)s]>> %(message)s"
 logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
     
 CONFIGS = configparser.ConfigParser(interpolation=None)
@@ -25,6 +25,7 @@ else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
 
 def daemon():
+    logging.info("[+] Read daemon begun...")
     # format = "[%(asctime)s] [reading daemon]>> %(message)s"
     # logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
 
