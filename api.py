@@ -108,9 +108,10 @@ def new_messages():
 
 if CONFIGS["API"]["DEBUG"] == "1":
     # Allows server reload once code changes
-    app.debug = True
+    pass
+    # app.debug = True
 
-tDaemon = threading.Thread(target=daemon.start, daemon=True)
+tDaemon = threading.Thread(name="master daemon", target=daemon.start, daemon=True)
 tDaemon.start()
 
 app.run(host=CONFIGS["API"]["HOST"], port=CONFIGS["API"]["PORT"], debug=app.debug )

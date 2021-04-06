@@ -114,9 +114,9 @@ class Modem(Datastore):
         return sms
 
     def __send(self, sms: SMS):
-        logging.info(f"{self.details['modem.3gpp.imei']}::{self.index} - Sending SMS...")
+        logging.info(f"{self.details['modem.3gpp.imei']}::{self.index} - Sending SMS:<{sms.text}>")
         mmcli_send = self.mmcli_m + ["-s", sms.index, "--send", "--timeout=10"] 
-        state=None
+        print("mmcli:", mmcli_send)
         message=""
         status=""
         try: 
@@ -128,51 +128,33 @@ class Modem(Datastore):
             '''
             print(f">> failed to send sms")
             print(f"\treturn code: {returncode}")
-            print(f"\tstderr: {err_output}")
-            # raise Exception( error )
             '''
-            state=False
-            status='failed'
+            print(f"\tstderr: {err_output}")
+
+            # raise Exception( error )
             message=err_output
-            return {"state":state, "message":message, "status":status, "returncode":returncode}
+            return {"state":False, "message":message, "status":"failed", "returncode":returncode}
         else:
-            state=True
-            status="sent"
             message=mmcli_output
             print(f"{mmcli_output}")
-            return {"state":state, "message":message, "status":status}
+            return {"state":True, "message":message, "status":"sent"}
             
 
     def set_sms(self, sms :SMS):
         # print("Setting SMS...")
-        self.sms = self.__create( sms )
-        return self.sms
+        sms = self.__create( sms )
+        return sms
 
 
 
     def send_sms(self, sms :SMS, text=None, receipient=None):
         send_status=None
         try:
-            messageLogID = self.new_log(messageID=sms.messageID)
+            send_status=self.__send( sms )
         except Exception as error:
-            raise( error )
-        else:
-            try:
-                send_status=self.__send( sms )
-                if not send_status["state"]:
-                    logging.warning("[-] Failed to send...")
-                    self.release_message(sms.messageID)
-                    logging.warning("[-] Message released...")
-                    # self.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
-                    logging.warning("[+] Updated logs...")
-                    self.remove_sms(sms)
-                else:
-                    logging.info("[+] Message sent!")
-                self.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
-            except Exception as error:
-                print(f">> Exception error:", error )
-                raise Exception(error)
-            return send_status["state"]
+            raise Exception(error)
+
+        return send_status
 
 
     def get_received_messages(self):
