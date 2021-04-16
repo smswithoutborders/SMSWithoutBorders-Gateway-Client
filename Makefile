@@ -25,6 +25,7 @@ copy_configs:
 
 install_deps:requirements.txt
 	sudo $(pip) install -r requirements.txt
+	git submodule update --init --recursive
 
 install:install_deps
 	# sudo ln -s "$(pwd)" $(INSTALL_PATH)
