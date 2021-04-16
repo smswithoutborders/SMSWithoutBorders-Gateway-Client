@@ -8,8 +8,8 @@ import logging
 import time
 import deduce_isp as ISP
 
-from models.lsms import SMS 
-from models.lmodem import Modem 
+from models.libMMCLI_python.lsms import SMS 
+from models.libMMCLI_python.lmodem import Modem 
 from models.lmodems import Modems 
 from models.datastore import Datastore
         
