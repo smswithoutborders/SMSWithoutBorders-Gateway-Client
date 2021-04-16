@@ -3,7 +3,7 @@
 import socket
 import logging
 import requests
-from models.lsms import SMS 
+from models.libMMCLI_python.lsms import SMS 
 
 class Router:
     def __init__(self, router_url):

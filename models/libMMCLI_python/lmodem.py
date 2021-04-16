@@ -3,14 +3,14 @@
 import subprocess
 from subprocess import Popen, PIPE
 
-from models.lsms import SMS 
+from models.libMMCLI_python.lsms import SMS 
 from models.datastore import Datastore 
 
 import logging
 import threading
 import deduce_isp as ISP
 
-class Modem(Datastore):
+class Modem():
     details = {}
 
     def __init__( self, index:int):
@@ -38,7 +38,7 @@ class Modem(Datastore):
             if type(tObject) == type(""):
                 return {}
             if list(tObject.keys())[0] in kObject:
-                key = list(tObject.keys())[0]
+                key = list(tObject.keys())[0] 
                 new_object = self.__appendObject( kObject[key], tObject[key] )
                 # print( new_object )
                 if not new_object == {}:
