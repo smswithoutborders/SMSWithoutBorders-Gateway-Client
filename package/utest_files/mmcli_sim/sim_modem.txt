@@ -1,0 +1,139 @@
+modem.dbus-path                                 : /org/freedesktop/ModemManager1/Modem/0
+modem.generic.device-identifier                 : 18227bc5a3a088e1cd1e7c77d58ad89279f01c4f
+modem.generic.manufacturer                      : huawei
+modem.generic.model                             : E1552
+modem.generic.revision                          : 11.608.13.00.314
+modem.generic.carrier-configuration             : --
+modem.generic.carrier-configuration-revision    : --
+modem.generic.hardware-revision                 : --
+modem.generic.supported-capabilities.length     : 1
+modem.generic.supported-capabilities.value[1]   : gsm-umts
+modem.generic.current-capabilities.length       : 1
+modem.generic.current-capabilities.value[1]     : gsm-umts
+modem.generic.equipment-identifier              : 358812037638331
+modem.generic.device                            : /sys/devices/pci0000:00/0000:00:14.0/usb1/1-1
+modem.generic.drivers.length                    : 1
+modem.generic.drivers.value[1]                  : option
+modem.generic.plugin                            : huawei
+modem.generic.primary-port                      : ttyUSB1
+modem.generic.ports.length                      : 2
+modem.generic.ports.value[1]                    : ttyUSB0 (at)
+modem.generic.ports.value[2]                    : ttyUSB1 (at)
+modem.generic.own-numbers                       : --
+modem.generic.unlock-required                   : --
+modem.generic.unlock-retries.length             : 4
+modem.generic.unlock-retries.value[1]           : sim-pin (3)
+modem.generic.unlock-retries.value[2]           : sim-puk (10)
+modem.generic.unlock-retries.value[3]           : sim-pin2 (3)
+modem.generic.unlock-retries.value[4]           : sim-puk2 (10)
+modem.generic.state                             : searching
+modem.generic.state-failed-reason               : --
+modem.generic.power-state                       : on
+modem.generic.access-technologies               : --
+modem.generic.signal-quality.value              : 0
+modem.generic.signal-quality.recent             : no
+modem.generic.supported-modes.length            : 5
+modem.generic.supported-modes.value[1]          : allowed: 2g, 3g; preferred: none
+modem.generic.supported-modes.value[2]          : allowed: 2g, 3g; preferred: 2g
+modem.generic.supported-modes.value[3]          : allowed: 2g, 3g; preferred: 3g
+modem.generic.supported-modes.value[4]          : allowed: 2g; preferred: none
+modem.generic.supported-modes.value[5]          : allowed: 3g; preferred: none
+modem.generic.current-modes                     : allowed: 2g, 3g; preferred: 3g
+modem.generic.supported-bands                   : --
+modem.generic.current-bands                     : --
+modem.generic.supported-ip-families.length      : 2
+modem.generic.supported-ip-families.value[1]    : ipv4
+modem.generic.supported-ip-families.value[2]    : ipv6
+modem.3gpp.imei                                 : 358812037638331
+modem.3gpp.enabled-locks                        : --
+modem.3gpp.operator-code                        : --
+modem.3gpp.operator-name                        : --
+modem.3gpp.registration-state                   : searching
+modem.3gpp.pco                                  : --
+modem.3gpp.eps.ue-mode-operation                : --
+modem.3gpp.eps.initial-bearer.dbus-path         : --
+modem.3gpp.eps.initial-bearer.settings.apn      : --
+modem.3gpp.eps.initial-bearer.settings.ip-type  : --
+modem.3gpp.eps.initial-bearer.settings.user     : --
+modem.3gpp.eps.initial-bearer.settings.password : --
+modem.cdma.meid                                 : --
+modem.cdma.esn                                  : --
+modem.cdma.sid                                  : --
+modem.cdma.nid                                  : --
+modem.cdma.cdma1x-registration-state            : --
+modem.cdma.evdo-registration-state              : --
+modem.cdma.activation-state                     : --
+modem.generic.sim                               : /org/freedesktop/ModemManager1/SIM/0
+modem.generic.primary-sim-slot                  : --
+modem.generic.sim-slots                         : --
+modem.generic.bearers                           : --
+modem.dbus-path                                 : /org/freedesktop/ModemManager1/Modem/5
+modem.generic.device-identifier                 : 6bf11020e3c0a3d083b4162ed47f43a46460da72
+modem.generic.manufacturer                      : huawei
+modem.generic.model                             : E1552
+modem.generic.revision                          : 11.608.13.00.314
+modem.generic.carrier-configuration             : --
+modem.generic.carrier-configuration-revision    : --
+modem.generic.hardware-revision                 : --
+modem.generic.supported-capabilities.length     : 1
+modem.generic.supported-capabilities.value[1]   : gsm-umts
+modem.generic.current-capabilities.length       : 1
+modem.generic.current-capabilities.value[1]     : gsm-umts
+modem.generic.equipment-identifier              : 358812037638331
+modem.generic.device                            : /sys/devices/pci0000:00/0000:00:14.0/usb1/1-1
+modem.generic.drivers.length                    : 1
+modem.generic.drivers.value[1]                  : option
+modem.generic.plugin                            : huawei
+modem.generic.primary-port                      : ttyUSB1
+modem.generic.ports.length                      : 2
+modem.generic.ports.value[1]                    : ttyUSB0 (at)
+modem.generic.ports.value[2]                    : ttyUSB1 (at)
+modem.generic.own-numbers                       : --
+modem.generic.unlock-required                   : --
+modem.generic.unlock-retries.length             : 4
+modem.generic.unlock-retries.value[1]           : sim-pin (3)
+modem.generic.unlock-retries.value[2]           : sim-puk (10)
+modem.generic.unlock-retries.value[3]           : sim-pin2 (3)
+modem.generic.unlock-retries.value[4]           : sim-puk2 (10)
+modem.generic.state                             : registered
+modem.generic.state-failed-reason               : --
+modem.generic.power-state                       : on
+modem.generic.access-technologies.length        : 1
+modem.generic.access-technologies.value[1]      : umts
+modem.generic.signal-quality.value              : 41
+modem.generic.signal-quality.recent             : yes
+modem.generic.supported-modes.length            : 5
+modem.generic.supported-modes.value[1]          : allowed: 2g, 3g; preferred: none
+modem.generic.supported-modes.value[2]          : allowed: 2g, 3g; preferred: 2g
+modem.generic.supported-modes.value[3]          : allowed: 2g, 3g; preferred: 3g
+modem.generic.supported-modes.value[4]          : allowed: 2g; preferred: none
+modem.generic.supported-modes.value[5]          : allowed: 3g; preferred: none
+modem.generic.current-modes                     : allowed: 2g, 3g; preferred: 3g
+modem.generic.supported-bands                   : --
+modem.generic.current-bands                     : --
+modem.generic.supported-ip-families.length      : 2
+modem.generic.supported-ip-families.value[1]    : ipv4
+modem.generic.supported-ip-families.value[2]    : ipv6
+modem.3gpp.imei                                 : 358812037638331
+modem.3gpp.enabled-locks                        : --
+modem.3gpp.operator-code                        : 62402
+modem.3gpp.operator-name                        : Orange
+modem.3gpp.registration-state                   : home
+modem.3gpp.pco                                  : --
+modem.3gpp.eps.ue-mode-operation                : --
+modem.3gpp.eps.initial-bearer.dbus-path         : --
+modem.3gpp.eps.initial-bearer.settings.apn      : --
+modem.3gpp.eps.initial-bearer.settings.ip-type  : --
+modem.3gpp.eps.initial-bearer.settings.user     : --
+modem.3gpp.eps.initial-bearer.settings.password : --
+modem.cdma.meid                                 : --
+modem.cdma.esn                                  : --
+modem.cdma.sid                                  : --
+modem.cdma.nid                                  : --
+modem.cdma.cdma1x-registration-state            : --
+modem.cdma.evdo-registration-state              : --
+modem.cdma.activation-state                     : --
+modem.generic.sim                               : /org/freedesktop/ModemManager1/SIM/5
+modem.generic.primary-sim-slot                  : --
+modem.generic.sim-slots                         : --
+modem.generic.bearers                           : --
