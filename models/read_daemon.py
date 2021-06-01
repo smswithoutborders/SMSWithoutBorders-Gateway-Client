@@ -7,7 +7,8 @@ import requests
 import traceback
 import subprocess
 import configparser
-import deduce_isp as isp
+
+from . import deduce_isp as isp
 
 from . libMMCLI_python.lsms import SMS 
 from . libMMCLI_python.lmodem import Modem 
@@ -150,6 +151,14 @@ def daemon():
 
 if __name__ == "__main__":
     try:
-        read_sms()
+        # Test routing - online
+        data = ''
+        sms = SMS()
+        sms.timestamp = '2021-06-01T14:05:29+01:00'
+        sms.text = 'lh2i7cgec0abhgv5cKdAMGbd7CePvvM4kfZKJ2JbVjSeNtynNqtwwwif/ZN3uel6kFzqisTNgfiWfofCkb9yh8WBujhn\naDE2q31Kvw==\n'
+        sms.phonenumber = '673367023'
+        sms.isp = 'MTN'
+        sms.state = 'received'
+        route(mode='online', sms=sms)
     except Exception as error:
         print( error )

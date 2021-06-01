@@ -8,10 +8,10 @@ CONFIGS = configparser.ConfigParser(interpolation=None)
 ISP_CONFIGS = configparser.ConfigParser(interpolation=None)
 OPERATORS_CONFIGS = configparser.ConfigParser(interpolation=None)
 
-PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configs', 'config.ini')
-ISP_PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'isp_configs', "isp.ini")
-ISP_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "default.ini")
-OPERATORS_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "operators.ini")
+PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../configs', 'config.ini')
+ISP_PATH_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../isp_configs', "isp.ini")
+ISP_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), '../isp_configs', "default.ini")
+OPERATORS_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), '../isp_configs', "operators.ini")
 
 if os.path.exists( PATH_CONFIG_FILE ):
     CONFIGS.read(PATH_CONFIG_FILE)
