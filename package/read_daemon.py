@@ -7,7 +7,7 @@ import requests
 import traceback
 import subprocess
 import configparser
-import deduce_isp 
+import deduce_isp as isp
 
 from libMMCLI_python.lsms import SMS 
 from libMMCLI_python.lmodem import Modem 
@@ -34,7 +34,10 @@ def route(mode, sms, modem=None):
         router_url = CONFIGS["ROUTER"]["default"]
         router = Router(router_url)
         router_response = router.publish(sms)
-        print( router_response )
+        if router_response:
+            logging.info("successfully routed!")
+        else:
+            logging.warning("routing failed!")
     elif mode == "offline":
         logging.warning("ROUTING OFFLINE MODE...")
         # logging.info("Moving to route to Twilio")
@@ -152,8 +155,8 @@ if __name__ == "__main__":
         # Test routing - online
         data = ''
         sms = SMS()
-        sms.timestamp = '2021-06-01T14:05:29+01:00'
-        sms.text = 'lh2i7cgec0abhgv5cKdAMGbd7CePvvM4kfZKJ2JbVjSeNtynNqtwwwif/ZN3uel6kFzqisTNgfiWfofCkb9yh8WBujhn\naDE2q31Kvw==\n'
+        sms.timestamp = '2021-06-01T17:31:04+01:00'
+        sms.text = 'b839skg785ra9x5gWLOStQZHdjkuqkaFlxSVNYyEQbfZzy/ZEPy2VBUXs2Oa7g/mJQhlPqTPLXmWCalo9CxDueoJARZb\nRp7anWCXwA==\n'
         sms.phonenumber = '673367023'
         sms.isp = 'MTN'
         sms.state = 'received'

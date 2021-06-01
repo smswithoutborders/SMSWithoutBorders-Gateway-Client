@@ -24,7 +24,17 @@ class Router:
         try:
             logging.info(f"Routing to: <<{self.router_url}>>")
             request = requests.post(self.router_url, json={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time})
+
+            request = request.json()
+            if 'status' in request:
+                if request['status'] != 200:
+                    # Log the reason for the failure here
+                    print(f"[-] >> {request['message']}")
+                    return False
+                else:
+                    return True
+
         except Exception as error:
             raise Exception(error)
-            
-        return request.text
+        else:
+            return request.text
