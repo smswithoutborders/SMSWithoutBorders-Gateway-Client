@@ -1,3 +1,6 @@
 [submodule "models/libMMCLI_python"]
 	path = models/libMMCLI_python
 	url = git@github.com:sherlockwisdom/mmcli_python.git
+[submodule "package/Deku-Router"]
+	path = package/Deku-Router
+	url = https://github.com/smswithoutborders/Deku-Router.git
