@@ -4,6 +4,7 @@ import os
 import configparser
 import threading
 import subprocess
+import traceback
 
 from subprocess import Popen, PIPE
 from flask import Flask, request, jsonify
@@ -35,12 +36,9 @@ def daemon_state():
     try: 
        systemd_output = subprocess.check_output(["systemctl", "is-active", "deku.service"], stderr=subprocess.STDOUT).decode('utf-8').replace('\n', '')
     except subprocess.CalledProcessError as error:
-        print( error.output )
-        # raise Exception(error)
-        # return jsonify({status: 200, state: systemd_output})
+        print(traceback.format_exc())
         systemd_output=error.output.decode('utf-8').replace('\n', '')
         pass
-        # print(f"{mmcli_output}")
     return jsonify({"status": 200, "state": systemd_output})
 
 
@@ -56,7 +54,7 @@ def get_logs():
         return_json["logs"] = logs
         return_json["size"] = len(logs)
     except Exception as err:
-        print( f"[err]: {err}" )
+        print(traceback.format_exc())
 
     return jsonify(return_json)
 
@@ -87,7 +85,7 @@ def new_messages():
             return_json["status"] = 200
             return_json["messageID"] = messageID
         except Exception as err:
-            print( f"[err]: {err}" )
+            print(traceback.format_exc())
     
 
     elif request.method == 'GET':
@@ -101,7 +99,7 @@ def new_messages():
             return_json["messages"] = messages
             return_json["size"] = len(messages)
         except Exception as err:
-            print( f"[err]: {err}" )
+            print(traceback.format_exc())
 
 
     return jsonify(return_json)
