@@ -6,12 +6,12 @@ import subprocess
 import start_routines
 import logging
 import time
-import deduce_isp as ISP
 
-from models.libMMCLI_python.lsms import SMS 
-from models.libMMCLI_python.lmodem import Modem 
-from models.lmodems import Modems 
-from models.datastore import Datastore
+from . import deduce_isp as ISP
+from . libMMCLI_python.lsms import SMS 
+from . libMMCLI_python.lmodem import Modem 
+from . lmodems import Modems 
+from . datastore import Datastore
         
 import configparser
 CONFIGS = configparser.ConfigParser(interpolation=None)

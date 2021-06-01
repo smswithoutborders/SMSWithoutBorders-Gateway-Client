@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from models.datastore import Datastore
-import deduce_isp as isp
+import models.deduce_isp as isp
 import daemon
 
 app = Flask(__name__)
