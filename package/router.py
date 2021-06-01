@@ -29,7 +29,7 @@ class Router:
             if 'status' in request:
                 if request['status'] != 200:
                     # Log the reason for the failure here
-                    print(f"[-] >> {request['message']}")
+                    print(request)
                     return False
                 else:
                     return True
@@ -37,4 +37,4 @@ class Router:
         except Exception as error:
             raise Exception(error)
         else:
-            return request.text
+            return False
