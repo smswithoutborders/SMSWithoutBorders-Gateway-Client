@@ -9,11 +9,12 @@ import subprocess
 import configparser
 import deduce_isp as isp
 
-from models.libMMCLI_python.lsms import SMS 
-from models.libMMCLI_python.lmodem import Modem 
+from . libMMCLI_python.lsms import SMS 
+from . libMMCLI_python.lmodem import Modem 
 
-from models.lmodems import Modems 
-from models.router import Router
+from . lmodems import Modems 
+from . router import Router
+from . datastore import Datastore
 
 format = "[%(asctime)s]>> %(message)s"
 logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
@@ -25,13 +26,7 @@ if os.path.exists( PATH_CONFIG_FILE ):
 else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
 
-DEKU_CONFIGS = None
-try:
-    DEKU_CONFIGS = modems.get_deku_configs()[0]
-except Exception as error:
-    print(">> Check if configs have been enabled, could get not them from database")
-    print(error)
-
+datastore = Datastore()
 
 def route(mode, sms, modem=None):
     if mode == "online":
@@ -48,7 +43,7 @@ def route(mode, sms, modem=None):
         route_num=None
         if "router_phonenumber" in CONFIGS["ROUTER"]:
             route_num = CONFIGS["ROUTER"]["router_phonenumber"]
-            modem.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp="")
+            datastore.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp="")
         else:
             logging.warning("NO ROUTER NUM SET... MESSAGE WON'T BE ROUTED")
 
@@ -112,8 +107,8 @@ def daemon():
                             logging.info(f"[+] Reading new messages...")
                             sms.phonenumber = isp.rm_country_code(sms.phonenumber)
                             # _isp = isp.deduce_isp( sms.phonenumber )
-                            logging.info(f"\n\ttext>> {sms.text}\n\tphonenumber>> {sms.phonenumber}\n\ttimestamp>> {sms.timestamp}\n\tdischarge timestamp>> {sms.discharge_time}\n\tstate>> {sms.state}")
-                            modem.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp='', claimed_modem_imei=modem.details["modem.3gpp.imei"])
+                            logging.info(f"\n-Text: {sms.text}\n-Phonenumber: {sms.phonenumber}\n-Timestamp: {sms.timestamp}\n-Discharge Time: {sms.discharge_time}\n-State: {sms.state}")
+                            datastore.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp='', claimed_modem_imei=modem.details["modem.3gpp.imei"])
 
                             if modem.remove_sms(sms):
                                 logging.info(f"[-] SMS removed from modem")
