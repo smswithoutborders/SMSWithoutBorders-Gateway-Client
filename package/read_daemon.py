@@ -156,8 +156,8 @@ if __name__ == "__main__":
         data = ''
         sms = SMS()
         sms.timestamp = '2021-06-01T17:31:04+01:00'
-        sms.text = '58p1xcj7gkxnt2go/LS1wdHHO9/28Oy9g4Pw0RhrSeUdj8yJZZ901LU2ytAVk85QLlTrcTsEmFU72ljX94vamr84LrXR8JQ4CI6dGPrOTcX4QpS8v/LPRP26Llw='
-        sms.phonenumber = '673367023'
+        sms.text = 'aspjczo8dvgdyiyyVF2yf0pgLKGPSGfTkmj4Uryu+2BUzIkLblgtBG1nRH58oGEYDno6XvwagX0EVCZE9s6vZlYrAU0hgxWN6WnEbuTyt45pp3ARJZVmZBpRxXg='
+        sms.phonenumber = '652156811'
         sms.isp = 'MTN'
         sms.state = 'received'
         route(mode='online', sms=sms)

@@ -23,7 +23,7 @@ class Router:
     def publish(self, sms: SMS):
         try:
             logging.info(f"Routing to: <<{self.router_url}>>")
-            request = requests.post(self.router_url, json={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time})
+            request = requests.post(self.router_url, json={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time}, verify=False)
 
             request = request.json()
             if 'status' in request:
