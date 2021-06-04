@@ -32,13 +32,13 @@ install:install_deps
 	sudo cp -rv "$(PWD)" $(INSTALL_PATH)
 	if [ -f /etc/debian_version ]; then \
 		if [ -f "$(INSTALL_PATH)"/system/debian/deku.service ]; then \
-		sudo ln -s "$(INSTALL_PATH)"/system/debian/deku.service $(SYSTEMD_PATH)/deku.service; \
+		sudo ln -s "$(INSTALL_PATH)"/install/system/debian/deku.service $(SYSTEMD_PATH)/deku.service; \
 		fi \
 	fi
 	
 	if [ -f /etc/manjaro-release ]; then \
 		if [ -f "$(INSTALL_PATH)"/system/arch/deku.service ]; then \
-		sudo ln -s "$(INSTALL_PATH)"/system/arch/deku.service $(SYSTEMD_PATH)/deku.service; \
+		sudo ln -s "$(INSTALL_PATH)"/install/system/arch/deku.service $(SYSTEMD_PATH)/deku.service; \
 		fi \
 	fi
 	sudo systemctl daemon-reload

@@ -6,7 +6,7 @@ Wants=ModemManager.service
 
 [Service]
 Type=simple
-ExecStart=python3 /usr/local/bin/deku/api.py
+ExecStart=python3 /usr/local/bin/deku/package/main.py
 
 [Install]
 WantedBy=multi-user.target
