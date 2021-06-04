@@ -9,8 +9,8 @@ import subprocess
 import configparser
 import deduce_isp as isp
 
-from libMMCLI_python.lsms import SMS 
-from libMMCLI_python.lmodem import Modem 
+from mmcli_python.lsms import SMS 
+from mmcli_python.lmodem import Modem 
 from lmodems import Modems 
 from router import Router
 from datastore import Datastore

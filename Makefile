@@ -7,7 +7,7 @@ SHELL := $(shell which bash)
 venv_path=.venv
 pip=pip3
 
-CONFIGS_PATH=configs
+CONFIGS_PATH=package/configs
 INSTALL_PATH=/usr/local/bin/deku
 SYSTEMD_PATH=/usr/lib/systemd/system
 
