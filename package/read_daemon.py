@@ -142,10 +142,14 @@ def daemon():
             if not newReceivedMessage and not shownNoAvailableMessage:
                 shownNoAvailableMessage=True
                 logging.info(f"No received message...")
+                fl_no_modem_shown=False
 
             prev_list_of_modems = list_of_modems
             sleepTime = int(CONFIGS["MODEMS"]["sleep_time"])
+            if sleepTime is None:
+                sleepTime = 3
             time.sleep(sleepTime)
+            
     except Exception as error:
         track = traceback.format_exc()
         # print("GLobal error: ", error)
