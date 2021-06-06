@@ -18,10 +18,10 @@ class Datastore(object):
         self.HOST = self.CONFIGS["MYSQL"]["HOST"]
         self.USER = self.CONFIGS["MYSQL"]["USER"]
         self.PASSWORD = self.CONFIGS["MYSQL"]["PASSWORD"]
-        # self.DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
+        self.DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
         # self.DATABASE = "deku"
 
-        self.conn = pymysql.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, cursorclass=pymysql.cursors.SSDictCursor)
+        self.conn = pymysql.connect( database=self.DATABASE, host=self.HOST, user=self.USER, password=self.PASSWORD, cursorclass=pymysql.cursors.SSDictCursor)
         # self.cursor = self.conn.cursor(buffered=True)
         self.cursor = self.conn.cursor()
 

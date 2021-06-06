@@ -10,9 +10,9 @@ from subprocess import Popen, PIPE
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+import daemon
 from datastore import Datastore
 import deduce_isp as isp
-import daemon
 
 app = Flask(__name__)
 CORS(app)
