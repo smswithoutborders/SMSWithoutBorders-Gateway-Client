@@ -41,8 +41,8 @@ def rm_country_code(phonenumber):
 
 def acquire_isp(operator_code):
     country = CONFIGS["ISP"]["country"]
-    OPERATORS_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "operators.ini")
-    OPERATORS_CONFIGS.read( OPERATORS_PATH_CONFIG_FILE_DEFAULT)
+    # OPERATORS_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "default.ini")
+    OPERATORS_CONFIGS.read( ISP_PATH_CONFIG_FILE_DEFAULT)
     
     for isp in OPERATORS_CONFIGS[country]:
         if OPERATORS_CONFIGS[country][isp] == operator_code:

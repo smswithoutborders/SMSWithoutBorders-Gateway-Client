@@ -5,6 +5,7 @@ import threading
 import subprocess
 import start_routines
 import logging
+import traceback
 import time
 import configparser
 import deduce_isp as ISP
@@ -142,7 +143,8 @@ def daemon():
                         
                         newThreadCollections[modem_imei]=threading.Thread( target=send_sms, args=(modem,sms,), daemon=True)
                 except Exception as error:
-                    logging.warning(error)
+                    # logging.warning(error)
+                    print(traceback.format_exc())
 
             # print(f"[+] Threaded: {len(newThreadCollections)} modems...")
             for modemIMEI in newThreadCollections:
@@ -164,7 +166,7 @@ def daemon():
             time.sleep(sleepTime)
             # logging.info("[-] DONE SLEEPING....")
     except Exception as error:
-        print( error)
+        print(traceback.format_exc())
 
 if __name__ == "__main__":
     try:
