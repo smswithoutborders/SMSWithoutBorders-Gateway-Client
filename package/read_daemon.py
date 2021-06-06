@@ -98,7 +98,6 @@ def daemon():
 
             newReceivedMessage=False
             for modem in modemInstancesCollection:
-                logging.info("looping through modems")
                 try: 
                     # logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Claiming message!")
                     messages = modem.get_received_messages()
