@@ -15,7 +15,8 @@ from lmodems import Modems
 from router import Router
 from datastore import Datastore
 
-format = "[%(asctime)s] - {%(pathname)s:%(lineno)d}>> %(message)s"
+# format = "[%(asctime)s] - {%(pathname)s:%(lineno)d}>> %(message)s"
+format = "[%(asctime)s]: %(message)s"
 logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
     
 CONFIGS = configparser.ConfigParser(interpolation=None)
