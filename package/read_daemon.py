@@ -25,9 +25,9 @@ if os.path.exists( PATH_CONFIG_FILE ):
 else:
     raise Exception(f"config file not found: {PATH_CONFIG_FILE}")
 
-datastore = Datastore()
 
 def route(mode, sms, modem=None):
+    datastore = Datastore()
     if mode == "online":
         logging.warning("ROUTING ONLINE MODE...")
         # router_url = DEKU_CONFIGS['router_url']
@@ -50,6 +50,7 @@ def route(mode, sms, modem=None):
             logging.warning("NO ROUTER NUM SET... MESSAGE WON'T BE ROUTED")
 
 def daemon():
+    datastore = Datastore()
     logging.info("[+] Read daemon begun...")
     # format = "[%(asctime)s] [reading daemon]>> %(message)s"
     # logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
