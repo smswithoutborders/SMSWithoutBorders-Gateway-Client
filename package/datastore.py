@@ -19,9 +19,9 @@ class Datastore(object):
         self.USER = self.CONFIGS["MYSQL"]["USER"]
         self.PASSWORD = self.CONFIGS["MYSQL"]["PASSWORD"]
         # self.DATABASE = self.CONFIGS["MYSQL"]["DATABASE"]
-        self.DATABASE = "deku"
+        # self.DATABASE = "deku"
 
-        self.conn = pymysql.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, database=self.DATABASE, cursorclass=pymysql.cursors.SSDictCursor)
+        self.conn = pymysql.connect( host=self.HOST, user=self.USER, password=self.PASSWORD, cursorclass=pymysql.cursors.SSDictCursor)
         # self.cursor = self.conn.cursor(buffered=True)
         self.cursor = self.conn.cursor()
 
