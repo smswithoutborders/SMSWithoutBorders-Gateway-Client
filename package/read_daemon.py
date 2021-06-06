@@ -15,7 +15,7 @@ from lmodems import Modems
 from router import Router
 from datastore import Datastore
 
-format = "[%(asctime)s]>> %(message)s"
+format = "[%(asctime)s] - {%(pathname)s:%(lineno)d}>> %(message)s"
 logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
     
 CONFIGS = configparser.ConfigParser(interpolation=None)
@@ -79,7 +79,6 @@ def daemon():
         loopCounter=1
         while loopCounter:
             list_of_modems = modems.get_modems()
-            # logging.info(f"[+] Scanning for modems...")
             if len(list_of_modems) == 0 and not fl_no_modem_shown:
                     logging.info("No modem found...")
                     fl_no_modem_shown = True
@@ -99,6 +98,7 @@ def daemon():
 
             newReceivedMessage=False
             for modem in modemInstancesCollection:
+                logging.info("looping through modems")
                 try: 
                     # logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Claiming message!")
                     messages = modem.get_received_messages()
@@ -120,11 +120,11 @@ def daemon():
                                 if ROUTE:
                                     if CONFIGS["ROUTER"]["offline_mode"] == "1":
                                         router_response = route(mode="offline", modem=modem, sms=sms)
-                                        print( router_response )
+                                        logging.info("router response>> ", router_response )
 
                                     if CONFIGS["ROUTER"]["online_mode"] == "1":
                                         router_response = route(mode="online", sms=sms)
-                                        print( router_response )
+                                        logging.info("router response>> ", router_response )
 
                                     if CONFIGS["ROUTER"]["offline_mode"] == "0" and CONFIGS["ROUTER"]["online_mode"] == "0":
                                         if Router.is_connected():
@@ -133,11 +133,12 @@ def daemon():
                                             route(mode="offline", sms=sms, modem=modem)
                             else:
                                 logging.warning(f">> Failed to remove SMS from modem")
-                                exit() # TODO: DANGEROUS TO HAVE THIS EXCEPTION, MULTIPLE ROUTINGS WILL OCCUR 
+                                print(traceback.format_exc())
                                 raise Exception("Failed to remove SMS from modem")
+                                exit() # TODO: DANGEROUS TO HAVE THIS EXCEPTION, MULTIPLE ROUTINGS WILL OCCUR 
 
                 except Exception as error:
-                    logging.warning(error)
+                    print(traceback.format_exc())
 
             if not newReceivedMessage and not shownNoAvailableMessage:
                 shownNoAvailableMessage=True
