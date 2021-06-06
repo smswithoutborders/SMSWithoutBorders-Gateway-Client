@@ -7,6 +7,8 @@
 #### Installation
 ```bash
 make
+# goto package/configs/configs.mysql.ini and configure your settings before proceeding
+
 sudo make install
 sudo make run
 ```
