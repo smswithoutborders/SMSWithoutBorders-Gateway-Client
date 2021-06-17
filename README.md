@@ -39,10 +39,10 @@ sudo make run
 	"state" : "active" || "inactive"  
 }
 ```
-If `status != 200` : No Daemon has not been installed, and is not running manually
-If `status == 200` and `state == "inactive"`: Daemon has not been installed, but is running manually
-If `status == 200` and `state == "failed"`: Daemon successfully installed, but failed to start 
-If `status == 200` and `state == "active"`: Daemon has been installed
+If `status != 200` : No Daemon has not been installed, and is not running manually<br>
+If `status == 200` and `state == "inactive"`: Daemon has not been installed, but is running manually<br>
+If `status == 200` and `state == "failed"`: Daemon successfully installed, but failed to start <br>
+If `status == 200` and `state == "active"`: Daemon has been installed<br>
 
 #### Acquiring logs
 > GET: localhost:6868/logs
@@ -57,3 +57,9 @@ If `status == 200` and `state == "active"`: Daemon has been installed
       "status": "sent"
     },....
 ```
+
+<h2>Beta features</h2>
+<h3>Setting up on Raspberry pi (tested on 4B)</h3>
+<h4>Ubuntu Server</h4>
+- https://ubuntu.com/tutorials/how-to-install-ubuntu-on-your-raspberry-pi#4-boot-ubuntu-server<br>
+- https://itsfoss.com/connect-wifi-terminal-ubuntu/
