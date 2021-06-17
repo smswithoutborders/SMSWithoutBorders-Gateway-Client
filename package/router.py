@@ -22,7 +22,7 @@ class Router:
 
     def publish(self, sms: SMS):
         try:
-            logging.info(f"Routing to: <<{self.router_url}>>")
+            logging.info(f"Routing to <<{self.router_url}>>")
             request = requests.post(self.router_url, json={"text":sms.text, "phonenumber":sms.phonenumber, "timestamp":sms.timestamp, "discharge_timestamp":sms.discharge_time}, verify=False)
 
             request = request.json()
@@ -33,6 +33,8 @@ class Router:
                     return False
                 else:
                     return True
+            else:
+                print(f"nothing returned... {request}")
 
         except Exception as error:
             raise Exception(error)
