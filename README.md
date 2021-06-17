@@ -8,7 +8,7 @@
 ```bash
 make
 # goto package/configs/configs.mysql.ini and configure your settings before proceeding
-# goto package/configs/configs.router.ini and configure your settings before proceeding
+# goto package/configs/configs.ini and configure your settings before proceeding
 
 sudo make install
 sudo make run
