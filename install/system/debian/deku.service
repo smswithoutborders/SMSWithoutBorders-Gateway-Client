@@ -1,7 +1,7 @@
 [Unit]
 Description=Deku Daemon - Linux based SMS manager
-After=network.target NetworkManager.service ModemManager.service
-Requires=mysql.service
+After=network.target NetworkManager.service ModemManager.service mysql.service
+Requires=mysql.service ModemManager.service
 Wants=ModemManager.service
 
 [Service]
