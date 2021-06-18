@@ -57,6 +57,9 @@ If `status == 200` and `state == "active"`: Daemon has been installed<br>
       "status": "sent"
     },....
 ```
+<h2>Notes</h2>
+- if modem is not receiving messages, sometimes it's due to a block casued by queue of 'receiving' messages. 
+Removing all messages, disabling and re-enabling the modems seems to solve it
 
 <h2>Beta features</h2>
 <h3>Setting up on Raspberry pi (tested on 4B)</h3>
