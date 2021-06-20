@@ -23,7 +23,9 @@ if os.path.exists( ISP_PATH_CONFIG_FILE ):
 elif os.path.exists( ISP_PATH_CONFIG_FILE_DEFAULT ):
     if os.path.exists( OPERATORS_PATH_CONFIG_FILE_DEFAULT ):
         OPERATORS_CONFIGS.read( OPERATORS_PATH_CONFIG_FILE_DEFAULT)
-    print(">> ISP comes from default.ini")
+    else:
+        raise Exception("- No operator config file found; critical for sending.. create isp_configs/operators.ini")
+    print("- ISP comes from default.ini")
     ISP_CONFIGS.read(ISP_PATH_CONFIG_FILE_DEFAULT)
 else:
     raise Exception(f"ISP config file not found: {ISP_PATH_CONFIG_FILE}")
@@ -41,8 +43,10 @@ def rm_country_code(phonenumber):
 
 def acquire_isp(operator_code):
     country = CONFIGS["ISP"]["country"]
+    print(f"deduce_isp - country: {country}")
+    print(f"deduce_isp - operator_code: {operator_code}")
     # OPERATORS_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "default.ini")
-    OPERATORS_CONFIGS.read( ISP_PATH_CONFIG_FILE_DEFAULT)
+    # OPERATORS_CONFIGS.read( ISP_PATH_CONFIG_FILE_DEFAULT)
     
     for isp in OPERATORS_CONFIGS[country]:
         if OPERATORS_CONFIGS[country][isp] == operator_code:

@@ -48,7 +48,6 @@ def send_sms(modem, sms):
             else:
                 logging.info("[+] Message sent!")
         except Exception as error:
-            print("[+] Exception as:", error )
             raise Exception( error )
         else:
             datastore.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
@@ -61,7 +60,7 @@ def claim(modem):
         datastore = Datastore()
         modem.extractInfo()
         isp = ISP.acquire_isp(operator_code=modem.details["modem.3gpp.operator-code"])
-        # print("[+] Deduced ISP:", isp)
+        print("[+] Deduced ISP:", isp)
         router=False
         if "isp" in CONFIGS["ROUTER"] and CONFIGS["ROUTER"]["isp"] == isp:
             router=True
