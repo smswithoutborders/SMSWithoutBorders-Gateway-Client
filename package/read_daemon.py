@@ -2,6 +2,7 @@
 
 import os
 import time
+import json
 import logging
 import requests
 import traceback
@@ -56,7 +57,7 @@ def route(mode, sms, modem=None):
             logging.warning("NO DEFAULT ROUTING ISP FOUND.... EXITING")
             return
         logging.info(f"routing isp {router_isp}...")
-        datastore.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp=router_isp)
+        datastore.new_message(text=json.dumps({"text":sms.text, "phonenumber":sms.phonenumber}), phonenumber=route_num, _type="routing", isp=router_isp)
 
 def daemon():
     datastore = Datastore()
@@ -170,7 +171,7 @@ if __name__ == "__main__":
         data = ''
         sms = SMS()
         sms.timestamp = '2021-06-01T17:31:04+01:00'
-        sms.text = '85cjt8s4z7zf1eouMenQcs9tAMo4d4k0MmW8yb1fbm5F2X7dODGoz1meMIaRAt0b5QwiZxPIOqrv+EKlkoatP9WLTD6t7DGR9DHBk6s/3NF6hZVhOUVlweclcUk='
+        sms.text = 'im5mkxovqceadzd8sVLWSKre1XT/HgjYhAleUmXIt5DZ3PZXO+k7bA1USXyNP2CFJ959gVzEl+bidSqmYPeRGYmDxNEDV7bG7CeaW3aE2BsJl9xTIYpB8yXbPrFJzujGWM1wkBTrfoUGttaFykXOGIHJCC+sdnHen47Sby8gvR60y5B3AP7DJIBsdr1LPdTPBhR6shWMr3RbkkWd'
         sms.phonenumber = '652156811'
         sms.isp = 'MTN'
         sms.state = 'received'
