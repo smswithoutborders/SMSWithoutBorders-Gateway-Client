@@ -43,8 +43,8 @@ def rm_country_code(phonenumber):
 
 def acquire_isp(operator_code):
     country = CONFIGS["ISP"]["country"]
-    print(f"deduce_isp - country: {country}")
-    print(f"deduce_isp - operator_code: {operator_code}")
+    # print(f"deduce_isp - country: {country}")
+    # print(f"deduce_isp - operator_code: {operator_code}")
     # OPERATORS_PATH_CONFIG_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), 'isp_configs', "default.ini")
     # OPERATORS_CONFIGS.read( ISP_PATH_CONFIG_FILE_DEFAULT)
     

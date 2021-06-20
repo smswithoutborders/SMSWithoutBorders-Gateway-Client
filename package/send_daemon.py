@@ -60,7 +60,7 @@ def claim(modem):
         datastore = Datastore()
         modem.extractInfo()
         isp = ISP.acquire_isp(operator_code=modem.details["modem.3gpp.operator-code"])
-        print("[+] Deduced ISP:", isp)
+        # print("[+] Deduced ISP:", isp)
         router=False
         if "isp" in CONFIGS["ROUTER"] and CONFIGS["ROUTER"]["isp"] == isp:
             router=True
