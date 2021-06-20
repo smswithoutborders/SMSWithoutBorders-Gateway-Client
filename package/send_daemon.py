@@ -79,8 +79,8 @@ def claim(modem):
             return None
 
 def daemon():
-    print("NAME:", threading.current_thread())
-    logging.info("[+] Write daemon begun...")
+    # print("NAME:", threading.current_thread())
+    logging.info("[+] Sending daemon begun...")
     # Beginning daemon from here
     modems = Modems()
 
