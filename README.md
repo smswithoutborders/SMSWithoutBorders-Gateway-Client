@@ -6,6 +6,7 @@
 
 #### Installation
 ```bash
+git submodule update --init --recursive
 make
 # goto package/configs/configs.mysql.ini and configure your settings before proceeding
 # goto package/configs/configs.ini and configure your settings before proceeding
