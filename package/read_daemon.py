@@ -128,11 +128,11 @@ def daemon():
                                 if ROUTE:
                                     if CONFIGS["ROUTER"]["offline_mode"] == "1":
                                         router_response = route(mode="offline", modem=modem, sms=sms)
-                                        logging.info("router response>> " + router_response )
+                                        logging.info(f"router response>> {router_response}" )
 
                                     if CONFIGS["ROUTER"]["online_mode"] == "1":
                                         router_response = route(mode="online", sms=sms)
-                                        logging.info("router response>> " + router_response )
+                                        logging.info("router response>> {router_response}" )
 
                                     if CONFIGS["ROUTER"]["offline_mode"] == "0" and CONFIGS["ROUTER"]["online_mode"] == "0":
                                         if Router.is_connected():
