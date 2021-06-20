@@ -63,7 +63,7 @@ def claim(modem):
         isp = ISP.acquire_isp(operator_code=modem.details["modem.3gpp.operator-code"])
         # print("[+] Deduced ISP:", isp)
         router=False
-        if "router_isp" in CONFIGS["ROUTER"] and CONFIGS["ROUTER"]["router_isp"] == isp:
+        if "isp" in CONFIGS["ROUTER"] and CONFIGS["ROUTER"]["isp"] == isp:
             router=True
         # print("[+] ROUTER SET TO: ", router)
         new_message = datastore.acquire_message(modem_index=modem.index, modem_imei=modem.details["modem.3gpp.imei"], isp=isp, router=router)
