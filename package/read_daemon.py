@@ -50,8 +50,8 @@ def route(mode, sms, modem=None):
         else:
             logging.warning("NO ROUTER NUM SET... MESSAGE WON'T BE ROUTED")
             return
-        if "router_isp" in CONFIGS["ROUTER"]:
-            router_isp = CONFIGS['ROUTER']['router_isp']
+        if "isp" in CONFIGS["ROUTER"]:
+            router_isp = CONFIGS['ROUTER']['isp']
         else:
             logging.warning("NO DEFAULT ROUTING ISP FOUND.... EXITING")
             return
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         data = ''
         sms = SMS()
         sms.timestamp = '2021-06-01T17:31:04+01:00'
-        sms.text = 'aspjczo8dvgdyiyyVF2yf0pgLKGPSGfTkmj4Uryu+2BUzIkLblgtBG1nRH58oGEYDno6XvwagX0EVCZE9s6vZlYrAU0hgxWN6WnEbuTyt45pp3ARJZVmZBpRxXg='
+        sms.text = '85cjt8s4z7zf1eouMenQcs9tAMo4d4k0MmW8yb1fbm5F2X7dODGoz1meMIaRAt0b5QwiZxPIOqrv+EKlkoatP9WLTD6t7DGR9DHBk6s/3NF6hZVhOUVlweclcUk='
         sms.phonenumber = '652156811'
         sms.isp = 'MTN'
         sms.state = 'received'
