@@ -44,11 +44,19 @@ def route(mode, sms, modem=None):
         # logging.info("Moving to route to Twilio")
         # TODO: check if router is configured
         route_num=None
+        router_isp=None
         if "router_phonenumber" in CONFIGS["ROUTER"]:
             route_num = CONFIGS["ROUTER"]["router_phonenumber"]
-            datastore.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp="")
         else:
             logging.warning("NO ROUTER NUM SET... MESSAGE WON'T BE ROUTED")
+            return
+        if "router_isp" in CONFIGS["ROUTER"]:
+            router_isp = CONFIGS['ROUTER']['router_isp']
+        else:
+            logging.warning("NO DEFAULT ROUTING ISP FOUND.... EXITING")
+            return
+        logging.info(f"routing isp {router_isp}...")
+        datastore.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp=router_isp)
 
 def daemon():
     datastore = Datastore()
@@ -166,6 +174,6 @@ if __name__ == "__main__":
         sms.phonenumber = '652156811'
         sms.isp = 'MTN'
         sms.state = 'received'
-        route(mode='online', sms=sms)
+        route(mode='offline', sms=sms)
     except Exception as error:
         print( error )
