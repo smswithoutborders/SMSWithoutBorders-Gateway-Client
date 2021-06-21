@@ -10,6 +10,7 @@ import subprocess
 import configparser
 import deduce_isp as isp
 
+from base64 import b64encode
 from mmcli_python.lsms import SMS 
 from mmcli_python.lmodem import Modem 
 from lmodems import Modems 
@@ -57,7 +58,7 @@ def route(mode, sms, modem=None):
             logging.warning("NO DEFAULT ROUTING ISP FOUND.... EXITING")
             return
         logging.info(f"routing isp {router_isp}...")
-        datastore.new_message(text=json.dumps({"text":sms.text, "phonenumber":sms.phonenumber}), phonenumber=route_num, _type="routing", isp=router_isp)
+        datastore.new_message(text=b64encode(json.dumps({"text":sms.text, "phonenumber":sms.phonenumber}), phonenumber=route_num, _type="routing", isp=router_isp))
 
 def daemon():
     datastore = Datastore()
