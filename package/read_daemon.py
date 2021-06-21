@@ -58,7 +58,9 @@ def route(mode, sms, modem=None):
             logging.warning("NO DEFAULT ROUTING ISP FOUND.... EXITING")
             return
         logging.info(f"routing isp {router_isp}...")
-        datastore.new_message(text=b64encode(json.dumps({"text":sms.text, "phonenumber":sms.phonenumber}), phonenumber=route_num, _type="routing", isp=router_isp))
+        text=str(b64encode(bytes(json.dumps({"text":sms.text,"phonenumber":sms.phonenumber}), 'utf-8')),'utf-8')
+        print(text)
+        datastore.new_message(text=text, phonenumber=route_num, _type="routing", isp=router_isp)
 
 def daemon():
     datastore = Datastore()
