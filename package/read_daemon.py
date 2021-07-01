@@ -2,6 +2,7 @@
 
 import os
 import time
+import json
 import logging
 import requests
 import traceback
@@ -9,6 +10,7 @@ import subprocess
 import configparser
 import deduce_isp as isp
 
+from base64 import b64encode
 from mmcli_python.lsms import SMS 
 from mmcli_python.lmodem import Modem 
 from lmodems import Modems 
@@ -44,11 +46,21 @@ def route(mode, sms, modem=None):
         # logging.info("Moving to route to Twilio")
         # TODO: check if router is configured
         route_num=None
+        router_isp=None
         if "router_phonenumber" in CONFIGS["ROUTER"]:
             route_num = CONFIGS["ROUTER"]["router_phonenumber"]
-            datastore.new_message(text=sms.text, phonenumber=route_num, _type="routing", isp="")
         else:
             logging.warning("NO ROUTER NUM SET... MESSAGE WON'T BE ROUTED")
+            return
+        if "isp" in CONFIGS["ROUTER"]:
+            router_isp = CONFIGS['ROUTER']['isp']
+        else:
+            logging.warning("NO DEFAULT ROUTING ISP FOUND.... EXITING")
+            return
+        logging.info(f"routing isp {router_isp}...")
+        text=str(b64encode(bytes(json.dumps({"text":sms.text,"phonenumber":sms.phonenumber}), 'utf-8')),'utf-8')
+        print(text)
+        datastore.new_message(text=text, phonenumber=route_num, _type="routing", isp=router_isp)
 
 def daemon():
     datastore = Datastore()
@@ -120,11 +132,11 @@ def daemon():
                                 if ROUTE:
                                     if CONFIGS["ROUTER"]["offline_mode"] == "1":
                                         router_response = route(mode="offline", modem=modem, sms=sms)
-                                        logging.info("router response>> " + router_response )
+                                        logging.info(f"router response>> {router_response}" )
 
                                     if CONFIGS["ROUTER"]["online_mode"] == "1":
                                         router_response = route(mode="online", sms=sms)
-                                        logging.info("router response>> " + router_response )
+                                        logging.info("router response>> {router_response}" )
 
                                     if CONFIGS["ROUTER"]["offline_mode"] == "0" and CONFIGS["ROUTER"]["online_mode"] == "0":
                                         if Router.is_connected():
@@ -162,10 +174,10 @@ if __name__ == "__main__":
         data = ''
         sms = SMS()
         sms.timestamp = '2021-06-01T17:31:04+01:00'
-        sms.text = 'aspjczo8dvgdyiyyVF2yf0pgLKGPSGfTkmj4Uryu+2BUzIkLblgtBG1nRH58oGEYDno6XvwagX0EVCZE9s6vZlYrAU0hgxWN6WnEbuTyt45pp3ARJZVmZBpRxXg='
+        sms.text = 'im5mkxovqceadzd8sVLWSKre1XT/HgjYhAleUmXIt5DZ3PZXO+k7bA1USXyNP2CFJ959gVzEl+bidSqmYPeRGYmDxNEDV7bG7CeaW3aE2BsJl9xTIYpB8yXbPrFJzujGWM1wkBTrfoUGttaFykXOGIHJCC+sdnHen47Sby8gvR60y5B3AP7DJIBsdr1LPdTPBhR6shWMr3RbkkWd'
         sms.phonenumber = '652156811'
         sms.isp = 'MTN'
         sms.state = 'received'
-        route(mode='online', sms=sms)
+        route(mode='offline', sms=sms)
     except Exception as error:
         print( error )

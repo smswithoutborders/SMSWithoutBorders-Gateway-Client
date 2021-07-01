@@ -48,7 +48,6 @@ def send_sms(modem, sms):
             else:
                 logging.info("[+] Message sent!")
         except Exception as error:
-            print("[+] Exception as:", error )
             raise Exception( error )
         else:
             datastore.update_log(messageLogID=messageLogID, status=send_status["status"], message=send_status["message"])
@@ -79,8 +78,8 @@ def claim(modem):
             return None
 
 def daemon():
-    print("NAME:", threading.current_thread())
-    logging.info("[+] Write daemon begun...")
+    # print("NAME:", threading.current_thread())
+    logging.info("[+] Sending daemon begun...")
     # Beginning daemon from here
     modems = Modems()
 
