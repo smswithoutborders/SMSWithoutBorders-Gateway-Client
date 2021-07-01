@@ -92,11 +92,11 @@ class Datastore(object):
         query=""
         query_vars = []
         if router:
-            query = f"SELECT * FROM messages where claimed_modem_imei is NULL and (type='sending' or type='routing') and status='pending' LIMIT 1"
+            query = f"SELECT * FROM messages where claimed_modem_imei is NULL and (type='sending' or type='routing') and isp=%s and status='pending' LIMIT 1"
 
         else:
             query = f"SELECT * FROM messages where claimed_modem_imei is NULL and type='sending' and isp=%s and status='pending' LIMIT 1"
-            query_vars = [isp]
+        query_vars = [isp]
 
         # print("[+] Claim query: ", query)
         try:
