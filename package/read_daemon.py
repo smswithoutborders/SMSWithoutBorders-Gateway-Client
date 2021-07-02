@@ -63,7 +63,6 @@ def route(mode, sms, modem=None):
         datastore.new_message(text=text, phonenumber=route_num, _type="routing", isp=router_isp)
 
 def daemon():
-    datastore = Datastore()
     logging.info("[+] Read daemon begun...")
     # format = "[%(asctime)s] [reading daemon]>> %(message)s"
     # logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
@@ -115,6 +114,7 @@ def daemon():
                     # logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - Claiming message!")
                     messages = modem.get_received_messages()
                     if len(messages) > 0:
+                        datastore = Datastore()
                         newReceivedMessage=True
                         shownNoAvailableMessage=False
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - New Message Found!")
