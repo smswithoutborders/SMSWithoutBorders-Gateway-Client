@@ -120,7 +120,7 @@ def daemon():
                         logging.info(f"{modem.details['modem.3gpp.imei']}::{modem.index} - New Message Found!")
                         for sms in messages:
                             logging.info(f"[+] Reading new messages...")
-                            sms.phonenumber = isp.rm_country_code(sms.phonenumber)
+                            # sms.phonenumber = isp.rm_country_code(sms.phonenumber)
                             # _isp = isp.deduce_isp( sms.phonenumber )
                             logging.info(f"\n-Text: {sms.text}\n-Phonenumber: {sms.phonenumber}\n-Timestamp: {sms.timestamp}\n-Discharge Time: {sms.discharge_time}\n-State: {sms.state}")
                             datastore.new_message(text=sms.text, phonenumber=sms.phonenumber, _type=sms.state, isp='', claimed_modem_imei=modem.details["modem.3gpp.imei"])
