@@ -89,6 +89,8 @@ class Deku(Modem):
             Modem(index).SMS.set(text=text, number=number).send()
         except Exception as error:
             raise Exception(error)
+        finally:
+            os.remove(f"locks/{modem.imei}.lock")
 
         return 0
 
