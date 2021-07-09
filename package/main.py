@@ -16,7 +16,9 @@ class Deku(Modem):
             ''' convert to imei '''
             identifier= Modem(identifier).imei
 
-        if os.path.isfile(f'{identifier}.lock'):
+        # print('id ', identifier)
+        # TODO:change this to use relative paths
+        if os.path.isfile(f'locks/{identifier}.lock'):
             return True
         return False
 
@@ -25,10 +27,14 @@ class Deku(Modem):
     def available_modem(cls):
         available_index=None
         indexes= Modem.list()
+        # print(indexes)
         for index in indexes:
-            print('index ', index)
             # check if lockfile exist for any of this modems
-            print('modem is locked ', Deku.modem_is_locked(index))
+            if not Deku.modem_is_locked(index, id_type=Modem.IDENTIFIERS.INDEX):
+                print(f'modem[{index}] is locked ', False)
+                available_index = index
+                break
+            print(f'modem[{index}] is locked ', True)
         return available_index
 
     @classmethod
