@@ -5,11 +5,30 @@
 - Deku runs in the terminal no place else
 '''
 
+import os
+from mmcli_python.modem import Modem
 
-class Deku():
+class Deku(Modem):
+        
+    @staticmethod
+    def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI):
+        if id_type == Modem.IDENTIFIERS.INDEX:
+            ''' convert to imei '''
+            identifier= Modem(identifier).imei
+
+        if os.path.isfile(f'{identifier}.lock'):
+            return True
+        return False
+
+
     @classmethod
     def available_modem(cls):
         available_index=None
+        indexes= Modem.list()
+        for index in indexes:
+            print('index ', index)
+            # check if lockfile exist for any of this modems
+            print('modem is locked ', Deku.modem_is_locked(index))
         return available_index
 
     @classmethod
@@ -55,6 +74,8 @@ if __name__ == "__main__":
     # https://docs.python.org/2/library/logging.handlers.html#sysloghandler
     # deku logs
 
+    Deku.available_modem()    
+    '''
     if Deku.send(text='', number=''):
         # do something
         pass
@@ -62,3 +83,4 @@ if __name__ == "__main__":
         # wait for a modem to free up
         # wait for a modem to become available
         pass
+    '''
