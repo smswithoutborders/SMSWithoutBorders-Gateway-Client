@@ -84,7 +84,7 @@ class Deku(Modem):
             raise Exception(f'no available modem for type {isp}')
 
         try:
-            Modem(index).send(text=text, number=number)
+            Modem(index).SMS.set(text=text, number=number).send()
         except Exception as error:
             raise Exception(error)
 
@@ -123,7 +123,8 @@ if __name__ == "__main__":
     import sys
     # print(f"\n- isp determine: {Deku.ISP.determine(number=sys.argv[2], country='cameroon')}")
     try:
-        Deku.send(text=f'today = {datetime.now()}', number=sys.argv[2])
+        if Deku.send(text=f'today = {datetime.now()}', number=sys.argv[2]) == 0:
+            print('sms sent successfully')
     except Exception as error:
         print(error)
 
