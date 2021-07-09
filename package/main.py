@@ -6,9 +6,37 @@
 '''
 
 import os
+import configparser
 from mmcli_python.modem import Modem
 
 class Deku(Modem):
+
+    class ISP():
+        '''
+        purpose: helps get the service provider for a number
+        - checks the isp_configs for matching rules
+        - numbers have to be in the E.164 standards (country code included); https://en.wikipedia.org/wiki/E.164
+        '''
+
+        @staticmethod
+        def determine(number, country, parsed_rules=None):
+            import configparser, re
+            config = configparser.ConfigParser()
+            config.read(os.path.join(os.path.dirname(__file__), 'isp_configs', 'default.ini'))
+
+            if number.find(config['country_codes'][country]) > -1:
+                number= number.replace(config['country_codes'][country], '')
+            print('number', number)
+
+            for rules in config[country]:
+                # print(rules)
+                ''' checks if has country code '''
+                for rule in config[country][rules].split(','):
+                    if re.search(rule, number):
+                        return rules
+
+
+            return None
         
     @staticmethod
     def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI):
@@ -46,7 +74,11 @@ class Deku(Modem):
 
         index=cls.available_modem()
         try:
-            Modem(index).isp.determine(number).send(text=text, number=number)
+            config = configparser.ConfigParser()
+            config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+            country = config['isp']['country']
+
+            Modem(index).ISP.determine(number=number, country=country).send(text=text, number=number)
         except Exception as error:
             raise Exception(error)
 
@@ -80,13 +112,17 @@ if __name__ == "__main__":
     # https://docs.python.org/2/library/logging.handlers.html#sysloghandler
     # deku logs
 
-    Deku.available_modem()    
+    # print('available modem index', Deku.available_modem())
+    from datetime import datetime
+    import sys
+    print(f"\n- isp determine: {Deku.ISP.determine(number=sys.argv[2], country='cameroon')}")
+
     '''
-    if Deku.send(text='', number=''):
+    if Deku.send(text=f'today = {datetime.now()}', number=sys.argv[1]):
         # do something
-        pass
+        print('sms sent')
     else:
         # wait for a modem to free up
         # wait for a modem to become available
-        pass
+        print('sms failed to send')
     '''
