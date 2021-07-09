@@ -51,34 +51,40 @@ class Deku(Modem):
         return False
 
 
-    @classmethod
-    def available_modem(cls):
+    @staticmethod
+    def available_modem(isp=None):
         available_index=None
         indexes= Modem.list()
         # print(indexes)
         for index in indexes:
-            # check if lockfile exist for any of this modems
-            if not Deku.modem_is_locked(index, id_type=Modem.IDENTIFIERS.INDEX):
-                print(f'modem[{index}] is locked ', False)
-                available_index = index
-                break
-            print(f'modem[{index}] is locked ', True)
+            # filter for same isp
+            if Modem(index).operator_name.lower() == isp.lower():
+                # check if lockfile exist for any of this modems
+                if not Deku.modem_is_locked(index, id_type=Modem.IDENTIFIERS.INDEX):
+                    print(f'modem[{index}] is locked ', False)
+                    available_index = index
+                    break
+                print(f'modem[{index}] is locked ', True)
         return available_index
 
-    @classmethod
-    def send(cls, text, number):
+    @staticmethod
+    def send(text, number):
         if text is None:
             raise Exception('text cannot be empty')
         if number is None:
             raise Exception('number cannot be empty')
 
-        index=cls.available_modem()
-        try:
-            config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
-            country = config['isp']['country']
+        config = configparser.ConfigParser()
+        config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+        country = config['ISP']['country']
+        isp=Deku.ISP.determine(number=number, country=country)
+        index= Deku.available_modem(isp)
 
-            Modem(index).ISP.determine(number=number, country=country).send(text=text, number=number)
+        if index is None:
+            raise Exception(f'no available modem for type {isp}')
+
+        try:
+            Modem(index).send(text=text, number=number)
         except Exception as error:
             raise Exception(error)
 
@@ -115,14 +121,9 @@ if __name__ == "__main__":
     # print('available modem index', Deku.available_modem())
     from datetime import datetime
     import sys
-    print(f"\n- isp determine: {Deku.ISP.determine(number=sys.argv[2], country='cameroon')}")
+    # print(f"\n- isp determine: {Deku.ISP.determine(number=sys.argv[2], country='cameroon')}")
+    try:
+        Deku.send(text=f'today = {datetime.now()}', number=sys.argv[2])
+    except Exception as error:
+        print(error)
 
-    '''
-    if Deku.send(text=f'today = {datetime.now()}', number=sys.argv[1]):
-        # do something
-        print('sms sent')
-    else:
-        # wait for a modem to free up
-        # wait for a modem to become available
-        print('sms failed to send')
-    '''
