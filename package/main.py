@@ -84,6 +84,8 @@ class Deku(Modem):
             raise Exception(f'no available modem for type {isp}')
 
         try:
+            modem = Modem(index)
+            os.mknod(f"locks/{modem.imei}.lock")
             Modem(index).SMS.set(text=text, number=number).send()
         except Exception as error:
             raise Exception(error)
