@@ -124,6 +124,7 @@ if __name__ == "__main__":
 
     # print('available modem index', Deku.available_modem())
     from datetime import datetime
+    '''
     import sys
     # print(f"\n- isp determine: {Deku.ISP.determine(number=sys.argv[2], country='cameroon')}")
     try:
@@ -132,3 +133,23 @@ if __name__ == "__main__":
     except Exception as error:
         print(error)
 
+    '''
+
+    def usage():
+        print("usage: deku [-option] [--attr] [value]")
+        print('''option:
+        -send (for outgoing messages)\n
+        \t--text\n\t\t\tbody of the message
+        \t--number\n\t\t\treceipient number
+        ''')
+
+    import sys
+    if len(sys.argv) < 2:
+        usage()
+        exit(2)
+
+    if sys.argv[1] == '-send':
+        pass
+    else:
+        usage()
+        exit(2)
