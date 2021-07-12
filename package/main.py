@@ -6,8 +6,12 @@
 '''
 
 import os
+import sys
 import configparser
-from . mmcli_python.modem import Modem
+from datetime import datetime
+
+sys.path.append(os.path.abspath(os.getcwd()))
+from mmcli_python.modem import Modem
 
 class Deku(Modem):
 
@@ -156,7 +160,6 @@ if __name__ == "__main__":
     # deku logs
 
     # print('available modem index', Deku.available_modem())
-    from datetime import datetime
     '''
     import sys
     # print(f"\n- isp determine: {Deku.ISP.determine(number=sys.argv[2], country='cameroon')}")
@@ -177,7 +180,6 @@ if __name__ == "__main__":
         \t--number\n\t\t\treceipient number
         ''')
 
-    import sys
     if len(sys.argv) < 2:
         usage()
         exit(2)
