@@ -7,7 +7,7 @@
 
 import os
 import configparser
-from mmcli_python.modem import Modem
+from . mmcli_python.modem import Modem
 
 class Deku(Modem):
 
@@ -26,7 +26,7 @@ class Deku(Modem):
 
             if number.find(config['country_codes'][country]) > -1:
                 number= number.replace(config['country_codes'][country], '')
-            print('number', number)
+            # print('number', number)
 
             for rules in config[country]:
                 # print(rules)
@@ -35,8 +35,22 @@ class Deku(Modem):
                     if re.search(rule, number):
                         return rules
 
+            print('could not determine rule')
+            return None
+
+        @staticmethod
+        def modems(country, operator_code):
+            # print(f"determining modem's isp {country} {operator_code}")
+            config = configparser.ConfigParser()
+            config.read(os.path.join(os.path.dirname(__file__), 'isp_configs', 'operators.ini'))
+
+            for isp in config[country]:
+                if config[country][isp] == operator_code:
+                    # print('modems isp found: ', isp)
+                    return isp
 
             return None
+
         
     @staticmethod
     def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI):
@@ -46,29 +60,41 @@ class Deku(Modem):
 
         # print('id ', identifier)
         # TODO:change this to use relative paths
-        if os.path.isfile(f'locks/{identifier}.lock'):
+        lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock')
+        if os.path.isfile(lock_dir):
             return True
         return False
 
 
     @staticmethod
-    def available_modem(isp=None):
+    def available_modem(isp=None, country=None):
         available_index=None
         indexes= Modem.list()
-        # print(indexes)
+        print('fetching available modems')
         for index in indexes:
             # filter for same isp
-            if Modem(index).operator_name.lower() == isp.lower():
+            '''
+            checking operator_name is wrong... the name changes very frequently
+            use operator code instead
+            '''
+            print(f'Modem operator code {Modem(index).operator_code}')
+            # print(Deku.ISP.__dict__)
+            # print(country)
+            modem_isp = Deku.ISP.modems(operator_code=Modem(index).operator_code, country=country)
+            print(f'modem isp {modem_isp} - {isp} = {modem_isp.lower() == isp.lower()}')
+            if modem_isp.lower() == isp.lower():
                 # check if lockfile exist for any of this modems
-                if not Deku.modem_is_locked(index, id_type=Modem.IDENTIFIERS.INDEX):
-                    print(f'modem[{index}] is locked ', False)
+                if not Deku.modem_is_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX):
+                    print('modem is not locked')
                     available_index = index
                     break
-                print(f'modem[{index}] is locked ', True)
+                else:
+                    print('modem is locked')
         return available_index
 
     @staticmethod
     def send(text, number):
+        print(f'new deku send request {text}, {number}')
         if text is None:
             raise Exception('text cannot be empty')
         if number is None:
@@ -78,19 +104,26 @@ class Deku(Modem):
         config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
         country = config['ISP']['country']
         isp=Deku.ISP.determine(number=number, country=country)
-        index= Deku.available_modem(isp)
+        # print('isp ', isp)
+        index= Deku.available_modem(isp=isp, country=country)
+        print('available modem with index at', index)
+        lock_dir=None
 
         if index is None:
             raise Exception(f'no available modem for type {isp}')
 
         try:
             modem = Modem(index)
-            os.mknod(f"locks/{modem.imei}.lock")
-            Modem(index).SMS.set(text=text, number=number).send()
+            lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
+            os.mknod(lock_dir)
+            if Modem(index).SMS.set(text=text, number=number).send():
+                print('successfully sent...')
+            else:
+                print('failed to send...')
         except Exception as error:
             raise Exception(error)
         finally:
-            os.remove(f"locks/{modem.imei}.lock")
+            os.remove(lock_dir)
 
         return 0
 
@@ -134,6 +167,7 @@ if __name__ == "__main__":
         print(error)
 
     '''
+    # print(Modem.ISP.modems(Modems(sys.argv[1]).operator_code, sys.argv[2]))
 
     def usage():
         print("usage: deku [-option] [--attr] [value]")
