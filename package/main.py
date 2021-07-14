@@ -58,6 +58,7 @@ class Deku(Modem):
         
     @staticmethod
     def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI):
+        return False
         if id_type == Modem.IDENTIFIERS.INDEX:
             ''' convert to imei '''
             identifier= Modem(identifier).imei
@@ -134,7 +135,7 @@ class Deku(Modem):
                 print('failed to send...')
         except Exception as error:
             if q_exception is not None:
-                q_exception.put(Exception(json.dumps({"msg":msg, "_id":identifier})))
+                q_exception.put(Exception(json.dumps({"msg":error.args[0], "_id":identifier})))
                 return 1
             else:
                 raise Exception(error)
