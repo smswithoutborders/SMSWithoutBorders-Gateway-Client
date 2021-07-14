@@ -74,7 +74,7 @@ class Deku(Modem):
     def available_modem(isp=None, country=None):
         available_index=None
         indexes= Modem.list()
-        print('fetching available modems')
+        # print('fetching available modems')
         for index in indexes:
             # filter for same isp
             '''
@@ -97,7 +97,9 @@ class Deku(Modem):
         return available_index
 
     @staticmethod
-    def send(text, number):
+    def send(text, number, q_exception=None, identifier=None):
+        import queue, json
+
         print(f'new deku send request {text}, {number}')
         if text is None:
             raise Exception('text cannot be empty')
@@ -115,7 +117,12 @@ class Deku(Modem):
 
         if index is None:
             msg=f'no available modem for type {isp}'
-            raise Exception(msg)
+            if q_exception is not None:
+                q_exception.put(Exception(json.dumps({"msg":msg, "_id":identifier})))
+                return 1
+
+            else:
+                raise Exception(msg)
 
         try:
             modem = Modem(index)
@@ -126,7 +133,11 @@ class Deku(Modem):
             else:
                 print('failed to send...')
         except Exception as error:
-            raise Exception(error)
+            if q_exception is not None:
+                q_exception.put(Exception(json.dumps({"msg":msg, "_id":identifier})))
+                return 1
+            else:
+                raise Exception(error)
         finally:
             os.remove(lock_dir)
 
