@@ -110,11 +110,11 @@ class Deku(Modem):
         isp=Deku.ISP.determine(number=number, country=country)
         # print('isp ', isp)
         index= Deku.available_modem(isp=isp, country=country)
-        print('available modem with index at', index)
+        # print('available modem with index at', index)
         lock_dir=None
 
         if index is None:
-            raise Exception(f'no available modem for type {isp}')
+            raise Exception(str(f'no available modem for type {isp}'))
 
         try:
             modem = Modem(index)
