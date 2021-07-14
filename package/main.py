@@ -114,7 +114,8 @@ class Deku(Modem):
         lock_dir=None
 
         if index is None:
-            raise Exception(str(f'no available modem for type {isp}'))
+            msg=f'no available modem for type {isp}'
+            raise Exception(msg)
 
         try:
             modem = Modem(index)
