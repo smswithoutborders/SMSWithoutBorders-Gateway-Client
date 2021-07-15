@@ -58,13 +58,25 @@ class Deku(Modem):
         
     @staticmethod
     def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI):
+        '''
+        pdu-type might be what determines the kind of message this is
+        - check latest message, if pdu-type == submit
+        - outbound = send
+        - inbound = deliver
+
+
+        latest message would determine if modem is available or not
+        '''
         if id_type == Modem.IDENTIFIERS.INDEX:
             ''' convert to imei '''
             identifier= Modem(identifier).imei
 
         lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock')
         if os.path.isfile(lock_dir):
-            return True
+            # return True
+            ''' checks state of modems last messages '''
+            all_messages = Modem.SMS.list(k=False)
+            print(all_messages)
         return False
 
 
@@ -126,7 +138,6 @@ class Deku(Modem):
             modem = Modem(index)
 
             lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
-
             os.mknod(lock_dir)
             if Modem(index).SMS.set(text=text, number=number).send():
                 print('successfully sent...')
@@ -160,45 +171,7 @@ class Deku(Modem):
     def logs():
         pass
 
-if __name__ == "__main__":
-    # deku send --text="" --number=""
-    # SEND_PERSIST=100 deku send --text="" --number=""
-    # deku read
-    # deku reset
-    # deku stats
-    # deku delete --index=#
-
-    # https://docs.python.org/2/library/logging.handlers.html#sysloghandler
-    # deku logs
-
-    # print('available modem index', Deku.available_modem())
-    '''
-    import sys
-    # print(f"\n- isp determine: {Deku.ISP.determine(number=sys.argv[2], country='cameroon')}")
-    try:
-        if Deku.send(text=f'today = {datetime.now()}', number=sys.argv[2]) == 0:
-            print('sms sent successfully')
-    except Exception as error:
-        print(error)
-
-    '''
-    # print(Modem.ISP.modems(Modems(sys.argv[1]).operator_code, sys.argv[2]))
-
-    def usage():
-        print("usage: deku [-option] [--attr] [value]")
-        print('''option:
-        -send (for outgoing messages)\n
-        \t--text\n\t\t\tbody of the message
-        \t--number\n\t\t\treceipient number
-        ''')
-
-    if len(sys.argv) < 2:
-        usage()
-        exit(2)
-
-    if sys.argv[1] == '-send':
-        pass
-    else:
-        usage()
-        exit(2)
-
+    @staticmethod
+    def __init__(cls):
+        lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
+        os.remove(lock_dir)
