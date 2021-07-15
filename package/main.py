@@ -58,13 +58,10 @@ class Deku(Modem):
         
     @staticmethod
     def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI):
-        return False
         if id_type == Modem.IDENTIFIERS.INDEX:
             ''' convert to imei '''
             identifier= Modem(identifier).imei
 
-        # print('id ', identifier)
-        # TODO:change this to use relative paths
         lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock')
         if os.path.isfile(lock_dir):
             return True
@@ -127,7 +124,9 @@ class Deku(Modem):
 
         try:
             modem = Modem(index)
+
             lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
+
             os.mknod(lock_dir)
             if Modem(index).SMS.set(text=text, number=number).send():
                 print('successfully sent...')
