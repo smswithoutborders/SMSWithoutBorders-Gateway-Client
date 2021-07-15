@@ -76,7 +76,11 @@ class Deku(Modem):
             # return True
             ''' checks state of modems last messages '''
             all_messages = Modem.SMS.list(k=False)
-            print(all_messages)
+            # print(all_messages)
+            for messages in all_messages:
+                ''' 0 = index, 1 = (type) '''
+                if messages[1].find('unknown') > -1:
+                    ''' figure shit out'''
         return False
 
 
