@@ -111,7 +111,24 @@ class Deku(Modem):
         return available_index
 
     @staticmethod
-    def send(text, number, q_exception=None, identifier=None):
+    def send(text, number, timeout=20, q_exception=None, identifier=None):
+        '''
+        options to help with load balancing:
+        - based on the frequency of single messages coming in, can choose to create locks modem
+
+        Questions:
+        - how can modem give up trying to send out a message and let another modem take a short
+        - answer: by locking itself for a longer time period and letting the other modems have access
+        aka (lock on fail - aka benchmark limit)
+
+        sample lock file:
+        lock_start_time = (epoch time)
+        lock_type = [benchmark_limit, busy, break]
+            benchmark_limit = failed too many times
+            busy = currently has a job
+            break = has done too many single task, trying to switch up other modems
+        '''
+
         import queue, json
 
         print(f'new deku send request {text}, {number}')
@@ -143,7 +160,7 @@ class Deku(Modem):
 
             lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
             os.mknod(lock_dir)
-            if Modem(index).SMS.set(text=text, number=number).send():
+            if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
                 print('successfully sent...')
             else:
                 print('failed to send...')
@@ -175,7 +192,9 @@ class Deku(Modem):
     def logs():
         pass
 
-    @staticmethod
+    @classmethod
     def __init__(cls):
-        lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
-        os.remove(lock_dir)
+        # lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
+        os.rmdir(os.path.join(os.path.dirname(__file__), 'locks', f''))
+        os.makedirs(os.path.join(os.path.dirname(__file__), 'locks', f''), exists_ok=True)
+        print('instantiated new Deku')
