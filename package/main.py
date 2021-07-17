@@ -74,6 +74,7 @@ class Deku(Modem):
 
         lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock')
         if os.path.isfile(lock_dir):
+            import time
             '''
             # return True
             # checks state of modems last messages
@@ -84,6 +85,22 @@ class Deku(Modem):
                 if messages[1].find('unknown') > -1:
                     # figure shit out
             '''
+
+
+            ''' checks the duration of the lock, then frees up the lock file '''
+            lock_config = configparser.ConfigParser()
+            lock_config.read(os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock'))
+            start_time = float(lock_config['LOCKS']['START_TIME'])
+            lock_type = lock_config['LOCKS']['TYPE']
+
+            ''' benchmark limit should come from configs 
+            calculate the time difference
+            '''
+
+            if (time.time() - start_time ) > 60 and lock_type == 'BENCHMARK': #seconds
+                ''' set the file free '''
+                os.remove(lock_dir)
+                print('set lock file free')
             
         return False
 
