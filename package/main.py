@@ -74,14 +74,17 @@ class Deku(Modem):
 
         lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock')
         if os.path.isfile(lock_dir):
+            '''
             # return True
-            ''' checks state of modems last messages '''
+            # checks state of modems last messages
             all_messages = Modem.SMS.list(k=False)
             # print(all_messages)
             for messages in all_messages:
-                ''' 0 = index, 1 = (type) '''
+                # 0 = index, 1 = (type)
                 if messages[1].find('unknown') > -1:
-                    ''' figure shit out'''
+                    # figure shit out
+            '''
+            
         return False
 
 
@@ -101,6 +104,9 @@ class Deku(Modem):
             # print(country)
             modem_isp = Deku.ISP.modems(operator_code=Modem(index).operator_code, country=country)
             print(f'modem isp {modem_isp} - {isp} = {modem_isp.lower() == isp.lower()}')
+
+            ''' should be in setting before deciding to use isp checking here -
+            credit is still a viable option '''
             if modem_isp.lower() == isp.lower():
                 # check if lockfile exist for any of this modems
                 if not Deku.modem_is_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX):
@@ -121,7 +127,7 @@ class Deku(Modem):
         Questions:
         - how can modem give up trying to send out a message and let another modem take a short
         - answer: by locking itself for a longer time period and letting the other modems have access
-        aka (lock on fail - aka benchmark limit)
+        aka (lock on fail - aka benchmark limit) - giving a shot with 1 min
 
         sample lock file:
         lock_start_time = (epoch time)
@@ -130,7 +136,6 @@ class Deku(Modem):
             busy = currently has a job
             break = has done too many single task, trying to switch up other modems
         '''
-
 
         print(f'new deku send request {text}, {number}')
         if text is None:
@@ -172,6 +177,14 @@ class Deku(Modem):
                 else:
                     print('failed to send...')
         except Exception as error:
+            with open(lock_dir, 'w') as lock_file:
+                import time
+                write_config = configparser.ConfigParser()
+                write_config.add_section('LOCKS')
+                write_config.set('LOCKS', 'TYPE', 'BENCHMARK')
+                write_config.set('LOCKS', 'START_TIME', time.time())
+                write_config.write(lock_file)
+
             if q_exception is not None:
                 q_exception.put(Exception(json.dumps({"msg":error.args[0], "_id":identifier})))
                 return 1
