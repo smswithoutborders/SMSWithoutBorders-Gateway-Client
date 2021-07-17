@@ -7,6 +7,7 @@
 
 import os
 import sys
+import queue, json
 import configparser
 from datetime import datetime
 
@@ -111,7 +112,8 @@ class Deku(Modem):
         return available_index
 
     @staticmethod
-    def send(text, number, timeout=20, q_exception=None, identifier=None):
+    def send(text, number, timeout=20, q_exception:queue=None, identifier=None):
+        # TODO
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -129,7 +131,6 @@ class Deku(Modem):
             break = has done too many single task, trying to switch up other modems
         '''
 
-        import queue, json
 
         print(f'new deku send request {text}, {number}')
         if text is None:
@@ -159,11 +160,17 @@ class Deku(Modem):
             modem = Modem(index)
 
             lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
-            os.mknod(lock_dir)
-            if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
-                print('successfully sent...')
-            else:
-                print('failed to send...')
+            # os.mknod(lock_dir)
+            with open(lock_dir, 'w') as lock_file:
+                write_config = configparser.ConfigParser()
+                write_config.add_section('LOCKS')
+                write_config.set('LOCKS', 'TYPE', 'BUSY')
+                write_config.write(lock_file)
+
+                if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
+                    print('successfully sent...')
+                else:
+                    print('failed to send...')
         except Exception as error:
             if q_exception is not None:
                 q_exception.put(Exception(json.dumps({"msg":error.args[0], "_id":identifier})))
@@ -195,6 +202,11 @@ class Deku(Modem):
     @classmethod
     def __init__(cls):
         # lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
-        os.rmdir(os.path.join(os.path.dirname(__file__), 'locks', f''))
-        os.makedirs(os.path.join(os.path.dirname(__file__), 'locks', f''), exists_ok=True)
+        # os.rmdir(os.path.join(os.path.dirname(__file__), 'locks', f''))
+        # os.makedirs(os.path.join(os.path.dirname(__file__), 'locks', f''), exists_ok=True)
+        '''
+        LOAD BALANCING
+        --------------
+        - Check the contents of locks to make sure it's appropriate to remove the files
+        '''
         print('instantiated new Deku')
