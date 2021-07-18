@@ -5,10 +5,8 @@
 - Deku runs in the terminal no place else
 '''
 
-import os
-import sys
-import queue, json
-import configparser
+import os, sys, time, queue, json
+import configparser, threading
 from datetime import datetime
 
 sys.path.append(os.path.abspath(os.getcwd()))
@@ -74,7 +72,7 @@ class Deku(Modem):
 
         lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock')
         if os.path.isfile(lock_dir):
-            import time
+            print(f'{identifier}.lock exist')
             '''
             # return True
             # checks state of modems last messages
@@ -86,7 +84,6 @@ class Deku(Modem):
                     # figure shit out
             '''
 
-
             ''' checks the duration of the lock, then frees up the lock file '''
             lock_config = configparser.ConfigParser()
             lock_config.read(os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock'))
@@ -96,14 +93,19 @@ class Deku(Modem):
             ''' benchmark limit should come from configs 
             calculate the time difference
             '''
-
-            if (time.time() - start_time ) > 60 and lock_type == 'BENCHMARK': #seconds
+            ''' how long should benchmarks last before expiring '''
+            benchmark_timelimit = 60
+            if (time.time() - start_time ) > benchmark_timelimit and lock_type == 'BENCHMARK': #seconds
+                print('\ttype = benchmark')
                 ''' set the file free '''
                 os.remove(lock_dir)
                 print('set lock file free')
+                return False
+            print('\ttype = busy')
+            return True
             
+        print(f'{identifier} no lock file')
         return False
-
 
     @staticmethod
     def available_modem(isp=None, country=None):
@@ -135,8 +137,9 @@ class Deku(Modem):
         return available_index
 
     @staticmethod
-    def send(text, number, timeout=20, q_exception:queue=None, identifier=None):
-        # TODO
+    # def send(text, number, timeout=20, q_exception:queue=None, identifier=None, t_lock:threading.Lock=None):
+    def send(text, number, timeout=20, q_exception:queue=None, identifier=None, modem_locks=None):
+        # TODO: 
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -149,10 +152,22 @@ class Deku(Modem):
         sample lock file:
         lock_start_time = (epoch time)
         lock_type = [benchmark_limit, busy, break]
+
             benchmark_limit = failed too many times
+            
             busy = currently has a job
+
             break = has done too many single task, trying to switch up other modems
         '''
+        if modem_locks is not None and identifier in modem_locks and modem_locks[identifier].locked():
+            print('Cannot create lock file, file begin created by another process')
+            return 1
+
+        '''
+        check if modem is already locked creating busy file, else create the busy file
+        '''
+        modem_locks[identifier] = threading.Lock()
+        modem_locks[identifier].acquire()
 
         print(f'new deku send request {text}, {number}')
         if text is None:
@@ -165,7 +180,10 @@ class Deku(Modem):
         country = config['ISP']['country']
         isp=Deku.ISP.determine(number=number, country=country)
         # print('isp ', isp)
+        # threading.Thread.acquire(blocking)
         index= Deku.available_modem(isp=isp, country=country)
+
+
         # print('available modem with index at', index)
         lock_dir=None
 
@@ -178,29 +196,37 @@ class Deku(Modem):
             else:
                 raise Exception(msg)
 
+        lock_dir = None
         try:
-            modem = Modem(index)
 
+            modem = Modem(index)
             lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
             # os.mknod(lock_dir)
             with open(lock_dir, 'w') as lock_file:
                 write_config = configparser.ConfigParser()
-                write_config.add_section('LOCKS')
-                write_config.set('LOCKS', 'TYPE', 'BUSY')
+                write_config['LOCKS'] = {}
+                write_config['LOCKS']['TYPE'] = 'BUSY'
+                write_config['LOCKS']['START_TIME'] = str(time.time())
                 write_config.write(lock_file)
+                print('BUSY lock file created')
 
                 if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
                     print('successfully sent...')
                 else:
                     print('failed to send...')
         except Exception as error:
+            print('lock file at:', lock_dir)
             with open(lock_dir, 'w') as lock_file:
-                import time
                 write_config = configparser.ConfigParser()
-                write_config.add_section('LOCKS')
+                '''write_config.add_section('LOCKS')
                 write_config.set('LOCKS', 'TYPE', 'BENCHMARK')
-                write_config.set('LOCKS', 'START_TIME', time.time())
+                write_config.set('LOCKS', 'START_TIME', str(time.time()))
+                write_config.write(lock_file)'''
+                write_config['LOCKS'] = {}
+                write_config['LOCKS']['TYPE'] = 'BENCHMARK'
+                write_config['LOCKS']['START_TIME'] = str(time.time())
                 write_config.write(lock_file)
+                print('BENCHMARK lock file created')
 
             if q_exception is not None:
                 q_exception.put(Exception(json.dumps({"msg":error.args[0], "_id":identifier})))
@@ -208,7 +234,13 @@ class Deku(Modem):
             else:
                 raise Exception(error)
         finally:
-            os.remove(lock_dir)
+            ''' release thread from lock '''
+            modem_locks[identifier].release()
+            try:
+                os.remove(lock_dir)
+            except Exception as error:
+                # print(error)
+                print(traceback.format_exc())
 
         return 0
 
@@ -230,6 +262,10 @@ class Deku(Modem):
         pass
 
     @classmethod
+    def __del__(cls):
+        print('deleting Deku instances - should set lock files free')
+
+    @classmethod
     def __init__(cls):
         # lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
         # os.rmdir(os.path.join(os.path.dirname(__file__), 'locks', f''))
@@ -238,5 +274,6 @@ class Deku(Modem):
         LOAD BALANCING
         --------------
         - Check the contents of locks to make sure it's appropriate to remove the files
+        - checks if file type is busy
         '''
         print('instantiated new Deku')
