@@ -56,7 +56,7 @@ class Deku(Modem):
 
         
     @staticmethod
-    def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI):
+    def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI, benchmark_remove=True):
         '''
         pdu-type might be what determines the kind of message this is
         - check latest message, if pdu-type == submit
@@ -71,6 +71,8 @@ class Deku(Modem):
             identifier= Modem(identifier).imei
 
         lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock')
+        lock_type=None
+        start_time=None
         if os.path.isfile(lock_dir):
             print(f'{identifier}.lock exist')
             '''
@@ -86,7 +88,7 @@ class Deku(Modem):
 
             ''' checks the duration of the lock, then frees up the lock file '''
             lock_config = configparser.ConfigParser()
-            lock_config.read(os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock'))
+            lock_config.read(lock_dir)
             start_time = float(lock_config['LOCKS']['START_TIME'])
             lock_type = lock_config['LOCKS']['TYPE']
 
@@ -95,17 +97,17 @@ class Deku(Modem):
             '''
             ''' how long should benchmarks last before expiring '''
             benchmark_timelimit = 60
-            if (time.time() - start_time ) > benchmark_timelimit and lock_type == 'BENCHMARK': #seconds
-                print('\ttype = benchmark')
+            if benchmark_remove and (time.time() - start_time ) > benchmark_timelimit and lock_type == 'BENCHMARK': #seconds
+                # print('\ttype = benchmark')
                 ''' set the file free '''
                 os.remove(lock_dir)
-                print('set lock file free')
-                return False
-            print('\ttype = busy')
-            return True
+                 #print('set lock file free')
+                return False, lock_type, lock_dir
+            # print('\ttype = busy')
+            return True, lock_type, lock_dir
             
-        print(f'{identifier} no lock file')
-        return False
+        # print(f'{identifier} no lock file')
+        return False, lock_type, lock_dir
 
     @staticmethod
     def available_modem(isp=None, country=None):
@@ -128,7 +130,7 @@ class Deku(Modem):
             credit is still a viable option '''
             if modem_isp.lower() == isp.lower():
                 # check if lockfile exist for any of this modems
-                if not Deku.modem_is_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX):
+                if not Deku.modem_is_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX)[0]:
                     print('modem is not locked')
                     available_index = index
                     break
@@ -137,9 +139,42 @@ class Deku(Modem):
         return available_index
 
     @staticmethod
+    def send_bulk(messages, timeout=20, q_exception:queue=None, identifier=None):
+        '''
+        env:
+        - C1. Multiple modems
+        - C2. Multiple messages
+        - C3. Multiple ISPs
+
+        policies:
+        - (C2, C3) - messages are divided into various ISPs (this has to specified in the settings - very important)
+        - (C1, (same ISP)) - messages get requested from a pool
+
+
+        - how does Deku self manage multiple messages?
+
+        if it fails it locks, not available to claim more messages
+        if all modems are locked, then no modem is available and request for new messages should fail (unless locks are deleted)
+        '''
+
+        l_threads = []
+        lock = threading.Lock()
+        for message in messages:
+            thread = threading.Thread(target=Deku.send, args=(message['text'], message['number'], timeout, q_exception, message['id'], lock,), daemon=True)
+            thread.start()
+            l_threads.append(thread)
+
+        for thread in l_threads:
+            thread.join()
+
+
+    @staticmethod
     # def send(text, number, timeout=20, q_exception:queue=None, identifier=None, t_lock:threading.Lock=None):
-    def send(text, number, timeout=20, q_exception:queue=None, identifier=None, modem_locks=None):
-        # TODO: 
+    def send(text, number, timeout=20, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
+        # print(f'new request\ntext\n\t{text}\nnumber\n\t{number}\nidentifier\n\t{identifier}\n')
+        if lock is not None:
+            lock.acquire(blocking=True)
+            print('thread lock acquired')
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -159,16 +194,6 @@ class Deku(Modem):
 
             break = has done too many single task, trying to switch up other modems
         '''
-        if modem_locks is not None and identifier in modem_locks and modem_locks[identifier].locked():
-            print('Cannot create lock file, file begin created by another process')
-            return 1
-
-        '''
-        check if modem is already locked creating busy file, else create the busy file
-        '''
-        modem_locks[identifier] = threading.Lock()
-        modem_locks[identifier].acquire()
-
         print(f'new deku send request {text}, {number}')
         if text is None:
             raise Exception('text cannot be empty')
@@ -188,7 +213,13 @@ class Deku(Modem):
         lock_dir=None
 
         if index is None:
-            msg=f'no available modem for type {isp}'
+            msg=f'message[{identifier}] - no available modem for type {isp}'
+
+            ''' release thread lock '''
+            if lock is not None and lock.locked():
+                lock.release()
+                print('\tthread lock released')
+
             if q_exception is not None:
                 q_exception.put(Exception(json.dumps({"msg":msg, "_id":identifier})))
                 return 1
@@ -208,20 +239,19 @@ class Deku(Modem):
                 write_config['LOCKS']['TYPE'] = 'BUSY'
                 write_config['LOCKS']['START_TIME'] = str(time.time())
                 write_config.write(lock_file)
-                print('BUSY lock file created')
+                print(f'BUSY lock file created - {write_config.sections()}')
+            if lock is not None and lock.locked():
+                lock.release()
+                print('\tthread lock released')
 
-                if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
-                    print('successfully sent...')
-                else:
-                    print('failed to send...')
+            if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
+                print('successfully sent...')
+            else:
+                print('failed to send...')
         except Exception as error:
             print('lock file at:', lock_dir)
             with open(lock_dir, 'w') as lock_file:
                 write_config = configparser.ConfigParser()
-                '''write_config.add_section('LOCKS')
-                write_config.set('LOCKS', 'TYPE', 'BENCHMARK')
-                write_config.set('LOCKS', 'START_TIME', str(time.time()))
-                write_config.write(lock_file)'''
                 write_config['LOCKS'] = {}
                 write_config['LOCKS']['TYPE'] = 'BENCHMARK'
                 write_config['LOCKS']['START_TIME'] = str(time.time())
@@ -234,14 +264,13 @@ class Deku(Modem):
             else:
                 raise Exception(error)
         finally:
-            ''' release thread from lock '''
-            modem_locks[identifier].release()
-            try:
-                os.remove(lock_dir)
-            except Exception as error:
-                # print(error)
-                print(traceback.format_exc())
+            ''' if benchmark file and limit is reached, file would be removed '''
+            status, lock_type, lock_file = Deku.modem_is_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX)
 
+            if status and lock_type == 'BUSY':
+                os.remove(lock_file)
+                print(f'modem[{identifier}] - busy lock removed')
+               
         return 0
 
 
