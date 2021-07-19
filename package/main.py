@@ -5,7 +5,7 @@
 - Deku runs in the terminal no place else
 '''
 
-import os, sys, time, queue, json
+import os, sys, time, queue, json, traceback
 import configparser, threading
 from datetime import datetime
 
@@ -159,6 +159,7 @@ class Deku(Modem):
 
         l_threads = []
         lock = threading.Lock()
+
         for message in messages:
             thread = threading.Thread(target=Deku.send, args=(message['text'], message['number'], timeout, q_exception, message['id'], lock,), daemon=True)
             thread.start()
@@ -166,6 +167,7 @@ class Deku(Modem):
 
         for thread in l_threads:
             thread.join()
+            
 
 
     @staticmethod
@@ -258,6 +260,7 @@ class Deku(Modem):
                 write_config.write(lock_file)
                 print('BENCHMARK lock file created')
 
+            print(traceback.format_exc())
             if q_exception is not None:
                 q_exception.put(Exception(json.dumps({"msg":error.args[0], "_id":identifier})))
                 return 1
