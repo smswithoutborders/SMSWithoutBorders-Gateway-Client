@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 
 ''' testing criterias----
-- when modem is present a broker should start up
+- when modem is present a node should start up
     - should be able to receive messages from a producer
 '''
 
-import sys, os
+import sys, os, threading
+import asyncio
 
 import pika
 
@@ -29,10 +30,10 @@ class Node:
         connection=pika.BlockingConnection(pika.ConnectionParameters('localhost'))
         self.channel=connection.channel()
 
-        ''' listening exchange '''
+        ''' listening exchange creation on the stack '''
         self.channel.exchange_declare(exchange=self.exchange, exchange_type=self.exchange_type)
 
-        ''' listening queue '''
+        ''' listening queue creation on the stack'''
         # result=channel.queue_declare(queue=queue_name, exclusive=True)
         self.channel.queue_declare(queue=self.queue_name)
 
@@ -62,7 +63,7 @@ class Node:
         print(f'\t[{self.m_index}]* waiting for message...')
         self.channel.start_consuming()
 
-if __name__ == "__main__":
+def main():
     ''' - when modem open worker
         - when no worker close worker
     '''
@@ -70,12 +71,27 @@ if __name__ == "__main__":
         return Modem.list()
 
     # indexes=available_modem()
-    indexes=['1']
-    print('* starting brokers for modems with indexes:', indexes)
+    indexes=['1', '2']
+    print('* starting consumer for modems with indexes:', indexes)
 
+    l_threads=[]
     for m_index in indexes:
         # isp_name=Tools.ISP.modem('cameroon', '')
         isp_name="MTN1"
-        print('\t* starting broker for:', m_index, isp_name)
+        print('\t* starting consumer for:', m_index, isp_name)
+
         node=Node(m_index, isp_name)
-        node.start_consuming()
+        # l_threads.append(threading.Thread(target=node.start_consuming(), daemon=True))
+        thread=threading.Thread(target=node.start_consuming, daemon=True)
+        l_threads.append(thread)
+
+    for thread in l_threads:
+        thread.start()
+
+    for thread in l_threads:
+        thread.join()
+
+if __name__ == "__main__":
+   #  asyncio.run(main())
+   main()
+
