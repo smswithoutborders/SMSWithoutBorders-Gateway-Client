@@ -6,7 +6,7 @@
 '''
 
 import sys, os, threading
-import asyncio
+import asyncio, configparser
 
 import pika
 
@@ -15,19 +15,22 @@ from mmcli_python.modem import Modem
 
 class Node:
     def __init__(self, m_index, queue_name='', exchange_type='direct'):
+        ''' bringing config in here means it's hot reloaded when nodes are created '''
+        config = configparser.ConfigParser()
+        config.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
+
         ''' 
         queue_name : should be name of isp - no cus this would delete the entirty when 
         closed
         '''
 
-        # TODO: put in config
-        self.exchange='sms'
+        self.exchange=config['NODE']['exchange']
         self.m_index=m_index
         self.queue_name=queue_name
         self.exchange_type=exchange_type
+        connection_url = config['NODE']['connection_url']
 
-        # TODO: put in config
-        connection=pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
         self.channel=connection.channel()
 
         ''' listening exchange creation on the stack '''
@@ -53,8 +56,7 @@ class Node:
         '''
 
         ''' set fair dispatch '''
-        # TODO: put in config
-        self.channel.basic_qos(prefetch_count=1)
+        self.channel.basic_qos(prefetch_count=int(config['NODE']['prefetch_count']))
 
     def __callback(self, ch, method, properties, body):
         print(f'\t*[{self.m_index}] message: {body}')
