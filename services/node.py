@@ -57,7 +57,7 @@ class Node:
         self.channel.basic_qos(prefetch_count=1)
 
     def __callback(self, ch, method, properties, body):
-        print(f'\t* message: {body}')
+        print(f'\t*[{self.m_index}] message: {body}')
 
     def start_consuming(self):
         print(f'\t[{self.m_index}]* waiting for message...')
@@ -81,7 +81,6 @@ def main():
         print('\t* starting consumer for:', m_index, isp_name)
 
         node=Node(m_index, isp_name)
-        # l_threads.append(threading.Thread(target=node.start_consuming(), daemon=True))
         thread=threading.Thread(target=node.start_consuming, daemon=True)
         l_threads.append(thread)
 
@@ -92,6 +91,5 @@ def main():
         thread.join()
 
 if __name__ == "__main__":
-   #  asyncio.run(main())
    main()
 
