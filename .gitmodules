@@ -1,3 +1,3 @@
-[submodule "package/mmcli_python"]
-	path = package/mmcli_python
+[submodule "services/mmcli_python"]
+	path = services/mmcli_python
 	url = https://github.com/sherlockwisdom/mmcli_python.git
