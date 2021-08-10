@@ -1,0 +1,4 @@
+*.ini
+!template.isp.ini
+!default.ini
+!example.*
