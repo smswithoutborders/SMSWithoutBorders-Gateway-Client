@@ -39,7 +39,8 @@ topic methods
 '''
 
 import sys, os, threading, traceback
-import asyncio, configparser
+import asyncio
+from configparser import ConfigParser, ExtendedInterpolation
 
 import pika
 
@@ -47,12 +48,12 @@ sys.path.append(os.path.abspath(os.getcwd()))
 from mmcli_python.modem import Modem
 
 
+connection=None
+config = ConfigParser(interpolation=ExtendedInterpolation())
+config.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
+
 class Node:
     def __init__(self, m_index, m_isp):
-        connection=None
-
-        config = configparser.ConfigParser()
-        config.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
         try:
             connection_url = config['NODE']['connection_url']
             connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
@@ -74,6 +75,7 @@ class Node:
         ''' bind queue to exchange '''
         try:
 
+            print(f'\t* [{self.m_index}] binding key: {self.binding_key}')
             self.channel.queue_bind(
                     exchange=self.exchange, 
                     queue=self.queue_name, 
@@ -104,10 +106,10 @@ class Node:
         self.channel.basic_qos(prefetch_count=int(config['NODE']['prefetch_count']))
 
     def __callback(self, ch, method, properties, body):
-        print(f'\t*[{self.m_index}] message: {body}')
+        print(f'\t* [{self.m_index}] message: {body}')
 
     def start_consuming(self):
-        print(f'\t[{self.m_index}]* waiting for message...')
+        print(f'\t* [{self.m_index}] waiting for message...')
         self.channel.start_consuming()
 
 def main():
@@ -118,7 +120,7 @@ def main():
 
     for m_index in indexes:
         # isp_name=Tools.ISP.modem('cameroon', '')
-        m_isp="MTN1"
+        m_isp="mtn"
 
         print('\t* starting consumer for:', m_index, m_isp)
         node=Node(m_index, m_isp)
