@@ -118,7 +118,7 @@ class Deku(Modem):
         - available isp
         -etc
         '''
-        return modem_index in Modem.list()
+        return modem_index in Modem.list() and Modem(modem_index).operator_code is not None
 
     @staticmethod
     def modems_ready(isp=None, country=None):
@@ -229,7 +229,7 @@ class Deku(Modem):
         isp=Deku.ISP.determine(number=number, country=country)
         # print('isp ', isp)
         # threading.Thread.acquire(blocking)
-        index= Deku.available_modem(isp=isp, country=country)
+        index= Deku.modems_ready(isp=isp, country=country)
 
 
         # print('available modem with index at', index)
