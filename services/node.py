@@ -46,19 +46,19 @@ import pika
 sys.path.append(os.path.abspath(os.getcwd()))
 from mmcli_python.modem import Modem
 
-connection=None
-
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
-try:
-    connection_url = config['NODE']['connection_url']
-    connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
-except Exception as error:
-    print(traceback.format_exc())
-    sys.exit(1)
 
 class Node:
-    def __init__(self, m_index, m_isp, exchange_type=config['NODE']['exchange_type']):
+    def __init__(self, m_index, m_isp):
+        connection=None
+
+        config = configparser.ConfigParser()
+        config.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
+        try:
+            connection_url = config['NODE']['connection_url']
+            connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
+        except Exception as error:
+            print(traceback.format_exc())
+            sys.exit(1)
 
         ''' 
         queue_name : should be name of isp - no cus this would delete the entirty when 
@@ -81,6 +81,9 @@ class Node:
 
         except pika.exceptions.ChannelClosedByBroker as error:
             print(error)
+            sys.exit(1)
+        except Exception as error:
+            print(traceback.format_exc())
             sys.exit(1)
 
         ''' consumer properties '''
