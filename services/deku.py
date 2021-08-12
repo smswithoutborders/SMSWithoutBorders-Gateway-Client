@@ -48,7 +48,7 @@ class Deku(Modem):
             config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'operators.ini'))
 
             for isp in config[country]:
-                if config[country][isp] == operator_code:
+                if config[country][isp].lower() == operator_code.lower():
                     # print('modems isp found: ', isp)
                     return isp
 
@@ -118,7 +118,9 @@ class Deku(Modem):
         - available isp
         -etc
         '''
-        return modem_index in Modem.list() and Modem(modem_index).operator_code is not None
+        moc = Modem(modem_index).operator_code
+        # print('moc:', moc)
+        return modem_index in Modem.list() and moc != '--' and moc is not None
 
     @staticmethod
     def modems_ready(isp=None, country=None):

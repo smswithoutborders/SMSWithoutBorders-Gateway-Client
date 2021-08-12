@@ -70,35 +70,43 @@ initialize term colors
 init()
 
 class Node:
-    def logger(self, text, _type='secondary', color=None, brightness=None):
+    def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
+        color='\033[32m'
+        if output == 'stderr':
+            color='\033[31m'
         if _type=='primary':
-            print('\033[32' + f'* {self.me} {text}')
-            print('\x1b[0m')
+            print(color + f'* {self.me} {text}')
         else:
-            print('\033[32;1m' + f'\t* {self.me} {text}')
-            print('\x1b[0m')
+            print(color + f'\t* {self.me} {text}')
+        print('\x1b[0m')
 
     def __init__(self, m_index, m_isp):
         try:
             connection_url = config['NODE']['connection_url']
             connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
         except Exception as error:
-            print(traceback.format_exc())
-            sys.exit(1)
+            # raise Exception(traceback.format_exc())
+            raise Exception(error)
+            # sys.exit(1)
 
-        ''' 
-        queue_name : should be name of isp - no cus this would delete the entirty when 
-        closed
-        '''
         self.m_index=m_index
         self.me = f'[{self.m_index}]'
 
         self.exchange=config['NODE']['exchange_name']
-        self.queue_name=config['NODE']['queue_name']
-        self.binding_key=f"{config['NODE']['binding_key']}.{m_isp}"
-        self.sms_outgoing_channel=connection.channel()
+        self.exchange_type=config['NODE']['exchange_type'] 
 
-        ''' bind queue to exchange '''
+        self.sms_outgoing_channel=connection.channel()
+        # self.sms_outgoing_channel.exchange_declare(exchange=self.exchange, exchange_type=self.exchange_type)
+
+        ''' format=<dev id>.<isp> '''
+        self.queue_name=f"{config['NODE']['queue_name']}.{m_isp}"
+        self.sms_outgoing_channel.queue_declare(self.queue_name)
+
+        ''' listens to all request coming for specific isp '''
+        ''' with the default binding key, it receives all messages '''
+        self.binding_key=config['NODE']['binding_key']
+
+
         try:
 
             self.logger(f'binding key: {self.binding_key}')
@@ -108,20 +116,34 @@ class Node:
                     routing_key=self.binding_key)
 
         except pika.exceptions.ChannelClosedByBroker as error:
-            self.logger(error)
-            sys.exit(1)
+            # raise Exception(traceback.format_exc())
+            # raise Exception(error)
+            # sys.exit(1)
+            self.logger(error, output='stderr')
+            raise Exception(error)
         except Exception as error:
-            self.logger(traceback.format_exc())
-            sys.exit(1)
+            # raise Exception(traceback.format_exc())
+            # raise Exception(error)
+            # sys.exit(1)
+            self.logger(f'Generic error:\n\t{error}', output='stderr')
+            raise Exception(error)
 
         ''' consumer properties '''
         ''' no auto_ack '''
 
         # TODO: delete this, ack should be manual
-        self.sms_outgoing_channel.basic_consume(
-                queue=self.queue_name, 
-                on_message_callback=self.__sms_outgoing_callback, 
-                auto_ack=bool(int(config['NODE']['auto_ack'])))
+        try:
+            self.sms_outgoing_channel.basic_consume(
+                    queue=self.queue_name, 
+                    on_message_callback=self.__sms_outgoing_callback, 
+                    auto_ack=bool(int(config['NODE']['auto_ack'])))
+        except pika.exceptions.ChannelWrongStateError as error:
+            self.logger(error, output='stderr')
+            raise Exception(error)
+        except Exception as error:
+            self.logger(f'Generic error:\n\t{error}', output='stderr')
+            raise Exception(error)
+
 
         '''
         self.sms_outgoing_channel.basic_consume(
@@ -163,9 +185,9 @@ class Node:
         try:
             self.sms_outgoing_channel.start_consuming()
         except pika.exceptions.ConnectionWrongStateError as error:
-            self.logger(f'Request from Watchdog - \n  {error}')
+            self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
         except Exception as error:
-            self.logger(f'{self.me} Generic error...\n  {error}')
+            self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
         finally:
             del l_thread[self.index]
 
@@ -189,13 +211,22 @@ def master_watchdog():
             should be a more reliable way of doing it'''
             if m_index not in l_threads:
                 country=config['ISP']['country']
+                if not Deku.modem_ready(m_index):
+                    continue
                 m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
 
-                print('\t* starting consumer for:', m_index, m_isp)
-                node=Node(m_index, m_isp)
+                '''
+                if m_isp is None:
+                    continue
+                '''
 
-                thread=threading.Thread(target=node.start_consuming, daemon=True)
-                l_threads[m_index] = thread
+                try:
+                    node=Node(m_index, m_isp)
+                    print('\t* starting consumer for:', m_index, m_isp)
+                    thread=threading.Thread(target=node.start_consuming, daemon=True)
+                    l_threads[m_index] = thread
+                except Exception as error:
+                    print(traceback.format_exc())
 
         for m_index, thread in l_threads.items():
             if not thread.is_alive():
