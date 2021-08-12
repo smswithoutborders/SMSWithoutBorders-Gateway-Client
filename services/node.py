@@ -99,12 +99,12 @@ class Node:
         # self.sms_outgoing_channel.exchange_declare(exchange=self.exchange, exchange_type=self.exchange_type)
 
         ''' format=<dev id>.<isp> '''
-        self.queue_name=f"{config['NODE']['queue_name']}.{m_isp}"
+        self.queue_name=f"{config['NODE']['queue_name']}_{m_isp}"
         self.sms_outgoing_channel.queue_declare(self.queue_name)
 
         ''' listens to all request coming for specific isp '''
         ''' with the default binding key, it receives all messages '''
-        self.binding_key=config['NODE']['binding_key']
+        self.binding_key=self.queue_name.replace('_', '.')
 
 
         try:
@@ -189,7 +189,7 @@ class Node:
         except Exception as error:
             self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
         finally:
-            del l_thread[self.index]
+            del l_threads[self.index]
 
 def master_watchdog():
     shown=False
@@ -220,9 +220,9 @@ def master_watchdog():
                     continue
                 '''
 
+                print('\t* starting consumer for:', m_index, m_isp)
                 try:
                     node=Node(m_index, m_isp)
-                    print('\t* starting consumer for:', m_index, m_isp)
                     thread=threading.Thread(target=node.start_consuming, daemon=True)
                     l_threads[m_index] = thread
                 except Exception as error:
