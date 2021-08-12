@@ -25,7 +25,7 @@ class Deku(Modem):
         def determine(number, country, parsed_rules=None):
             import configparser, re
             config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.dirname(__file__), 'isp_configs', 'default.ini'))
+            config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'default.ini'))
 
             if number.find(config['country_codes'][country]) > -1:
                 number= number.replace(config['country_codes'][country], '')
@@ -45,7 +45,7 @@ class Deku(Modem):
         def modems(country, operator_code):
             # print(f"determining modem's isp {country} {operator_code}")
             config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.dirname(__file__), 'isp_configs', 'operators.ini'))
+            config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'operators.ini'))
 
             for isp in config[country]:
                 if config[country][isp] == operator_code:
@@ -56,7 +56,7 @@ class Deku(Modem):
 
         
     @staticmethod
-    def modem_is_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI, benchmark_remove=True):
+    def modem_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI, benchmark_remove=True):
         '''
         pdu-type might be what determines the kind of message this is
         - check latest message, if pdu-type == submit
@@ -108,35 +108,56 @@ class Deku(Modem):
             
         # print(f'{identifier} no lock file')
         return False, lock_type, lock_dir
+    
+    @staticmethod
+    def modem_ready(modem_index):
+        # indexes=Modem.list()
+        
+        ''' check every criteria
+        - network coverage
+        - available isp
+        -etc
+        '''
+        return modem_index in Modem.list()
 
     @staticmethod
-    def available_modem(isp=None, country=None):
-        available_index=None
+    def modems_ready(isp=None, country=None):
+        available_indexes=[]
         indexes= Modem.list()
         # print('fetching available modems')
-        for index in indexes:
+        for m_index in indexes:
             # filter for same isp
             '''
             checking operator_name is wrong... the name changes very frequently
             use operator code instead
             '''
-            print(f'Modem operator code {Modem(index).operator_code}')
+            # print(f'Modem operator code {Modem(m_index).operator_code}')
             # print(Deku.ISP.__dict__)
             # print(country)
-            modem_isp = Deku.ISP.modems(operator_code=Modem(index).operator_code, country=country)
-            print(f'modem isp {modem_isp} - {isp} = {modem_isp.lower() == isp.lower()}')
 
             ''' should be in setting before deciding to use isp checking here -
             credit is still a viable option '''
-            if modem_isp.lower() == isp.lower():
+            if isp is None:
+                ''' when sending, modem can't take another job unless faulty node 
+                if not Deku.modem_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX)[0]:
+                    # print('modem is not locked')
+                    available_indexes.append(index)
+                '''
+                if Deku.modem_ready(m_index):
+                    available_indexes.append(m_index)
+
+            else:
+                if country is None:
+                    raise Exception('country cannot be None')
+
+                modem_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
+                # print(f'modem isp {modem_isp} - {isp} = {modem_isp.lower() == isp.lower()}')
                 # check if lockfile exist for any of this modems
-                if not Deku.modem_is_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX)[0]:
-                    print('modem is not locked')
-                    available_index = index
-                    break
-                else:
-                    print('modem is locked')
-        return available_index
+                if not Deku.modem_locked(identifier=m_index, id_type=Modem.IDENTIFIERS.INDEX)[0]:
+                    # print('modem is not locked')
+                    if Deku.modem_ready(m_index):
+                        available_indexes.append(index)
+        return available_indexes
 
     @staticmethod
     def send_bulk(messages, timeout=20, q_exception:queue=None, identifier=None):
@@ -268,7 +289,7 @@ class Deku(Modem):
                 raise Exception(error)
         finally:
             ''' if benchmark file and limit is reached, file would be removed '''
-            status, lock_type, lock_file = Deku.modem_is_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX)
+            status, lock_type, lock_file = Deku.modem_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX)
 
             if status and lock_type == 'BUSY':
                 os.remove(lock_file)
