@@ -189,7 +189,8 @@ class Node:
         except Exception as error:
             self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
         finally:
-            del l_threads[self.index]
+            l_threads[self.m_index].exit()
+            del l_threads[self.m_index]
 
 def master_watchdog():
     shown=False
@@ -229,8 +230,11 @@ def master_watchdog():
                     print(traceback.format_exc())
 
         for m_index, thread in l_threads.items():
-            if not thread.is_alive():
-                thread.start()
+            try:
+                if not thread.is_alive():
+                    thread.start()
+            except Exception as error:
+                print(traceback.format_exc())
 
         time.sleep(int(config['MODEMS']['sleep_time']))
 
