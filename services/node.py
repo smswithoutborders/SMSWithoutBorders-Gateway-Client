@@ -188,8 +188,8 @@ def master_watchdog():
             '''starting consumers for modems not already running,
             should be a more reliable way of doing it'''
             if m_index not in l_threads:
-                # isp_name=Tools.ISP.modem('cameroon', '')
-                m_isp="mtn"
+                country=config['ISP']['country']
+                m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
 
                 print('\t* starting consumer for:', m_index, m_isp)
                 node=Node(m_index, m_isp)
