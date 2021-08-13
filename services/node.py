@@ -54,7 +54,6 @@ from deku import Deku
 from mmcli_python.modem import Modem
 
 
-connection=None
 config = ConfigParser(interpolation=ExtendedInterpolation())
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
@@ -83,11 +82,15 @@ class Node:
     def __init__(self, m_index, m_isp):
         try:
             connection_url = config['NODE']['connection_url']
-            connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
+            self.connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
         except Exception as error:
             # raise Exception(traceback.format_exc())
             raise Exception(error)
             # sys.exit(1)
+        else:
+            # self.logger("connection established!")
+            color='\033[32m'
+            print(color + f'\t* [{m_index}] connection established')
 
         self.m_index=m_index
         self.me = f'[{self.m_index}]'
@@ -95,7 +98,7 @@ class Node:
         self.exchange=config['NODE']['exchange_name']
         self.exchange_type=config['NODE']['exchange_type'] 
 
-        self.sms_outgoing_channel=connection.channel()
+        self.sms_outgoing_channel=self.connection.channel()
         # self.sms_outgoing_channel.exchange_declare(exchange=self.exchange, exchange_type=self.exchange_type)
 
         ''' format=<dev id>.<isp> '''
@@ -119,14 +122,20 @@ class Node:
             # raise Exception(traceback.format_exc())
             # raise Exception(error)
             # sys.exit(1)
+            '''
             self.logger(error, output='stderr')
             raise Exception(error)
+            '''
+            log_trace(traceback.format_exc())
         except Exception as error:
             # raise Exception(traceback.format_exc())
             # raise Exception(error)
             # sys.exit(1)
+            '''
             self.logger(f'Generic error:\n\t{error}', output='stderr')
             raise Exception(error)
+            '''
+            log_trace(traceback.format_exc())
 
         ''' consumer properties '''
         ''' no auto_ack '''
@@ -138,11 +147,17 @@ class Node:
                     on_message_callback=self.__sms_outgoing_callback, 
                     auto_ack=bool(int(config['NODE']['auto_ack'])))
         except pika.exceptions.ChannelWrongStateError as error:
+            '''
             self.logger(error, output='stderr')
             raise Exception(error)
+            '''
+            log_trace(traceback.format_exc())
         except Exception as error:
+            '''
             self.logger(f'Generic error:\n\t{error}', output='stderr')
             raise Exception(error)
+            '''
+            log_trace(traceback.format_exc())
 
 
         '''
@@ -168,29 +183,57 @@ class Node:
         '''
         monitors state of modem, kills consumer if modem disconnects
         '''
-        while(Deku.modem_ready(self.m_index)):
-            time.sleep(int(config['MODEMS']['sleep_time']))
+        try:
+            while(Deku.modem_ready(self.m_index)):
+                time.sleep(int(config['MODEMS']['sleep_time']))
+        except Exception as error:
+            # raise Exception(error)
+            # self.logger(error)
+            log_trace(traceback.format_exc())
+        finally:
+            # modem is no longer available
+            try:
+                self.sms_outgoing_channel.stop_consuming()
+                self.connection.close(reply_code=1, reply_text='modem no longer available')
+            except Exception as error:
+                # raise Exception(error)
+                # self.logger(error)
+                log_trace(traceback.format_exc())
 
-        ''' modem is no longer available '''
-        self.sms_outgoing_channel.close(reply_code=1, reply_text='modem no longer available')
-
-        ''' do whatever is required to cleanly end this node '''
+            ''' do whatever is required to cleanly end this node '''
 
 
     def start_consuming(self):
         self.logger('waiting for message...')
 
-        wd = threading.Thread(target=self.__watchdog, daemon=True)
+        # wd = threading.Thread(target=self.__watchdog, daemon=True)
+        wd = threading.Thread(target=self.__watchdog)
         wd.start()
         try:
             self.sms_outgoing_channel.start_consuming()
         except pika.exceptions.ConnectionWrongStateError as error:
-            self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
+            # self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
+            log_trace(traceback.format_exc())
+        except pika.exceptions.ChannelClosed as error:
+            # self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
+            log_trace(traceback.format_exc())
         except Exception as error:
-            self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
-        finally:
-            l_threads[self.m_index].exit()
-            del l_threads[self.m_index]
+            # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
+            log_trace(traceback.format_exc())
+
+def log_trace(text, show=False, output='stdout', _type='primary'):
+    with open(os.path.join(os.path.dirname(__file__), 'log_trace', 'logs_node.txt'), 'a') as log_file:
+        log_file.write(text)
+
+    if show:
+        color='\033[32m'
+        if output == 'stderr':
+            color='\033[31m'
+        if _type=='primary':
+            print(color + f'* {text}')
+        else:
+            print(color + f'\t* {text}')
+        print('\x1b[0m')
 
 def master_watchdog():
     shown=False
@@ -200,8 +243,7 @@ def master_watchdog():
 
         if not shown and len(indexes) < 1:
             # print(colored('* waiting for modems...', 'green'))
-            print('\033[32;1m' + '* waiting for modems...')
-            print('\x1b[0m')
+            print('* waiting for modems...')
             shown=True
             time.sleep(int(config['MODEMS']['sleep_time']))
             continue
@@ -214,7 +256,12 @@ def master_watchdog():
                 country=config['ISP']['country']
                 if not Deku.modem_ready(m_index):
                     continue
-                m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
+                try:
+                    m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
+                except Exception as error:
+                    # print(error)
+                    log_trace(error, show=True)
+                    continue
 
                 '''
                 if m_isp is None:
@@ -227,14 +274,19 @@ def master_watchdog():
                     thread=threading.Thread(target=node.start_consuming, daemon=True)
                     l_threads[m_index] = thread
                 except Exception as error:
-                    print(traceback.format_exc())
+                    log_trace(traceback.format_exc(), show=True)
+
+            elif m_index in l_threads and not l_threads[m_index].is_alive():
+                ''' policing to make sure all threads are alive and working '''
+                del l_threads[m_index]
 
         for m_index, thread in l_threads.items():
             try:
-                if not thread.is_alive():
+                # if not thread in threading.enumerate():
+                if thread.native_id is None:
                     thread.start()
             except Exception as error:
-                print(traceback.format_exc())
+                log_trace(traceback.format_exc(), show=True)
 
         time.sleep(int(config['MODEMS']['sleep_time']))
 

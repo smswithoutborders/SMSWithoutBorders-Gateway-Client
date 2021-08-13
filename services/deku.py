@@ -118,7 +118,14 @@ class Deku(Modem):
         - available isp
         -etc
         '''
-        moc = Modem(modem_index).operator_code
+        try:
+            moc = Modem(modem_index).operator_code
+        except NameError as error:
+            # raise Exception(error)
+            return False
+        except Exception as error:
+            raise Exception(error)
+
         # print('moc:', moc)
         return modem_index in Modem.list() and moc != '--' and moc is not None
 
