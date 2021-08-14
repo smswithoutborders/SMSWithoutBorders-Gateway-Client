@@ -215,6 +215,7 @@ class Node:
             self.logger(f'{error.message} - {error.number}')
             log_trace(error.message)
             self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+            self.logger('sending sms failed...', output='stderr')
 
         except Deku.NoAvailableModem as error:
             ''' no available modem: message comes back '''
@@ -225,18 +226,20 @@ class Node:
             self.previousError = error.message
             ''' block this and before rejecting to avoid the loop '''
 
+            self.logger('sending sms failed...', output='stderr')
             ''' blocks the connection '''
             # TODO: add from configs
-            self.connection.sleep(5)
 
             self.sms_outgoing_channel.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
+            self.connection.sleep(5)
 
         except subprocess.CalledProcessError as error:
             ''' generic system error: message comes back '''
             ''' requires further processing '''
-            self.logger(error.output)
+            self.logger('sending sms failed...', output='stderr')
+            # self.logger(error.output, ot)
             # self.logger(error.stdout)
             log_trace(error.output)
             self.sms_outgoing_channel.basic_reject(
@@ -245,6 +248,7 @@ class Node:
 
         except Exception as error:
             ''' code crashed here '''
+            self.logger('sending sms failed...', output='stderr')
             log_trace(traceback.format_exc())
             self.sms_outgoing_channel.basic_reject(
                     delivery_tag=method.delivery_tag, 
