@@ -14,6 +14,17 @@ from mmcli_python.modem import Modem
 
 class Deku(Modem):
 
+    class InvalidNumber(Exception):
+        def __init__(self, number, message):
+            self.number=number
+            self.message=message
+            super().__init__(self.message)
+
+    class NoAvailableModem(Exception):
+        def __init__(self, message):
+            self.message=message
+            super().__init__(self.message)
+
     class ISP():
         '''
         purpose: helps get the service provider for a number
@@ -74,8 +85,8 @@ class Deku(Modem):
         lock_type=None
         start_time=None
         if os.path.isfile(lock_dir):
-            print(f'{identifier}.lock exist')
             '''
+            print(f'{identifier}.lock exist')
             # return True
             # checks state of modems last messages
             all_messages = Modem.SMS.list(k=False)
@@ -165,7 +176,7 @@ class Deku(Modem):
                 if not Deku.modem_locked(identifier=m_index, id_type=Modem.IDENTIFIERS.INDEX)[0]:
                     # print('modem is not locked')
                     if Deku.modem_ready(m_index):
-                        available_indexes.append(index)
+                        available_indexes.append(m_index)
         return available_indexes
 
     @staticmethod
@@ -203,10 +214,6 @@ class Deku(Modem):
     @staticmethod
     # def send(text, number, timeout=20, q_exception:queue=None, identifier=None, t_lock:threading.Lock=None):
     def send(text, number, timeout=20, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
-        # print(f'new request\ntext\n\t{text}\nnumber\n\t{number}\nidentifier\n\t{identifier}\n')
-        if lock is not None:
-            lock.acquire(blocking=True)
-            print('thread lock acquired')
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -235,16 +242,22 @@ class Deku(Modem):
         config = configparser.ConfigParser()
         config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
         country = config['ISP']['country']
+        print(f'number {number}, country {country}')
         isp=Deku.ISP.determine(number=number, country=country)
+
+        if isp is None:
+            '''invalid number, should completely delete this from queueu'''
+            raise Deku.InvalidNumber(number, 'invalid number')
+
         # print('isp ', isp)
         # threading.Thread.acquire(blocking)
         index= Deku.modems_ready(isp=isp, country=country)
-
+        print('ready index:', index)
 
         # print('available modem with index at', index)
         lock_dir=None
 
-        if index is None:
+        if len(index) < 1 or index is None:
             msg=f'message[{identifier}] - no available modem for type {isp}'
 
             ''' release thread lock '''
@@ -257,13 +270,15 @@ class Deku(Modem):
                 return 1
 
             else:
-                raise Deku(msg)
+                # raise Exception(msg)
+                raise Deku.NoAvailableModem(msg)
 
         lock_dir = None
         try:
 
-            modem = Modem(index)
+            modem = Modem(index[0])
             lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
+            # print('lock file:', lock_dir)
             # os.mknod(lock_dir)
             with open(lock_dir, 'w') as lock_file:
                 write_config = configparser.ConfigParser()
@@ -271,26 +286,28 @@ class Deku(Modem):
                 write_config['LOCKS']['TYPE'] = 'BUSY'
                 write_config['LOCKS']['START_TIME'] = str(time.time())
                 write_config.write(lock_file)
-                print(f'BUSY lock file created - {write_config.sections()}')
+                # print(f'BUSY lock file created - {write_config.sections()}')
             if lock is not None and lock.locked():
                 lock.release()
-                print('\tthread lock released')
+                # print('\tthread lock released')
 
-            if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
-                print('successfully sent...')
-            else:
-                print('failed to send...')
+            # if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
+            try:
+                modem=modem.SMS.set(text=text, number=number)
+                modem.send(timeout=timeout)
+            except subprocess.CalledProcessError as error:
+                raise Exception(error)
         except Exception as error:
-            print('lock file at:', lock_dir)
+            # print('lock file at:', lock_dir)
             with open(lock_dir, 'w') as lock_file:
                 write_config = configparser.ConfigParser()
                 write_config['LOCKS'] = {}
                 write_config['LOCKS']['TYPE'] = 'BENCHMARK'
                 write_config['LOCKS']['START_TIME'] = str(time.time())
                 write_config.write(lock_file)
-                print('BENCHMARK lock file created')
+                # print('BENCHMARK lock file created')
 
-            print(traceback.format_exc())
+            # print(traceback.format_exc())
             if q_exception is not None:
                 q_exception.put(Exception(json.dumps({"msg":error.args[0], "_id":identifier})))
                 return 1
@@ -302,7 +319,7 @@ class Deku(Modem):
 
             if status and lock_type == 'BUSY':
                 os.remove(lock_file)
-                print(f'modem[{identifier}] - busy lock removed')
+                # print(f'modem[{identifier}] - busy lock removed')
                
         return 0
 
