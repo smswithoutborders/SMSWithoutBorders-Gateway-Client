@@ -223,6 +223,12 @@ class Node:
                 self.logger(error.message)
 
             self.previousError = error.message
+            ''' block this and before rejecting to avoid the loop '''
+
+            ''' blocks the connection '''
+            # TODO: add from configs
+            self.connection.sleep(5)
+
             self.sms_outgoing_channel.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
