@@ -257,7 +257,7 @@ class Deku(Modem):
                 return 1
 
             else:
-                raise Exception(msg)
+                raise Deku(msg)
 
         lock_dir = None
         try:

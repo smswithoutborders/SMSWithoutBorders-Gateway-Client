@@ -178,6 +178,40 @@ class Node:
         json_body = json.loads(body.decode("utf-8"))
         self.logger(f'message: {json_body}')
 
+        '''
+        text - message to send
+        number - receipient number
+        '''
+        ''' raising exceptions here crashes the consumer loop, just output it for now '''
+        if not "text" in json_body:
+            # raise KeyError
+            log_trace('poorly formed message - text missing')
+            return 
+        
+        if not "number" in json_body:
+            log_trace('poorly formed message - number missing')
+            return 
+
+        text=json_body['text']
+        number=json_body['number']
+
+        try:
+            Deku.send(text=text, number=number)
+        except Deku as error:
+            print('Deku exception: ', error)
+        except Exception as error:
+            # self.logger()
+            print( error )
+            '''
+            self.sms_outgoing_channel.basic_reject(
+                    delivery_tag=method.delivery_tag, 
+                    requeue=True)
+            '''
+        else:
+            ''' message ack happens here '''
+            # self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+
+
     def __watchdog(self):
         self.logger('watchdog gone into effect...')
         '''
