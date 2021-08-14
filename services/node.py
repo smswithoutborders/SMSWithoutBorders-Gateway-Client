@@ -40,7 +40,9 @@ topic methods
 
 import sys, os, threading, traceback
 import asyncio
+import subprocess
 import json, time
+from datetime import datetime
 
 from colorama import init
 from termcolor import colored
@@ -70,16 +72,19 @@ init()
 
 class Node:
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
+        timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         color='\033[32m'
         if output == 'stderr':
             color='\033[31m'
         if _type=='primary':
-            print(color + f'* {self.me} {text}')
+            print(color + timestamp + f'* {self.me} {text}')
         else:
-            print(color + f'\t* {self.me} {text}')
+            print(color + timestamp + f'\t* {self.me} {text}')
         print('\x1b[0m')
 
     def __init__(self, m_index, m_isp):
+        self.previousError=None
+        timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         try:
             connection_url = config['NODE']['connection_url']
             self.connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
@@ -90,7 +95,7 @@ class Node:
         else:
             # self.logger("connection established!")
             color='\033[32m'
-            print(color + f'\t* [{m_index}] connection established')
+            print(color + timestamp + f'\t* [{m_index}] connection established')
 
         self.m_index=m_index
         self.me = f'[{self.m_index}]'
@@ -142,10 +147,15 @@ class Node:
 
         # TODO: delete this, ack should be manual
         try:
+            '''
             self.sms_outgoing_channel.basic_consume(
                     queue=self.queue_name, 
                     on_message_callback=self.__sms_outgoing_callback, 
                     auto_ack=bool(int(config['NODE']['auto_ack'])))
+            '''
+            self.sms_outgoing_channel.basic_consume(
+                    queue=self.queue_name, 
+                    on_message_callback=self.__sms_outgoing_callback)
         except pika.exceptions.ChannelWrongStateError as error:
             '''
             self.logger(error, output='stderr')
@@ -160,10 +170,6 @@ class Node:
             log_trace(traceback.format_exc())
 
 
-        '''
-        self.sms_outgoing_channel.basic_consume(
-                queue=self.queue_name, on_message_callback=self.__callback)
-        '''
 
         ''' set fair dispatch '''
         self.sms_outgoing_channel.basic_qos(prefetch_count=int(config['NODE']['prefetch_count']))
@@ -191,25 +197,56 @@ class Node:
         if not "number" in json_body:
             log_trace('poorly formed message - number missing')
             return 
+        '''
+        - When messages are rejected they are returned back immediately
+        - So rejection without further consumers to consume means a loop
+        is created
+        '''
 
         text=json_body['text']
         number=json_body['number']
 
         try:
+            self.logger('sending sms...')
             Deku.send(text=text, number=number)
-        except Deku as error:
-            print('Deku exception: ', error)
-        except Exception as error:
-            # self.logger()
-            print( error )
-            '''
+
+        except Deku.InvalidNumber as error:
+            ''' wrong number: message does not comes back '''
+            self.logger(f'{error.message} - {error.number}')
+            log_trace(error.message)
+            self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+
+        except Deku.NoAvailableModem as error:
+            ''' no available modem: message comes back '''
+            if self.previousError != error.message:
+                log_trace(error.message)
+                self.logger(error.message)
+
+            self.previousError = error.message
             self.sms_outgoing_channel.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
-            '''
+
+        except subprocess.CalledProcessError as error:
+            ''' generic system error: message comes back '''
+            ''' requires further processing '''
+            self.logger(error.output)
+            # self.logger(error.stdout)
+            log_trace(error.output)
+            self.sms_outgoing_channel.basic_reject(
+                    delivery_tag=method.delivery_tag, 
+                    requeue=True)
+
+        except Exception as error:
+            ''' code crashed here '''
+            log_trace(traceback.format_exc())
+            self.sms_outgoing_channel.basic_reject(
+                    delivery_tag=method.delivery_tag, 
+                    requeue=True)
         else:
             ''' message ack happens here '''
             # self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+            self.logger('message sent successfully')
 
 
     def __watchdog(self):
@@ -256,24 +293,30 @@ class Node:
             log_trace(traceback.format_exc())
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
+    timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     with open(os.path.join(os.path.dirname(__file__), 'log_trace', 'logs_node.txt'), 'a') as log_file:
-        log_file.write(text)
+        log_file.write(timestamp + " " +text)
 
     if show:
         color='\033[32m'
         if output == 'stderr':
             color='\033[31m'
         if _type=='primary':
-            print(color + f'* {text}')
+            print(color + timestamp + f'* {text}')
         else:
-            print(color + f'\t* {text}')
+            print(color + timestamp + f'\t* {text}')
         print('\x1b[0m')
 
 def master_watchdog():
     shown=False
     while( True ):
-        indexes=Deku.modems_ready()
-        # indexes=['1', '2']
+        indexes=[]
+        try:
+            indexes=Deku.modems_ready()
+            # indexes=['1', '2']
+        except Exception as error:
+            log_trace(error)
+            continue
 
         if not shown and len(indexes) < 1:
             # print(colored('* waiting for modems...', 'green'))
