@@ -315,7 +315,7 @@ class Deku(Modem):
                 raise Exception(error)
         finally:
             ''' if benchmark file and limit is reached, file would be removed '''
-            status, lock_type, lock_file = Deku.modem_locked(identifier=index, id_type=Modem.IDENTIFIERS.INDEX)
+            status, lock_type, lock_file = Deku.modem_locked(identifier=index[0], id_type=Modem.IDENTIFIERS.INDEX)
 
             if status and lock_type == 'BUSY':
                 os.remove(lock_file)
