@@ -255,7 +255,7 @@ class Node:
                     requeue=True)
         else:
             ''' message ack happens here '''
-            # self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+            self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
             self.logger('message sent successfully')
 
 
@@ -305,7 +305,7 @@ class Node:
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     with open(os.path.join(os.path.dirname(__file__), 'log_trace', 'logs_node.txt'), 'a') as log_file:
-        log_file.write(timestamp + " " +text)
+        log_file.write(timestamp + " " +text + "\n\n")
 
     if show:
         color='\033[32m'
