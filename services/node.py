@@ -82,6 +82,11 @@ class Node:
             print(color + timestamp + f'\t* {self.me} {text}')
         print('\x1b[0m')
 
+    '''
+    expected inputs should be what events this node subscribes to
+    this can be defined in rules and defaulted as shown below
+    '''
+    # def __init__(self, m_index, m_isp, rules=['STATUS']):
     def __init__(self, m_index, m_isp):
         self.previousError=None
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -245,6 +250,16 @@ class Node:
             self.sms_outgoing_channel.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
+            '''node keeps track of this failures, and send message to 
+            server after a benchmark failed limit
+            '''
+            '''
+            options here---
+            -> open up connection and remotely send USSD request - manual intervention
+            -> 
+            # with open(os.path.join(os.path.dirname(__file__), 'locks', f'{Modem(m_index).imei}.ini'), 'w') as log_file:
+            '''
+            self.__watchdog(m_id=Modem(m_index).imei, status=1)
 
         except Exception as error:
             ''' code crashed here '''
@@ -255,16 +270,85 @@ class Node:
                     requeue=True)
         else:
             ''' message ack happens here '''
+            ''' after successful delivery, pause for a bit before continuing '''
             self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
             self.logger('message sent successfully')
 
 
-    def __watchdog(self):
-        self.logger('watchdog gone into effect...')
+    def __event_listener(self, action):
         '''
-        monitors state of modem, kills consumer if modem disconnects
+        '''
+
+
+    def __watchdog(self, m_id=None, status=None):
+        status_file=os.path.join(os.path.dirname(__file__), 'locks', f'{m_id}.ini')
+        status_counter=0
+        if m_id is not None and status is not None:
+            ''' if exist, should update, else create '''
+            status_config=configparser.ConfigParser()
+            if os.path.isfile(status_file):
+                status_config=status_config.read(status_file)
+                status_counter=int(status_config['STATUS']['COUNTER'])
+
+            with open(status_file) as st_file:
+                if not 'STATUS' in status_config.sections():
+                    status_config['STATUS'] = {}
+                if status == 0:
+                    status_config['STATUS']['COUNTER'] = 0
+                elif status == 1:
+                    status_config['STATUS']['COUNTER'] = status_counter + 1
+                else:
+                    raise Exception('unknown status')
+                status_config.write(st_file)
+
+
+            def check_events(event_config, cat, var):
+                ''' events are governed by 2 files:
+
+                * rules/events.rules.ini -> detects the various rules for governing each events
+                    all rules must abstract from this file
+
+                * locks/[modem_imei].ini -> obeys the rules (from the rules file) 
+                    and puts the system states in this file per modem
+                    This files are limited and contain just the [cat] element of the rules 
+                    files
+                    aka each states are governed by rules in rule
+                '''
+                ''' should have a compiler which can check the accuracy of this rules '''
+
+                ''' hopefully status_file is not None '''
+                ''' [ cat ][ var ][ condition ][ action ] '''
+
+                ''' conditions:
+                >
+                <
+                ==
+                '''
+                event_rules = configparser.ConfigParser()
+                event_rules.read()
+
+                if event_rules[cat]['CONDITION'] == '>':
+                    if int(event_rules[cat][var]) > int(event_config[cat][var]):
+                        self.__event_listener(event_config[cat][var]['ACTION'])
+                '''
+                elif event_rules[cat]['CONDITION'] == '<':
+                    pass
+                elif event_rules[cat]['CONDITION'] == '==':
+                    pass
+                elif event_rules[cat]['CONDITION'] == '!=':
+                    pass
+                '''
+
+
+            ''' checks the rules for event riggers '''
+            check_events(status_file=status_config, cat='STATUS', var='COUNTER')
+            return
+
+        '''
+        - monitors state of modem, kills consumer if modem disconnects
         '''
         try:
+            self.logger('watchdog gone into effect...')
             while(Deku.modem_ready(self.m_index)):
                 time.sleep(int(config['MODEMS']['sleep_time']))
         except Exception as error:

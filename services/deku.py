@@ -100,6 +100,9 @@ class Deku(Modem):
             ''' checks the duration of the lock, then frees up the lock file '''
             lock_config = configparser.ConfigParser()
             lock_config.read(lock_dir)
+            config = configparser.ConfigParser()
+            config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+
             start_time = float(lock_config['LOCKS']['START_TIME'])
             lock_type = lock_config['LOCKS']['TYPE']
 
@@ -107,7 +110,7 @@ class Deku(Modem):
             calculate the time difference
             '''
             ''' how long should benchmarks last before expiring '''
-            benchmark_timelimit = 60
+            benchmark_timelimit = int(config['MODEMS']['failed_sleep'])
             if benchmark_remove and (time.time() - start_time ) > benchmark_timelimit and lock_type == 'BENCHMARK': #seconds
                 # print('\ttype = benchmark')
                 ''' set the file free '''
@@ -141,10 +144,11 @@ class Deku(Modem):
         return modem_index in Modem.list() and moc != '--' and moc is not None
 
     @staticmethod
-    def modems_ready(isp=None, country=None):
+    def modems_ready(isp=None, country=None, remove_lock=False):
         available_indexes=[]
         indexes= Modem.list()
         # print('fetching available modems')
+
         for m_index in indexes:
             # filter for same isp
             '''
@@ -171,44 +175,9 @@ class Deku(Modem):
                     raise Exception('country cannot be None')
 
                 modem_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
-                # print(f'modem isp {modem_isp} - {isp} = {modem_isp.lower() == isp.lower()}')
-                # check if lockfile exist for any of this modems
-                if not Deku.modem_locked(identifier=m_index, id_type=Modem.IDENTIFIERS.INDEX)[0]:
-                    # print('modem is not locked')
-                    if Deku.modem_ready(m_index):
-                        available_indexes.append(m_index)
+                if isp == modem_isp:
+                    available_indexes.append(m_index)
         return available_indexes
-
-    @staticmethod
-    def send_bulk(messages, timeout=20, q_exception:queue=None, identifier=None):
-        '''
-        env:
-        - C1. Multiple modems
-        - C2. Multiple messages
-        - C3. Multiple ISPs
-
-        policies:
-        - (C2, C3) - messages are divided into various ISPs (this has to specified in the settings - very important)
-        - (C1, (same ISP)) - messages get requested from a pool
-
-
-        - how does Deku self manage multiple messages?
-
-        if it fails it locks, not available to claim more messages
-        if all modems are locked, then no modem is available and request for new messages should fail (unless locks are deleted)
-        '''
-
-        l_threads = []
-        lock = threading.Lock()
-
-        for message in messages:
-            thread = threading.Thread(target=Deku.send, args=(message['text'], message['number'], timeout, q_exception, message['id'], lock,), daemon=True)
-            thread.start()
-            l_threads.append(thread)
-
-        for thread in l_threads:
-            thread.join()
-            
 
 
     @staticmethod
@@ -278,8 +247,12 @@ class Deku(Modem):
 
             modem = Modem(index[0])
             lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
-            # print('lock file:', lock_dir)
-            # os.mknod(lock_dir)
+            if os.path.isfile(lock_dir):
+                ''' removing lock file cus if here, benchmark should 
+                have been checked already
+                '''
+                os.remove(lock_dir)
+
             with open(lock_dir, 'w') as lock_file:
                 write_config = configparser.ConfigParser()
                 write_config['LOCKS'] = {}
@@ -295,7 +268,7 @@ class Deku(Modem):
             try:
                 modem=modem.SMS.set(text=text, number=number)
                 modem.send(timeout=timeout)
-            except subprocess.CalledProcessError as error:
+            except Exception as error:
                 raise Exception(error)
         except Exception as error:
             # print('lock file at:', lock_dir)
