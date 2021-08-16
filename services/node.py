@@ -179,12 +179,52 @@ class Node:
         ''' set fair dispatch '''
         self.sms_outgoing_channel.basic_qos(prefetch_count=int(config['NODE']['prefetch_count']))
 
+
+        def generate_status_file(status):
+            ''' all the categories should be fitted here '''
+            status['BECHMARK'] = {"counter":0}
+
+            return status
+
+        self.status_file=os.path.join(
+                os.path.dirname(__file__), 
+                'status', 
+                f'{Modem(self.m_index).imei}.ini')
+        if not os.path.isfile(self.status_file):
+            # self.logger('event rules for modem found')
+            with open(self.status_file, 'w') as sf:
+                status=ConfigParser()
+                status=generate_status_file(status)
+                status.write(sf)
+                self.logger('event rules created')
+
     '''
     nodes can receive different kinds of messages,
     so different types of callbacks to handle them
     '''
 
     def __sms_outgoing_callback(self, ch, method, properties, body):
+
+        ''' update_status -> this should work for multiple datatypes '''
+        def update_status(category, status):
+            # status_file=os.path.join(os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
+            self.logger(f'updating status.... {self.status_file}')
+            status=ConfigParser()
+            status=status.read(self.status_file)
+            if category == 'BENCHMARK':
+                status_counter=int(status[category]['COUNTER'])
+                with open(self.status_file, 'w') as st_file:
+                    if not 'BENCHMARK' in event_config.sections():
+                        status['BENCHMARK'] = {}
+                    if status == 0:
+                        status['BENCHMARK']['counter'] = 0
+                    elif status == 1:
+                        status['BENCHMARK']['counter'] = status_counter + 1
+                    else:
+                        raise exception('unknown status')
+                    status.write(st_file)
+                    self.logger('log file written....')
+
         # TODO: verify data coming in is actually a json
         json_body = json.loads(body.decode("utf-8"))
         self.logger(f'message: {json_body}')
@@ -210,6 +250,7 @@ class Node:
 
         text=json_body['text']
         number=json_body['number']
+        status=1
 
         try:
             self.logger('sending sms...')
@@ -221,7 +262,6 @@ class Node:
             log_trace(error.message)
             self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
             self.logger('sending sms failed...', output='stderr')
-
         except Deku.NoAvailableModem as error:
             ''' no available modem: message comes back '''
             if self.previousError != error.message:
@@ -259,7 +299,10 @@ class Node:
             -> 
             # with open(os.path.join(os.path.dirname(__file__), 'locks', f'{Modem(m_index).imei}.ini'), 'w') as log_file:
             '''
-            self.__watchdog(m_id=Modem(m_index).imei, status=1)
+            category='BENCHMARK'
+            update_status(category, status)
+            self.__event_watch(category)
+
 
         except Exception as error:
             ''' code crashed here '''
@@ -274,76 +317,45 @@ class Node:
             self.sms_outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
             self.logger('message sent successfully')
 
+            ''' 0 = success '''
+            category='BENCHMARK'
+            variable='counter'
+            status=0
+            update_status(category, status)
 
-    def __event_listener(self, action):
+
+    def __event_action_run(self):
         '''
         '''
+        self.logger(f'event listener taking action: {action}')
 
+    def __event_watch(self, category):
+        ''' case:BENCHMARK '''
+        if category == 'BENCHMARK':
+            '''
+            compare benchmark_limit(input) to current_status
+            '''
+
+            benchmark_limit=int(config['MODEMS']['benchmark_limit'])
+            status=ConfigParser()
+            status=status.read(self.status_file)
+
+            ''' COUNTER = is respective to BENCHMAKR '''
+            current_status=int(status[category]['counter'])
+
+
+            command=status[category]['CONDITION']
+
+            if command == '">"':
+                if current_status > benchmark_limit:
+                    ''' action should be passed in here '''
+                    self.__event_action_run()
+
+            ''' other options go here '''
+        else:
+           raise Exception('unknown category')
 
     def __watchdog(self, m_id=None, status=None):
-        status_file=os.path.join(os.path.dirname(__file__), 'locks', f'{m_id}.ini')
-        status_counter=0
-        if m_id is not None and status is not None:
-            ''' if exist, should update, else create '''
-            status_config=configparser.ConfigParser()
-            if os.path.isfile(status_file):
-                status_config=status_config.read(status_file)
-                status_counter=int(status_config['STATUS']['COUNTER'])
-
-            with open(status_file) as st_file:
-                if not 'STATUS' in status_config.sections():
-                    status_config['STATUS'] = {}
-                if status == 0:
-                    status_config['STATUS']['COUNTER'] = 0
-                elif status == 1:
-                    status_config['STATUS']['COUNTER'] = status_counter + 1
-                else:
-                    raise Exception('unknown status')
-                status_config.write(st_file)
-
-
-            def check_events(event_config, cat, var):
-                ''' events are governed by 2 files:
-
-                * rules/events.rules.ini -> detects the various rules for governing each events
-                    all rules must abstract from this file
-
-                * locks/[modem_imei].ini -> obeys the rules (from the rules file) 
-                    and puts the system states in this file per modem
-                    This files are limited and contain just the [cat] element of the rules 
-                    files
-                    aka each states are governed by rules in rule
-                '''
-                ''' should have a compiler which can check the accuracy of this rules '''
-
-                ''' hopefully status_file is not None '''
-                ''' [ cat ][ var ][ condition ][ action ] '''
-
-                ''' conditions:
-                >
-                <
-                ==
-                '''
-                event_rules = configparser.ConfigParser()
-                event_rules.read()
-
-                if event_rules[cat]['CONDITION'] == '>':
-                    if int(event_rules[cat][var]) > int(event_config[cat][var]):
-                        self.__event_listener(event_config[cat][var]['ACTION'])
-                '''
-                elif event_rules[cat]['CONDITION'] == '<':
-                    pass
-                elif event_rules[cat]['CONDITION'] == '==':
-                    pass
-                elif event_rules[cat]['CONDITION'] == '!=':
-                    pass
-                '''
-
-
-            ''' checks the rules for event riggers '''
-            check_events(status_file=status_config, cat='STATUS', var='COUNTER')
-            return
-
         '''
         - monitors state of modem, kills consumer if modem disconnects
         '''

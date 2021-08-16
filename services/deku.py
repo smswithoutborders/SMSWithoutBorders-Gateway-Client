@@ -111,7 +111,12 @@ class Deku(Modem):
             '''
             ''' how long should benchmarks last before expiring '''
             benchmark_timelimit = int(config['MODEMS']['failed_sleep'])
-            if benchmark_remove and (time.time() - start_time ) > benchmark_timelimit and lock_type == 'BENCHMARK': #seconds
+
+            ''' how long should benchmarks last before expiring if state is busy '''
+            busy_timelimit = int(config['MODEMS']['busy_benchmark_limit'])
+
+            # print(f'lt: {lock_type}\nnow: {time.time()}\nstart_time: {start_time}\ndiff: {time.time() - start_time}')
+            if benchmark_remove and ((time.time() - start_time ) > benchmark_timelimit and lock_type == 'BENCHMARK') or ((time.time() - start_time ) > busy_timelimit and lock_type == 'BUSY'): #seconds
                 # print('\ttype = benchmark')
                 ''' set the file free '''
                 os.remove(lock_dir)
@@ -175,7 +180,9 @@ class Deku(Modem):
                     raise Exception('country cannot be None')
 
                 modem_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
-                if isp == modem_isp:
+                status, lock_type, lock_file =Deku.modem_locked(Modem(m_index).imei)
+                print('lock status', status)
+                if isp == modem_isp and not status:
                     available_indexes.append(m_index)
         return available_indexes
 
@@ -265,11 +272,8 @@ class Deku(Modem):
                 # print('\tthread lock released')
 
             # if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
-            try:
-                modem=modem.SMS.set(text=text, number=number)
-                modem.send(timeout=timeout)
-            except Exception as error:
-                raise Exception(error)
+            modem=modem.SMS.set(text=text, number=number)
+            modem.send(timeout=timeout)
         except Exception as error:
             # print('lock file at:', lock_dir)
             with open(lock_dir, 'w') as lock_file:
@@ -292,9 +296,13 @@ class Deku(Modem):
 
             if status and lock_type == 'BUSY':
                 os.remove(lock_file)
-                # print(f'modem[{identifier}] - busy lock removed')
+                print(f'modem[{identifier}] - busy lock removed')
                
         return 0
+
+    @staticmethod
+    def modem(modem_index):
+        return Modem(index)
 
 
     @staticmethod
