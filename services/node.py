@@ -205,31 +205,31 @@ class Node:
     nodes can receive different kinds of messages,
     so different types of callbacks to handle them
     '''
+    ''' update_status -> this should work for multiple datatypes '''
+    def __update_status(self, category, status):
+        # status_file=os.path.join(os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
+        self.logger(f'updating status.... {self.status_file}')
+        status_file=configparser.ConfigParser()
+        status_file.read(self.status_file)
+        # print(status_file)
+        status_counter=0
+        if category == 'BENCHMARK':
+            with open(self.status_file, 'w') as st_file:
+                if not 'BENCHMARK' in status_file.sections():
+                    status_file['BENCHMARK'] = {"counter":0}
+                else:
+                    status_counter=int(status_file[category]['counter'])
+                if status == 0:
+                    status_file['BENCHMARK']['counter'] = 0
+                elif status == 1:
+                    status_file['BENCHMARK']['counter'] = str(int(status_counter + 1))
+                else:
+                    raise Exception('unknown status_file')
+                status_file.write(st_file)
+                self.logger('log file written....')
 
     def __sms_outgoing_callback(self, ch, method, properties, body):
 
-        ''' update_status -> this should work for multiple datatypes '''
-        def update_status(category, status):
-            # status_file=os.path.join(os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
-            self.logger(f'updating status.... {self.status_file}')
-            status_file=configparser.ConfigParser()
-            status_file.read(self.status_file)
-            # print(status_file)
-            status_counter=0
-            if category == 'BENCHMARK':
-                with open(self.status_file, 'w') as st_file:
-                    if not 'BENCHMARK' in status_file.sections():
-                        status_file['BENCHMARK'] = {"counter":0}
-                    else:
-                        status_counter=int(status_file[category]['counter'])
-                    if status == 0:
-                        status_file['BENCHMARK']['counter'] = 0
-                    elif status == 1:
-                        status_file['BENCHMARK']['counter'] = str(int(status_counter + 1))
-                    else:
-                        raise Exception('unknown status_file')
-                    status_file.write(st_file)
-                    self.logger('log file written....')
 
         # TODO: verify data coming in is actually a json
         json_body = json.loads(body.decode("utf-8"))
@@ -306,7 +306,7 @@ class Node:
             # with open(os.path.join(os.path.dirname(__file__), 'locks', f'{Modem(m_index).imei}.ini'), 'w') as log_file:
             '''
             category='BENCHMARK'
-            update_status(category, status)
+            self.__update_status(category, status)
             self.__event_watch(category)
 
 
@@ -354,10 +354,14 @@ class Node:
 
             command=rules[category]['CONDITION']
             action=rules[category]['ACTION']
-            if command == '">"':
+            if command == '">="':
                 if current_status > benchmark_limit:
                     ''' action should be passed in here '''
-                    self.__event_action_run(action)
+                    try:
+                        self.__event_action_run(action)
+                    except Exception as error:
+                        # raise Exception(error)
+                        log_trace(traceback.format_exc())
 
             ''' other options go here '''
         else:
