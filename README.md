@@ -15,52 +15,9 @@ sudo make install
 sudo make run
 ```
 
-### API Endpoints
-#### Sending SMS
-> POST: localhost:6868/messages
-```JSON
-{
-	"text" : "",
-	"phonenumber" : ""
-}
-```
+#### Deku Usage
+* Run --help for the options
 
-#### Reading received SMS messages
-> GET: localhost:6868/messages
-```JSON
-{
-}
-```
-
-#### Checking state
-> GET: localhost:6868/state
-```JSON
-{
-	"status" : 200,
-	"state" : "active" || "inactive"  
-}
-```
-If `status != 200` : No Daemon has not been installed, and is not running manually<br>
-If `status == 200` and `state == "inactive"`: Daemon has not been installed, but is running manually<br>
-If `status == 200` and `state == "failed"`: Daemon successfully installed, but failed to start <br>
-If `status == 200` and `state == "active"`: Daemon has been installed<br>
-
-#### Acquiring logs
-> GET: localhost:6868/logs
-```JSON
-{
-      "date": "Thu, 01 Apr 2021 16:59:01 GMT", 
-      "id": 116, 
-      "mdate": "Thu, 01 Apr 2021 16:59:06 GMT", 
-      "message": "successfully sent the SMS", 
-      "messageID": 110, 
-      "other_id": null, 
-      "status": "sent"
-    },....
-```
-<h2>Notes</h2>
-- if modem is not receiving messages, sometimes it's due to a block casued by queue of 'receiving' messages. 
-Removing all messages, disabling and re-enabling the modems seems to solve it
 
 <h2>Beta features</h2>
 <h3>Setting up on Raspberry pi (tested on 4B)</h3>
