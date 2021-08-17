@@ -7,21 +7,23 @@ SHELL := $(shell which bash)
 venv_path=.venv
 pip=pip3
 
-CONFIGS_PATH=package/configs
+CONFIGS_PATH=services/configs
+RULES_PATH=services/rules
+
 INSTALL_PATH=/usr/local/bin/deku
 SYSTEMD_PATH=/usr/lib/systemd/system
 
 EXAMPLE_CONFIG_FILE=example.config.ini
-EXAMPLE_CONFIG_MYSQL_FILE=example.config.mysql.ini
+EXAMPLE_CONFIG_FILE_RULES=example.events.rules.ini
 
 CONFIG_FILE=config.ini
-CONFIG_MYSQL_FILE=config.mysql.ini
+CONFIG_FILE_RULES=events.rules.ini
 
 PWD := $(shell pwd)
 
 copy_configs:
 	cp -iv $(CONFIGS_PATH)/$(EXAMPLE_CONFIG_FILE) $(CONFIGS_PATH)/$(CONFIG_FILE)
-	cp -iv $(CONFIGS_PATH)/$(EXAMPLE_CONFIG_MYSQL_FILE) $(CONFIGS_PATH)/$(CONFIG_MYSQL_FILE)
+	cp -iv $(RULES_PATH)/$(EXAMPLE_CONFIG_FILE_RULES) $(RULES_PATH)/$(CONFIG_FILE_RULES)
 
 install_deps:requirements.txt
 	sudo $(pip) install -r requirements.txt
