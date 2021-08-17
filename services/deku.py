@@ -8,6 +8,7 @@
 import os, sys, time, queue, json, traceback
 import configparser, threading
 from datetime import datetime
+import subprocess
 
 sys.path.append(os.path.abspath(os.getcwd()))
 from mmcli_python.modem import Modem
@@ -249,11 +250,19 @@ class Deku(Modem):
                 # raise Exception(msg)
                 raise Deku.NoAvailableModem(msg)
 
-        lock_dir = None
-        try:
 
-            modem = Modem(index[0])
-            lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
+        modem = Modem(index[0])
+        lock_dir = None
+        lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
+        def create_benchmark_file():
+            with open(lock_dir, 'w') as lock_file:
+                write_config = configparser.ConfigParser()
+                write_config['LOCKS'] = {}
+                write_config['LOCKS']['TYPE'] = 'BENCHMARK'
+                write_config['LOCKS']['START_TIME'] = str(time.time())
+                write_config.write(lock_file)
+
+        try:
             if os.path.isfile(lock_dir):
                 ''' removing lock file cus if here, benchmark should 
                 have been checked already
@@ -274,29 +283,20 @@ class Deku(Modem):
             # if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
             modem=modem.SMS.set(text=text, number=number)
             modem.send(timeout=timeout)
+        except subprocess.CalledProcessError as error:
+            print('catching a sent subprocess error')
+            create_benchmark_file()
+            raise subprocess.CalledProcessError(cmd=error.cmd, output=error.output, returncode=error.returncode)
         except Exception as error:
-            # print('lock file at:', lock_dir)
-            with open(lock_dir, 'w') as lock_file:
-                write_config = configparser.ConfigParser()
-                write_config['LOCKS'] = {}
-                write_config['LOCKS']['TYPE'] = 'BENCHMARK'
-                write_config['LOCKS']['START_TIME'] = str(time.time())
-                write_config.write(lock_file)
-                # print('BENCHMARK lock file created')
-
-            # print(traceback.format_exc())
-            if q_exception is not None:
-                q_exception.put(Exception(json.dumps({"msg":error.args[0], "_id":identifier})))
-                return 1
-            else:
-                raise Exception(error)
+            create_benchmark_file()
+            raise Exception(error)
         finally:
             ''' if benchmark file and limit is reached, file would be removed '''
             status, lock_type, lock_file = Deku.modem_locked(identifier=index[0], id_type=Modem.IDENTIFIERS.INDEX)
 
             if status and lock_type == 'BUSY':
                 os.remove(lock_file)
-                print(f'modem[{identifier}] - busy lock removed')
+                # print(f'modem[{identifier}] - busy lock removed')
                
         return 0
 

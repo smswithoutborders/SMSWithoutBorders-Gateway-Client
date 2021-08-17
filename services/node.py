@@ -47,7 +47,8 @@ from datetime import datetime
 from colorama import init
 from termcolor import colored
 
-from configparser import ConfigParser, ExtendedInterpolation
+# from configparser import configparser.ConfigParser, ExtendedInterpolation
+import configparser
 
 import pika
 
@@ -56,7 +57,7 @@ from deku import Deku
 from mmcli_python.modem import Modem
 
 
-config = ConfigParser(interpolation=ExtendedInterpolation())
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
 ''' 
@@ -182,7 +183,7 @@ class Node:
 
         def generate_status_file(status):
             ''' all the categories should be fitted here '''
-            status['BECHMARK'] = {"counter":0}
+            status['BENCHMARK'] = {"counter":0}
 
             return status
 
@@ -190,13 +191,15 @@ class Node:
                 os.path.dirname(__file__), 
                 'status', 
                 f'{Modem(self.m_index).imei}.ini')
+        '''
         if not os.path.isfile(self.status_file):
             # self.logger('event rules for modem found')
             with open(self.status_file, 'w') as sf:
-                status=ConfigParser()
+                status=configparser.ConfigParser()
                 status=generate_status_file(status)
                 status.write(sf)
                 self.logger('event rules created')
+        '''
 
     '''
     nodes can receive different kinds of messages,
@@ -209,20 +212,23 @@ class Node:
         def update_status(category, status):
             # status_file=os.path.join(os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
             self.logger(f'updating status.... {self.status_file}')
-            status=ConfigParser()
-            status=status.read(self.status_file)
+            status_file=configparser.ConfigParser()
+            status_file.read(self.status_file)
+            # print(status_file)
+            status_counter=0
             if category == 'BENCHMARK':
-                status_counter=int(status[category]['COUNTER'])
                 with open(self.status_file, 'w') as st_file:
-                    if not 'BENCHMARK' in event_config.sections():
-                        status['BENCHMARK'] = {}
-                    if status == 0:
-                        status['BENCHMARK']['counter'] = 0
-                    elif status == 1:
-                        status['BENCHMARK']['counter'] = status_counter + 1
+                    if not 'BENCHMARK' in status_file.sections():
+                        status_file['BENCHMARK'] = {"counter":0}
                     else:
-                        raise exception('unknown status')
-                    status.write(st_file)
+                        status_counter=int(status_file[category]['counter'])
+                    if status == 0:
+                        status_file['BENCHMARK']['counter'] = 0
+                    elif status == 1:
+                        status_file['BENCHMARK']['counter'] = str(int(status_counter + 1))
+                    else:
+                        raise Exception('unknown status_file')
+                    status_file.write(st_file)
                     self.logger('log file written....')
 
         # TODO: verify data coming in is actually a json
@@ -286,7 +292,7 @@ class Node:
             self.logger('sending sms failed...', output='stderr')
             # self.logger(error.output, ot)
             # self.logger(error.stdout)
-            log_trace(error.output)
+            log_trace(error.output.decode('utf-8'))
             self.sms_outgoing_channel.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
@@ -324,7 +330,7 @@ class Node:
             update_status(category, status)
 
 
-    def __event_action_run(self):
+    def __event_action_run(self, action):
         '''
         '''
         self.logger(f'event listener taking action: {action}')
@@ -337,19 +343,21 @@ class Node:
             '''
 
             benchmark_limit=int(config['MODEMS']['benchmark_limit'])
-            status=ConfigParser()
-            status=status.read(self.status_file)
+            rules=configparser.ConfigParser()
+            rules.read(os.path.join(os.path.dirname(__file__), 'rules', 'events.rules.ini'))
 
-            ''' COUNTER = is respective to BENCHMAKR '''
+            status=configparser.ConfigParser()
+            status.read(self.status_file)
+
+            ''' COUNTER = is respective to BENCHMARK '''
             current_status=int(status[category]['counter'])
 
-
-            command=status[category]['CONDITION']
-
+            command=rules[category]['CONDITION']
+            action=rules[category]['ACTION']
             if command == '">"':
                 if current_status > benchmark_limit:
                     ''' action should be passed in here '''
-                    self.__event_action_run()
+                    self.__event_action_run(action)
 
             ''' other options go here '''
         else:
