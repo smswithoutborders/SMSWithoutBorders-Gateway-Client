@@ -42,7 +42,6 @@ class Deku(Modem):
             if number.find(config['country_codes'][country]) > -1:
                 number= number.replace(config['country_codes'][country], '')
             # print('number', number)
-
             for rules in config[country]:
                 # print(rules)
                 ''' checks if has country code '''
@@ -337,3 +336,26 @@ class Deku(Modem):
         - checks if file type is busy
         '''
         print('instantiated new Deku')
+
+    @classmethod
+    def __watchdog(cls):
+        ''' should handle cleansing MMS messages '''
+
+    @classmethod
+    def inbound_listener(cls, modem_index):
+        print('listening for incoming messages')
+
+
+        ''' always running
+        checks if new message from isp
+        should maybe be parsed with s_layer than f_layer
+        '''
+        try:
+            print(Modem(modem_index).SMS.list('received'))
+        except subprocess.CalledProcessError as error:
+            print(error.output)
+
+
+if __name__ == "__main__":
+    ''' this is the main program so everything should start from here '''
+    Deku.inbound_listener("64")
