@@ -352,10 +352,21 @@ class Deku(Modem):
         '''
         try:
             print(Modem(modem_index).SMS.list('received'))
+
+            recv_messages = Modem(modem_index).SMS.list('received')
+            for sms_index in recv_messages:
+                sms=Modem.SMS(index=sms_index)
+                '''
+                print(f'text: {sms.text}')
+                print(f'text: {sms.number}')
+                '''
+                ''' route messages using rabbit '''
+                import pika
+                fanout_channel.basic_publish(exchange='DEKU_CLUSTER', routing_key=routing_key, body=json.dumps(json_data))
         except subprocess.CalledProcessError as error:
             print(error.output)
 
 
 if __name__ == "__main__":
     ''' this is the main program so everything should start from here '''
-    Deku.inbound_listener("64")
+    Deku.inbound_listener(sys.argv[1])
