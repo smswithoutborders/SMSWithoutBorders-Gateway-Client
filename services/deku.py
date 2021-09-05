@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 '''
 - making Deku and SMS manager
@@ -9,6 +9,8 @@ import os, sys, time, queue, json, traceback
 import configparser, threading
 from datetime import datetime
 import subprocess
+
+import pika
 
 sys.path.append(os.path.abspath(os.getcwd()))
 from mmcli_python.modem import Modem
@@ -146,7 +148,7 @@ class Deku(Modem):
             raise Exception(error)
 
         # print('moc:', moc)
-        return modem_index in Modem.list() and moc != '--' and moc is not None
+        return modem_index in Modem.list() and (moc != '--' and moc is not None)
 
     @staticmethod
     def modems_ready(isp=None, country=None, remove_lock=False):
@@ -340,31 +342,6 @@ class Deku(Modem):
     @classmethod
     def __watchdog(cls):
         ''' should handle cleansing MMS messages '''
-
-    @classmethod
-    def inbound_listener(cls, modem_index):
-        print('listening for incoming messages')
-
-
-        ''' always running
-        checks if new message from isp
-        should maybe be parsed with s_layer than f_layer
-        '''
-        try:
-            print(Modem(modem_index).SMS.list('received'))
-
-            recv_messages = Modem(modem_index).SMS.list('received')
-            for sms_index in recv_messages:
-                sms=Modem.SMS(index=sms_index)
-                '''
-                print(f'text: {sms.text}')
-                print(f'text: {sms.number}')
-                '''
-                ''' route messages using rabbit '''
-                import pika
-                fanout_channel.basic_publish(exchange='DEKU_CLUSTER', routing_key=routing_key, body=json.dumps(json_data))
-        except subprocess.CalledProcessError as error:
-            print(error.output)
 
 
 if __name__ == "__main__":

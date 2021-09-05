@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 ''' testing criterias----
 - when modem is present a node should start up
@@ -177,9 +177,14 @@ class Node:
 
 
 
-        ''' set fair dispatch '''
-        self.sms_outgoing_channel.basic_qos(prefetch_count=int(config['NODE']['prefetch_count']))
-
+        try:
+            ''' set fair dispatch '''
+            self.sms_outgoing_channel.basic_qos(prefetch_count=int(config['NODE']['prefetch_count']))
+        except pika.exceptions.ChannelWrongStateError as error:
+            log_trace(traceback.format_exc())
+            # raise pika.exceptions.ChannelWrongStateError(error)
+        except Exception as error:
+            log_trace(traceback.format_exc())
 
         def generate_status_file(status):
             ''' all the categories should be fitted here '''
@@ -367,14 +372,21 @@ class Node:
         else:
            raise Exception('unknown category')
 
-    def __watchdog(self, m_id=None, status=None):
+    def __watchdog(self):
         '''
         - monitors state of modem, kills consumer if modem disconnects
+        - checks for incoming messages and request
         '''
+
         try:
             self.logger('watchdog gone into effect...')
             while(Deku.modem_ready(self.m_index)):
+                ''' checks for messages which need routing '''
+                self.logger('checking for incoming messages...')
+                messages=Modem(self.m_index).SMS.list('received')
+                print("* messages:", messages)
                 time.sleep(int(config['MODEMS']['sleep_time']))
+
         except Exception as error:
             # raise Exception(error)
             # self.logger(error)
@@ -382,6 +394,7 @@ class Node:
         finally:
             # modem is no longer available
             try:
+                self.logger("Closing node...", output='stderr')
                 self.sms_outgoing_channel.stop_consuming()
                 self.connection.close(reply_code=1, reply_text='modem no longer available')
             except Exception as error:
@@ -396,10 +409,16 @@ class Node:
         self.logger('waiting for message...')
 
         # wd = threading.Thread(target=self.__watchdog, daemon=True)
-        wd = threading.Thread(target=self.__watchdog)
+        ''' starts watchdog to check if modem is still plugged in '''
+        wd = threading.Thread(target=self.__watchdog, daemon=True)
         wd.start()
+
+
         try:
-            self.sms_outgoing_channel.start_consuming()
+            ''' default consumption of pika '''
+            self.sms_outgoing_channel.start_consuming() #blocking
+            wd.join()
+
         except pika.exceptions.ConnectionWrongStateError as error:
             # self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
             log_trace(traceback.format_exc())
@@ -409,6 +428,7 @@ class Node:
         except Exception as error:
             # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
             log_trace(traceback.format_exc())
+        self.logger('ending consumption....')
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -424,6 +444,28 @@ def log_trace(text, show=False, output='stdout', _type='primary'):
         else:
             print(color + timestamp + f'\t* {text}')
         print('\x1b[0m')
+
+'''
+def master_watchdog():
+    th_outgoing_wd = threading.Thread(target=outgoing_watchdog, daemon=True)
+    th_incomding_wd = threading.Thread(target=incoming_watchdog, daemon=True)
+
+    print("* starting outgoing watchdog")
+    th_outgoing_wd.start()
+
+    print("* starting incoming watchdog")
+    th_incomding_wd.start()
+
+    th_outgoing_wd.join()
+    th_incomding_wd.join()
+'''
+
+def outgoing_watchdog():
+    while( True ) :
+        ''' should get all incoming messages which need routing '''
+        messages = Deku.SMS.list('received')
+        print( "* messages:", messages )
+        time.sleep(int(config['MODEMS']['sleep_time']))
 
 def master_watchdog():
     shown=False
@@ -458,31 +500,44 @@ def master_watchdog():
                     log_trace(error, show=True)
                     continue
 
-                '''
-                if m_isp is None:
-                    continue
-                '''
-
                 print('\t* starting consumer for:', m_index, m_isp)
+                '''
+                * starts listening for incoming request
+                '''
                 try:
                     node=Node(m_index, m_isp)
                     thread=threading.Thread(target=node.start_consuming, daemon=True)
                     l_threads[m_index] = thread
+
+                    print('\t* Node created')
                 except Exception as error:
                     log_trace(traceback.format_exc(), show=True)
 
-            elif m_index in l_threads and not l_threads[m_index].is_alive():
-                ''' policing to make sure all threads are alive and working '''
-                del l_threads[m_index]
 
         for m_index, thread in l_threads.items():
             try:
                 # if not thread in threading.enumerate():
                 if thread.native_id is None:
                     thread.start()
+                    # thread.join()
+
             except Exception as error:
                 log_trace(traceback.format_exc(), show=True)
 
+        # if not l_threads[m_index].is_alive():
+        '''
+        tmp_list_threads = list(l_threads.values())
+        for i in range(len(tmp_list_threads)):
+            # del l_threads[m_index]
+            # del l_threads[i]
+            m_index = list(l_threads.keys())[i]
+            print('m_index:-', m_index)
+            if not l_threads[m_index].is_alive():
+                print('\t* removing nodes')
+                del l_threads[m_index]
+                i=0
+
+        '''
         time.sleep(int(config['MODEMS']['sleep_time']))
 
 if __name__ == "__main__":
