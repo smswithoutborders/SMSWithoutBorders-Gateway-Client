@@ -124,6 +124,7 @@ class Node:
                 connection_url=config['NODE']['connection_url'],
                 callback=self.__sms_routing_callback,
                 durable=True,
+                prefetch_count=1,
                 queue_name=config['NODE']['routing_queue_name'])
         
 
@@ -304,6 +305,7 @@ class Node:
            raise Exception('unknown category')
 
     def __watchdog_incoming(self):
+        print('restart watchdog...')
         try:
             publish_connection, publish_channel = self.__create_channel(
                     connection_url=config['NODE']['connection_url'],
@@ -312,6 +314,11 @@ class Node:
 
             self.logger('watchdog incoming gone into effect...')
             messages=Modem(self.m_index).SMS.list('received')
+
+            # TODO: delete this
+            if len(messages) > 0:
+                messages = [messages[0]]
+
             while(Deku.modem_ready(self.m_index)):
                 self.logger('checking for incoming messages...')
                 # messages=Modem(self.m_index).SMS.list('received')
@@ -323,6 +330,7 @@ class Node:
                             body=json.dumps({"text":sms.text, "number":sms.number}),
                             properties=pika.BasicProperties( 
                                 delivery_mode=2))
+                messages=[]
 
 
                 time.sleep(int(config['MODEMS']['sleep_time']))
@@ -401,6 +409,7 @@ class Node:
         except Exception as error:
             # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
             log_trace(traceback.format_exc())
+
         # self.logger('ending consumption....')
 
 
@@ -485,7 +494,7 @@ def master_watchdog():
                     routing_thread=threading.Thread(target=routing_node.routing_start_consuming, daemon=True)
 
                     l_threads[m_index] = [outgoing_thread, routing_thread]
-                    # print('\t* Node created')
+                    print('\t* Node created')
                 except Exception as error:
                     log_trace(traceback.format_exc(), show=True)
 
@@ -495,6 +504,7 @@ def master_watchdog():
                 # if not thread in threading.enumerate():
                 for i in range(len(thread)):
                     if thread[i].native_id is None:
+                        print('\t* starting thread...')
                         thread[i].start()
 
             except Exception as error:
