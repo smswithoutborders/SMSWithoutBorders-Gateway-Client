@@ -164,6 +164,7 @@ class Node:
 
 
         ''' acks that the message has been received (routed) '''
+        print("method:", method.delivery_tag)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
@@ -305,7 +306,7 @@ class Node:
            raise Exception('unknown category')
 
     def __watchdog_incoming(self):
-        print('restart watchdog...')
+        # print('restart watchdog...')
         try:
             publish_connection, publish_channel = self.__create_channel(
                     connection_url=config['NODE']['connection_url'],
@@ -313,15 +314,11 @@ class Node:
                     durable=True)
 
             self.logger('watchdog incoming gone into effect...')
-            messages=Modem(self.m_index).SMS.list('received')
-
-            # TODO: delete this
-            if len(messages) > 0:
-                messages = [messages[0]]
+            # messages=Modem(self.m_index).SMS.list('received')
 
             while(Deku.modem_ready(self.m_index)):
                 self.logger('checking for incoming messages...')
-                # messages=Modem(self.m_index).SMS.list('received')
+                messages=Modem(self.m_index).SMS.list('received')
                 for msg_index in messages:
                     sms=Modem.SMS(index=msg_index)
                     publish_channel.basic_publish(
@@ -494,7 +491,7 @@ def master_watchdog():
                     routing_thread=threading.Thread(target=routing_node.routing_start_consuming, daemon=True)
 
                     l_threads[m_index] = [outgoing_thread, routing_thread]
-                    print('\t* Node created')
+                    # print('\t* Node created')
                 except Exception as error:
                     log_trace(traceback.format_exc(), show=True)
 
