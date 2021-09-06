@@ -106,28 +106,36 @@ class Node:
         self.m_index=m_index
         self.me = f'[{self.m_index}]'
 
-        self.exchange=config['NODE']['exchange_name']
-        self.exchange_type=config['NODE']['exchange_type'] 
+        self.outgoing_sms_exchange=config['NODE']['sms_exchange_name']
 
-        self.sms_outgoing_channel=self.connection.channel()
-        # self.sms_outgoing_channel.exchange_declare(exchange=self.exchange, exchange_type=self.exchange_type)
+        self.outgoing_exchange_type=config['NODE']['outgoing_exchange_type'] 
 
+
+        ''' handles messages which should be sent out '''
         ''' format=<dev id>.<isp> '''
-        self.queue_name=f"{config['NODE']['queue_name']}_{m_isp}"
-        self.sms_outgoing_channel.queue_declare(self.queue_name)
+        self.sms_outgoing_channel=self.connection.channel()
+        self.outgoing_queue_name=f"{config['NODE']['outgoing_queue_name']}_{m_isp}"
+        self.sms_outgoing_channel.queue_declare(self.outgoing_queue_name)
+
+        ''' handles messages from inbox that need routing'''
+        ''' format=<dev id>.<isp> '''
+        self.sms_routing_channel=self.connection.channel()
+        self.routing_queue_name=f"{config['NODE']['routing_queue_name']}"
+        self.sms_routing_channel.queue_declare(self.routing_queue_name, durable=True)
 
         ''' listens to all request coming for specific isp '''
         ''' with the default binding key, it receives all messages '''
-        self.binding_key=self.queue_name.replace('_', '.')
+        self.binding_key=self.outgoing_queue_name.replace('_', '.')
+        # self.binding_key=self.routing_queue_name.replace('_', '.')
 
 
         try:
-
             self.logger(f'binding key: {self.binding_key}')
             self.sms_outgoing_channel.queue_bind(
-                    exchange=self.exchange, 
-                    queue=self.queue_name, 
+                    exchange=self.outgoing_sms_exchange, 
+                    queue=self.outgoing_queue_name, 
                     routing_key=self.binding_key)
+
 
         except pika.exceptions.ChannelClosedByBroker as error:
             # raise Exception(traceback.format_exc())
@@ -160,8 +168,13 @@ class Node:
                     auto_ack=bool(int(config['NODE']['auto_ack'])))
             '''
             self.sms_outgoing_channel.basic_consume(
-                    queue=self.queue_name, 
+                    queue=self.outgoing_queue_name, 
                     on_message_callback=self.__sms_outgoing_callback)
+
+            self.sms_routing_channel.basic_consume(
+                    queue=self.routing_queue_name, 
+                    on_message_callback=self.__sms_routing_callback)
+
         except pika.exceptions.ChannelWrongStateError as error:
             '''
             self.logger(error, output='stderr')
@@ -196,15 +209,6 @@ class Node:
                 os.path.dirname(__file__), 
                 'status', 
                 f'{Modem(self.m_index).imei}.ini')
-        '''
-        if not os.path.isfile(self.status_file):
-            # self.logger('event rules for modem found')
-            with open(self.status_file, 'w') as sf:
-                status=configparser.ConfigParser()
-                status=generate_status_file(status)
-                status.write(sf)
-                self.logger('event rules created')
-        '''
 
     '''
     nodes can receive different kinds of messages,
@@ -232,6 +236,11 @@ class Node:
                     raise Exception('unknown status_file')
                 status_file.write(st_file)
                 self.logger('log file written....')
+
+
+    def __sms_routing_callback(self, ch, method, properties, body):
+        self.logger(">> routing:", body.decode('utf-8'))
+
 
     def __sms_outgoing_callback(self, ch, method, properties, body):
 
@@ -384,7 +393,23 @@ class Node:
                 ''' checks for messages which need routing '''
                 self.logger('checking for incoming messages...')
                 messages=Modem(self.m_index).SMS.list('received')
-                print("* messages:", messages)
+                for msg_index in messages:
+                    sms=Modem.SMS(index=msg_index)
+                    ''''
+                    print('*sms text:', sms.text)
+                    print('*sms number:', sms.number, end='\n\n')
+                    '''
+
+                    '''
+                    * routing should be done from here
+                    '''
+                    self.sms_routing_channel.basic_publish(
+                            exchange='',
+                            routing_key=self.routing_queue_name,
+                            body=json.dumps({"text":sms.text, "number":sms.number}),
+                            properties=pika.BasicProperties( delivery_mode=2))
+
+
                 time.sleep(int(config['MODEMS']['sleep_time']))
 
         except Exception as error:
@@ -395,8 +420,12 @@ class Node:
             # modem is no longer available
             try:
                 self.logger("Closing node...", output='stderr')
+
                 self.sms_outgoing_channel.stop_consuming()
+                self.sms_routing_channel.stop_consuming()
+
                 self.connection.close(reply_code=1, reply_text='modem no longer available')
+                del l_threads[self.m_index]
             except Exception as error:
                 # raise Exception(error)
                 # self.logger(error)
@@ -405,8 +434,27 @@ class Node:
             ''' do whatever is required to cleanly end this node '''
 
 
+    def routing_start_consuming(self):
+        self.logger('routing: waiting for message...')
+        try:
+            ''' messages to be routed '''
+            self.logger('routing consumption starting...')
+            self.sms_routing_channel.start_consuming() #blocking
+
+        except pika.exceptions.ConnectionWrongStateError as error:
+            # self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
+            log_trace(traceback.format_exc())
+        except pika.exceptions.ChannelClosed as error:
+            # self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
+            log_trace(traceback.format_exc())
+        except Exception as error:
+            # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
+            log_trace(traceback.format_exc())
+        # self.logger('ending consumption....')
+
+
     def start_consuming(self):
-        self.logger('waiting for message...')
+        self.logger('outgoing: waiting for message...')
 
         # wd = threading.Thread(target=self.__watchdog, daemon=True)
         ''' starts watchdog to check if modem is still plugged in '''
@@ -415,8 +463,10 @@ class Node:
 
 
         try:
-            ''' default consumption of pika '''
+            ''' messages to be sent via SMS '''
+            self.logger('outgoing consumption starting...')
             self.sms_outgoing_channel.start_consuming() #blocking
+
             wd.join()
 
         except pika.exceptions.ConnectionWrongStateError as error:
@@ -428,7 +478,7 @@ class Node:
         except Exception as error:
             # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
             log_trace(traceback.format_exc())
-        self.logger('ending consumption....')
+        # self.logger('ending consumption....')
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -445,27 +495,6 @@ def log_trace(text, show=False, output='stdout', _type='primary'):
             print(color + timestamp + f'\t* {text}')
         print('\x1b[0m')
 
-'''
-def master_watchdog():
-    th_outgoing_wd = threading.Thread(target=outgoing_watchdog, daemon=True)
-    th_incomding_wd = threading.Thread(target=incoming_watchdog, daemon=True)
-
-    print("* starting outgoing watchdog")
-    th_outgoing_wd.start()
-
-    print("* starting incoming watchdog")
-    th_incomding_wd.start()
-
-    th_outgoing_wd.join()
-    th_incomding_wd.join()
-'''
-
-def outgoing_watchdog():
-    while( True ) :
-        ''' should get all incoming messages which need routing '''
-        messages = Deku.SMS.list('received')
-        print( "* messages:", messages )
-        time.sleep(int(config['MODEMS']['sleep_time']))
 
 def master_watchdog():
     shown=False
@@ -506,8 +535,9 @@ def master_watchdog():
                 '''
                 try:
                     node=Node(m_index, m_isp)
-                    thread=threading.Thread(target=node.start_consuming, daemon=True)
-                    l_threads[m_index] = thread
+                    outgoing_thread=threading.Thread(target=node.start_consuming, daemon=True)
+                    routing_thread=threading.Thread(target=node.routing_start_consuming, daemon=True)
+                    l_threads[m_index] = [outgoing_thread, routing_thread]
 
                     print('\t* Node created')
                 except Exception as error:
@@ -517,30 +547,18 @@ def master_watchdog():
         for m_index, thread in l_threads.items():
             try:
                 # if not thread in threading.enumerate():
-                if thread.native_id is None:
-                    thread.start()
+                if thread[0].native_id is None:
+                    thread[0].start()
+                    # print(f'thread[{thread.native_id}].is_alive():', thread.is_alive())
                     # thread.join()
+                if thread[1].native_id is None:
+                    thread[1].start()
 
             except Exception as error:
                 log_trace(traceback.format_exc(), show=True)
 
-        # if not l_threads[m_index].is_alive():
-        '''
-        tmp_list_threads = list(l_threads.values())
-        for i in range(len(tmp_list_threads)):
-            # del l_threads[m_index]
-            # del l_threads[i]
-            m_index = list(l_threads.keys())[i]
-            print('m_index:-', m_index)
-            if not l_threads[m_index].is_alive():
-                print('\t* removing nodes')
-                del l_threads[m_index]
-                i=0
-
-        '''
         time.sleep(int(config['MODEMS']['sleep_time']))
 
 if __name__ == "__main__":
     print('* master watchdog booting up')
     master_watchdog()
-
