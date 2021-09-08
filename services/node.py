@@ -178,23 +178,55 @@ class Node:
             log_trace('poorly formed message - number missing')
             ''' acks so that the message does not go back to the queue '''
 
-        """
-        routing_mode=None
-        ''' determine mode '''
-        if configs['ROUTE']['mode'] == '0':
-            ''' online routing '''
-        elif configs['ROUTE']['mode'] == '1':
-            ''' offline routing '''
-        elif configs['ROUTE']['mode'] == '2':
-            ''' online, then offline '''
-        else:
-            ''' no routing occurs '''
-        if not Router.route(text=json_body['text'], number=json_body['number'], mode=routing_mode):
-            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
-        """
+        try:
+            results=None
+            router = Router(url=router_url, priority_offline_isp=offline_isp)
 
-        ''' acks that the message has been received (routed) '''
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+            # online routing '''
+            if configs['ROUTE']['mode'] == '0':
+                results = router.route_online(data={text=json_body['text'], number=json_body['number']}):
+
+            # offline routing '''
+            elif configs['ROUTE']['mode'] == '1':
+                results = router.route_offline(data={text=json_body['text'], number=json_body['number']}):
+
+            # online, then offline '''
+            elif configs['ROUTE']['mode'] == '2':
+                try:
+                    results = router.route_online(data={text=json_body['text'], number=json_body['number']}):
+                except Exception as error:
+                    try:
+                        results = router.route_offline(data={text=json_body['text'], number=json_body['number']}):
+                    except Exception as error:
+                        raise Exception(error)
+
+
+            ''' acks that the message has been received (routed) '''
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+
+            self.logger(f"Routing results: {results}")
+
+        except ConnectionError as error:
+            '''
+            In the event of a network problem (e.g. DNS failure, refused connection, etc), Requests will raise a ConnectionError exception.
+            '''
+            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+
+        except requests.Timeout as error:
+            '''
+            If a request times out, a Timeout exception is raised.
+            '''
+            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+
+        except requests.TooManyRedirects as error:
+            '''
+            If a request exceeds the configured number of maximum redirections, a TooManyRedirects exception is raised.
+            '''
+            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+
+        except Exception as error:
+            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            log_trace(traceback.format_exc(), show=True)
 
 
     def __sms_outgoing_callback(self, ch, method, properties, body):
@@ -251,7 +283,7 @@ class Node:
             ch.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
-            self.connection.sleep(5)
+            self.outgoing_connection.sleep(5)
 
         except subprocess.CalledProcessError as error:
             ''' generic system error: message comes back '''
@@ -375,9 +407,10 @@ class Node:
             try:
                 self.logger("watchdog incoming: Closing node...", output='stderr')
 
-                self.routing_consume_channel.stop_consuming()
+                # self.routing_consume_channel.stop_consuming()
                 self.routing_consume_connection.close(reply_code=1, reply_text='modem no longer available')
-                # del l_threads[self.m_index]
+                if self.m_index in l_threads:
+                    del l_threads[self.m_index]
 
             except Exception as error:
                 # raise Exception(error)
@@ -407,10 +440,10 @@ class Node:
             try:
                 self.logger("watchdog monitor: Closing node...", output='stderr')
 
-                self.outgoing_channel.stop_consuming()
-
-                self.connection.close(reply_code=1, reply_text='modem no longer available')
-                del l_threads[self.m_index]
+                # self.outgoing_channel.stop_consuming()
+                self.outgoing_connection.close(reply_code=1, reply_text='modem no longer available')
+                if self.m_index in l_threads:
+                    del l_threads[self.m_index]
             except Exception as error:
                 # raise Exception(error)
                 # self.logger(error)
@@ -466,6 +499,10 @@ class Node:
         except Exception as error:
             # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
             log_trace(traceback.format_exc())
+        '''
+        finally:
+            del l_threads[self.m_index]
+        '''
         # self.logger('ending consumption....')
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
@@ -528,6 +565,8 @@ def master_watchdog():
                     # print('\t* Node created')
                 except Exception as error:
                     log_trace(traceback.format_exc(), show=True)
+
+                shown=False
 
 
         for m_index, thread in l_threads.items():
