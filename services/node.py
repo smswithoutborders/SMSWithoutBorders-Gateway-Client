@@ -164,12 +164,12 @@ class Node:
 
 
         ''' acks that the message has been received (routed) '''
-        print("method:", method.delivery_tag)
 
         ''' attempts both forms of routing, then decides if success or failed '''
         ''' checks config if for which state of routing is activated '''
         ''' if online only, if offline only, if both '''
         ''' also looks into which means of routing has been made available (which ISP if offline) '''
+        # if Router.route( body.decode('utf-8')):
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
