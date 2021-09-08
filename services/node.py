@@ -160,22 +160,46 @@ class Node:
 
 
     def __sms_routing_callback(self, ch, method, properties, body):
-        self.logger(">> routing:" + body.decode('utf-8'))
+        json_body = json.loads(body.decode('unicode_escape'))
+        self.logger(f'routing: {json_body}')
 
 
-        ''' acks that the message has been received (routed) '''
 
         ''' attempts both forms of routing, then decides if success or failed '''
         ''' checks config if for which state of routing is activated '''
         ''' if online only, if offline only, if both '''
         ''' also looks into which means of routing has been made available (which ISP if offline) '''
         # if Router.route( body.decode('utf-8')):
+        if not "text" in json_body:
+            log_trace('poorly formed message - text missing')
+            ''' acks so that the message does not go back to the queue '''
+
+        if not "number" in json_body:
+            log_trace('poorly formed message - number missing')
+            ''' acks so that the message does not go back to the queue '''
+
+        """
+        routing_mode=None
+        ''' determine mode '''
+        if configs['ROUTE']['mode'] == '0':
+            ''' online routing '''
+        elif configs['ROUTE']['mode'] == '1':
+            ''' offline routing '''
+        elif configs['ROUTE']['mode'] == '2':
+            ''' online, then offline '''
+        else:
+            ''' no routing occurs '''
+        if not Router.route(text=json_body['text'], number=json_body['number'], mode=routing_mode):
+            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+        """
+
+        ''' acks that the message has been received (routed) '''
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
     def __sms_outgoing_callback(self, ch, method, properties, body):
         # TODO: verify data coming in is actually a json
-        json_body = json.loads(body.decode("utf-8"))
+        json_body = json.loads(body.decode('unicode_escape'))
         self.logger(f'message: {json_body}')
 
         '''
@@ -224,7 +248,7 @@ class Node:
             ''' blocks the connection '''
             # TODO: add from configs
 
-            self.outgoing_channel.basic_reject(
+            ch.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
             self.connection.sleep(5)
@@ -236,9 +260,7 @@ class Node:
             # self.logger(error.output, ot)
             # self.logger(error.stdout)
             log_trace(error.output.decode('utf-8'))
-            self.outgoing_channel.basic_reject(
-                    delivery_tag=method.delivery_tag, 
-                    requeue=True)
+            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
             '''node keeps track of this failures, and send message to 
             server after a benchmark failed limit
             '''
@@ -257,13 +279,12 @@ class Node:
             ''' code crashed here '''
             self.logger('sending sms failed...', output='stderr')
             log_trace(traceback.format_exc())
-            self.outgoing_channel.basic_reject(
-                    delivery_tag=method.delivery_tag, 
-                    requeue=True)
+            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
         else:
             ''' message ack happens here '''
             ''' after successful delivery, pause for a bit before continuing '''
-            self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+            # self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             self.logger('message sent successfully')
 
             ''' 0 = success '''
@@ -319,19 +340,27 @@ class Node:
                     durable=True)
 
             self.logger('watchdog incoming gone into effect...')
-            # messages=Modem(self.m_index).SMS.list('received')
+            messages=Modem(self.m_index).SMS.list('received')
 
+            modem = Modem(self.m_index)
             while(Deku.modem_ready(self.m_index)):
-                self.logger('checking for incoming messages...')
-                messages=Modem(self.m_index).SMS.list('received')
+                # self.logger('checking for incoming messages...')
+                # messages=modem.SMS.list('received')
                 for msg_index in messages:
                     sms=Modem.SMS(index=msg_index)
+                    ''' should this message be deleted or left '''
+                    ''' if deleted, then only the same gateway can send it further '''
+                    ''' if not deleted, then only the modem can send the message '''
+                    ''' given how reabbit works, the modem can't know when messages are sent '''
                     publish_channel.basic_publish(
                             exchange='',
                             routing_key=config['NODE']['routing_queue_name'],
                             body=json.dumps({"text":sms.text, "number":sms.number}),
                             properties=pika.BasicProperties( 
                                 delivery_mode=2))
+                    ''' delete messages from here '''
+                    ''' use mockup so testing can continue '''
+                    # modem.delete(msg_index)
                 messages=[]
 
 
