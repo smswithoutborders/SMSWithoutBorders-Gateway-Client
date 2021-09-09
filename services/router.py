@@ -11,15 +11,18 @@ import requests
 class Router:
     ssl = None
     # def __init__(self, cert, key):
-    def __init__(self, ssl:tuple):
+    def __init__(self, url=router_url, priority_offline_isp, ssl=None)
         self.ssl = ssl
+        self.url = url
+        self.priority_offline_isp = priority_offline_isp
 
 
-    @staticmethod():
+    def route_offline(self, text, number):
+        print('* routing offline mode')
+        print(f'\ttext-: {text}\n\tnumber-: {number}')
 
 
-    @staticmethod
-    def route_online(url, data, protocol='GET'):
+    def route_online(self, data, protocol='GET', url=None):
         results=None
         is_json=False
 
@@ -77,5 +80,6 @@ class Router:
 
 if __name__ == "__main__":
     data=json.dumps({"text":"Hello world", "number":"0000"})
-    Router.route_online(url="https://localhost", data=data)
-    Router.route_online(url="https://localhost", data=data, 'POST')
+    router = Router(url='http://localhost', priority_offline_isp='orange')
+    router.route(data=data)
+    router.route(data=data, protocol='POST')
