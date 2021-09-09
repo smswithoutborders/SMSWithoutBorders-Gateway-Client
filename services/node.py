@@ -184,19 +184,19 @@ class Node:
 
             # online routing '''
             if configs['ROUTE']['mode'] == '0':
-                results = router.route_online(data={text=json_body['text'], number=json_body['number']}):
+                results = router.route_online(data={text=json_body['text'], number=json_body['number']})
 
             # offline routing '''
             elif configs['ROUTE']['mode'] == '1':
-                results = router.route_offline(data={text=json_body['text'], number=json_body['number']}):
+                results = router.route_offline(text=json_body['text'], number=json_body['number'])
 
             # online, then offline '''
             elif configs['ROUTE']['mode'] == '2':
                 try:
-                    results = router.route_online(data={text=json_body['text'], number=json_body['number']}):
+                    results = router.route_online(data={text=json_body['text'], number=json_body['number']})
                 except Exception as error:
                     try:
-                        results = router.route_offline(data={text=json_body['text'], number=json_body['number']}):
+                        results = router.route_offline(text=json_body['text'], number=json_body['number'])
                     except Exception as error:
                         raise Exception(error)
 
