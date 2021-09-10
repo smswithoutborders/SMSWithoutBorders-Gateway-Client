@@ -287,7 +287,7 @@ class Deku(Modem):
             modem=modem.SMS.set(text=text, number=number)
             modem.send(timeout=timeout)
         except subprocess.CalledProcessError as error:
-            print('catching a sent subprocess error')
+            # print('catching a sent subprocess error')
             create_benchmark_file()
             raise subprocess.CalledProcessError(cmd=error.cmd, output=error.output, returncode=error.returncode)
         except Exception as error:

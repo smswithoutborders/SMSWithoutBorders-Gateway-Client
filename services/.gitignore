@@ -2,3 +2,4 @@
 *.logs
 config.ini
 log_trace/*
+locks/*
