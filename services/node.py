@@ -72,6 +72,12 @@ initialize term colors
 init()
 
 class Node:
+
+    outgoing_connection=None
+    outgoing_channel=None
+    routing_consume_connection=None
+    routing_consume_channel=None
+
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         color='\033[32m'
@@ -106,7 +112,7 @@ class Node:
 
 
     # def __init__(self, m_index, m_isp, rules=['STATUS']):
-    def __init__(self, m_index, m_isp):
+    def __init__(self, m_index, m_isp, start_router=True):
         self.m_index = m_index
         self.m_isp = m_isp
 
@@ -120,12 +126,13 @@ class Node:
                 prefetch_count=1)
 
 
-        self.routing_consume_connection, self.routing_consume_channel = self.__create_channel(
-                connection_url=config['NODE']['connection_url'],
-                callback=self.__sms_routing_callback,
-                durable=True,
-                prefetch_count=1,
-                queue_name=config['NODE']['routing_queue_name'])
+        if start_router:
+            self.routing_consume_connection, self.routing_consume_channel = self.__create_channel(
+                    connection_url=config['NODE']['connection_url'],
+                    callback=self.__sms_routing_callback,
+                    durable=True,
+                    prefetch_count=1,
+                    queue_name=config['NODE']['routing_queue_name'])
         
 
         def generate_status_file(status):
@@ -559,13 +566,16 @@ def master_watchdog():
                     continue
 
                 try:
-                    outgoing_node=Node(m_index, m_isp)
+                    outgoing_node=Node(m_index, m_isp, start_router=False)
                     outgoing_thread=threading.Thread(target=outgoing_node.start_consuming, daemon=True)
 
+                    '''
                     routing_node=Node(m_index, m_isp)
                     routing_thread=threading.Thread(target=routing_node.routing_start_consuming, daemon=True)
+                    '''
 
-                    l_threads[m_index] = [outgoing_thread, routing_thread]
+                    # l_threads[m_index] = [outgoing_thread, routing_thread]
+                    l_threads[m_index] = [outgoing_thread]
                     # print('\t* Node created')
                 except Exception as error:
                     log_trace(traceback.format_exc(), show=True)
