@@ -123,6 +123,7 @@ class Node:
                 exchange_type=config['NODE']['outgoing_exchange_type'],
                 binding_key=config['NODE']['outgoing_queue_name'] + '.' + m_isp,
                 callback=self.__sms_outgoing_callback,
+                durable=True,
                 prefetch_count=1)
 
 

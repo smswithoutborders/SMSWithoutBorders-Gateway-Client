@@ -254,6 +254,8 @@ class Deku(Modem):
 
         modem = Modem(index[0])
         lock_dir = None
+        ''' use paths from config '''
+        ''' user may not change the default value so relative paths should be used in configs '''
         lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
         def create_benchmark_file():
             with open(lock_dir, 'w') as lock_file:
