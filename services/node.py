@@ -480,7 +480,7 @@ class Node:
             ''' messages to be routed '''
             self.logger('routing consumption starting...')
             self.routing_consume_channel.start_consuming() #blocking
-            wd.join()
+            # wd.join()
 
         except pika.exceptions.ConnectionWrongStateError as error:
             # self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
