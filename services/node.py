@@ -302,7 +302,11 @@ class Node:
             self.logger('sending sms failed...', output='stderr')
             # self.logger(error.output, ot)
             # self.logger(error.stdout)
-            log_trace(error.output.decode('utf-8'))
+            if self.previousError != error.output:
+                log_trace(error.output.decode('utf-8'))
+                self.logger(error.output.decode('utf-8'))
+
+            self.previousError = error.output.decode('utf-8')
             ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
             '''node keeps track of this failures, and send message to 
             server after a benchmark failed limit
