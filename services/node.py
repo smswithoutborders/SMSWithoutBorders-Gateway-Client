@@ -41,7 +41,7 @@ topic methods
 import sys, os, threading, traceback
 import asyncio
 import subprocess
-import json, time
+import json, time, requests
 from datetime import datetime
 
 from colorama import init
@@ -162,9 +162,9 @@ class Node:
     def __sms_routing_callback(self, ch, method, properties, body):
         json_body = json.loads(body.decode('unicode_escape'))
         self.logger(f'routing: {json_body}')
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
-
-
+        """
         ''' attempts both forms of routing, then decides if success or failed '''
         ''' checks config if for which state of routing is activated '''
         ''' if online only, if offline only, if both '''
@@ -184,7 +184,7 @@ class Node:
 
             # online routing '''
             if configs['ROUTE']['mode'] == '0':
-                results = router.route_online(data={text=json_body['text'], number=json_body['number']})
+                results = router.route_online(data={"text":json_body['text'], "number":json_body['number']})
 
             # offline routing '''
             elif configs['ROUTE']['mode'] == '1':
@@ -193,7 +193,7 @@ class Node:
             # online, then offline '''
             elif configs['ROUTE']['mode'] == '2':
                 try:
-                    results = router.route_online(data={text=json_body['text'], number=json_body['number']})
+                    results = router.route_online(data={"text":json_body['text'], "number":json_body['number']})
                 except Exception as error:
                     try:
                         results = router.route_offline(text=json_body['text'], number=json_body['number'])
@@ -227,6 +227,7 @@ class Node:
         except Exception as error:
             ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
             log_trace(traceback.format_exc(), show=True)
+        """
 
 
     def __sms_outgoing_callback(self, ch, method, properties, body):
@@ -380,6 +381,8 @@ class Node:
                 # messages=modem.SMS.list('received')
                 for msg_index in messages:
                     sms=Modem.SMS(index=msg_index)
+
+
                     ''' should this message be deleted or left '''
                     ''' if deleted, then only the same gateway can send it further '''
                     ''' if not deleted, then only the modem can send the message '''
@@ -393,6 +396,7 @@ class Node:
                     ''' delete messages from here '''
                     ''' use mockup so testing can continue '''
                     # modem.delete(msg_index)
+
                 messages=[]
 
 
