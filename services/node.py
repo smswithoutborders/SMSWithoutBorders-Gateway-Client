@@ -78,6 +78,8 @@ class Node:
     routing_consume_connection=None
     routing_consume_channel=None
 
+    previousError=None
+
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         color='\033[32m'
