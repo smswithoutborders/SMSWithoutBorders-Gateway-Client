@@ -93,8 +93,16 @@ class Node:
 
 
 
-    def __create_channel(self, connection_url, queue_name, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
-        connection=pika.BlockingConnection(pika.ConnectionParameters(connection_url))
+    def __create_channel(self, connection_url, queue_name, username=None, password=None, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
+        credentials=None
+        if username is not None and password is not None:
+            credentials=pika.credentials.PlainCredentials(
+                    username=username,
+                    password=password)
+
+        # TODO: port should come from config
+        parameters=pika.ConnectionParameters(connection_url, 5672, '/', credentials)
+        connection=pika.BlockingConnection(parameters=parameters)
         channel=connection.channel()
         channel.queue_declare(queue_name, durable=durable)
         channel.basic_qos(prefetch_count=prefetch_count)
@@ -114,13 +122,16 @@ class Node:
 
 
     # def __init__(self, m_index, m_isp, rules=['STATUS']):
+    # TODO: everything from config files should be externally sent and not read in the class
     def __init__(self, m_index, m_isp, start_router=True):
         self.m_index = m_index
         self.m_isp = m_isp
 
         self.outgoing_connection, self.outgoing_channel = self.__create_channel(
-                config['NODE']['connection_url'],
-                config['NODE']['outgoing_queue_name'] + '_' + m_isp,
+                connection_url=config['NODE']['connection_url'],
+                queue_name=config['NODE']['outgoing_queue_name'] + '_' + m_isp,
+                username=config['NODE']['username'],
+                password=config['NODE']['password'],
                 exchange_name=config['NODE']['outgoing_exchange_name'],
                 exchange_type=config['NODE']['outgoing_exchange_type'],
                 binding_key=config['NODE']['outgoing_queue_name'] + '.' + m_isp,
@@ -427,13 +438,15 @@ class Node:
 
                 # self.routing_consume_channel.stop_consuming()
                 self.routing_consume_connection.close(reply_code=1, reply_text='modem no longer available')
-                if self.m_index in l_threads:
-                    del l_threads[self.m_index]
-
             except Exception as error:
                 # raise Exception(error)
                 # self.logger(error)
                 log_trace(traceback.format_exc())
+            finally:
+                ''' this finally because when connection is closed
+                an exception is thrown '''
+                if self.m_index in l_threads:
+                    del l_threads[self.m_index]
 
             ''' do whatever is required to cleanly end this node '''
 
@@ -460,12 +473,15 @@ class Node:
 
                 # self.outgoing_channel.stop_consuming()
                 self.outgoing_connection.close(reply_code=1, reply_text='modem no longer available')
-                if self.m_index in l_threads:
-                    del l_threads[self.m_index]
             except Exception as error:
                 # raise Exception(error)
                 # self.logger(error)
                 log_trace(traceback.format_exc())
+            finally:
+                ''' this finally because when connection is closed
+                an exception is thrown '''
+                if self.m_index in l_threads:
+                    del l_threads[self.m_index]
 
             ''' do whatever is required to cleanly end this node '''
 
