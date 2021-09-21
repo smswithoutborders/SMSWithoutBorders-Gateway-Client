@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
 
 '''
 post - /sms
@@ -63,8 +68,9 @@ def send_sms():
 
 @app.route('/isp', methods=['POST', 'GET'])
 def get_isp():
-    '''
     if request.method == 'POST':
-    '''
-    pass
+        return jsonify(request.json), 200
 
+
+if __name__ == "__main__":
+    app.run(host='localhost', port='15673', debug=True, threaded=True )
