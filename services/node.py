@@ -127,6 +127,7 @@ class Node:
         self.m_index = m_index
         self.m_isp = m_isp
 
+        self.logger("Attempting connection...")
         self.outgoing_connection, self.outgoing_channel = self.__create_channel(
                 connection_url=config['NODE']['connection_url'],
                 queue_name=config['NODE']['outgoing_queue_name'] + '_' + m_isp,
@@ -154,7 +155,10 @@ class Node:
             status['BENCHMARK'] = {"counter":0}
             return status
         self.status_file=os.path.join( os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
+        self.logger("Connected successfully...")
 
+    def __del__(self):
+        self.logger("calling destructor", output="stderr")
 
 
     def __update_status(self, category, status):
