@@ -114,6 +114,24 @@ def get_isp():
             else:
                 request_body[i]['isp'] = isp
         return jsonify(request_body), 200
+    
+    request_body = request.args
+    number = request_body.get('number')
+    # print(number)
+    if number is None:
+        return 'missing number', 400
+
+    if number[0] =='0' or number[0] != '+':
+        # this is so fucked
+        number = list(number)
+        number[0] = '+'
+        number=''.join(number)
+
+    isp = deduce_isp(number)
+    if isp is None:
+        return 'INVALID', 200
+    else:
+        return isp, 200
 
 
 if __name__ == "__main__":
