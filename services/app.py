@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import configparser,os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -68,8 +69,51 @@ def send_sms():
 
 @app.route('/isp', methods=['POST', 'GET'])
 def get_isp():
+    def deduce_isp(number): # E.164 standard required
+        import re
+        ''' operator files
+        configs/isp/default.ini
+        -> this is server code, so host should handle fitting in what they need
+        -> deduction based on default file, not all the file, it either knows it or it doesn't
+        '''
+
+        config = configparser.ConfigParser()
+        config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'default.ini'))
+
+        country=None
+        country_code=None
+        cc = config['country_codes']
+        for cntry, code in cc.items():
+            if re.search(f'^\{code}', number):
+                country = cntry
+                country_code=code
+
+        if country is None:
+            return None
+
+        # TODO put something here in case the country does not have operator ids in the config file
+        operator_stds= config[country]
+        for isp, stds in operator_stds.items():
+            stds = stds.split(',')
+
+            for std in stds:
+                #removing country code from number
+                number = number.replace(country_code, '')
+                if re.search(std, number):
+                    return isp
+
+        return None
+
     if request.method == 'POST':
-        return jsonify(request.json), 200
+        request_body = request.json
+        for i in range(len(request_body)):
+            _request = request_body[i]
+            isp = deduce_isp(_request['number'])
+            if isp is None:
+                request_body[i]['isp'] = 'INVALID'
+            else:
+                request_body[i]['isp'] = isp
+        return jsonify(request_body), 200
 
 
 if __name__ == "__main__":
