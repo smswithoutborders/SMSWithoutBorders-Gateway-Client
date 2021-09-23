@@ -38,8 +38,40 @@ isp: ""
 }]
 '''
 
-def rabbit_new_request(auth_id, auth_key, data):
-    pass
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+config.read(os.path.join(os.path.dirname(__file__), '../configs', 'config.ini'))
+connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['NODE']['connection_url']))
+channel = connection.channel()
+
+def rabbit_new_sms_request(auth_id, auth_key, data):
+
+
+    # queue_name = config_queue_name + _ + isp
+    for _data in data:
+        # queue_name = config['NODE']['outgoing_queue_name'] + '_' + _data['isp']
+        routing_key = auth_id + '_' + config['NODE']['outgoing_queue_name'] + '.' + _data['isp']
+        
+        ''' creates the exchange '''
+        '''
+        channel.exchange_declare( 
+                exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'])
+        '''
+
+        text = _data['text']
+        number = _data['number']
+        data = json.dumps({"text":text, "number":number})
+
+        channel.basic_publish(
+            exchange=config['NODE']['outgoing_exchange_name'],
+            # routing_key=queue_name.replace('_', '.'),
+            routing_key=routing_key,
+            body=data,
+            properties=pika.BasicProperties(
+                delivery_mode=2,  # make message persistent
+            ))
+        # print(" [x] Sent %r" % message)
+        print(f"[x] text; {text} ::\n\tsent to {number}")
+        connection.close()
 
 
 @app.route('/sms', methods=['POST'])
@@ -53,18 +85,29 @@ def send_sms():
         return "invalid json", 400
 
 
-    error_requests=[]
-    for request in request_body:
+    ''' auth_id and auth_key should be authenticated here '''
+    ''' still unsure if to use tokens or actual keys (if used internally and not exposed, key doesn't matter '''
+    if not "auth_id" in request:
+        request_body["error_requests"] = 'auth ID missing'
+        return jsonify(request_body), 400
+    if not "auth_key" in request:
+        request_body["error_requests"] = 'auth Key missing'
+        return jsonify(request_body), 400
+
+
+    for i in len(range(request_body)):
+        request_body[i]["error_requests"]=[]
         if not "text" in request:
-            pass
+            request_body[i]["error_requests"].append('text missing')
         if not "number" in request:
-            pass
+            request_body[i]["error_requests"].append('number missing')
         if not "isp" in request:
-            pass
+            request_body[i]["error_requests"].append('isp missing')
 
-        rabbit_new_request(auth_id=auth_id, auth_key=auth_key, data=request)
+        if len(request_body[i]["error_requests"]) < 1:
+            rabbit_new_sms_request(auth_id=auth_id, auth_key=auth_key, data=request)
 
-    return jsonify({"error requests":error_requests}), 200
+    return jsonify(request_body), 200
 
 
 @app.route('/isp', methods=['POST', 'GET'])
@@ -77,12 +120,12 @@ def get_isp():
         -> deduction based on default file, not all the file, it either knows it or it doesn't
         '''
 
-        config = configparser.ConfigParser()
-        config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'default.ini'))
+        _config = _configparser.ConfigParser()
+        _config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'default.ini'))
 
         country=None
         country_code=None
-        cc = config['country_codes']
+        cc = _config['country_codes']
         for cntry, code in cc.items():
             if re.search(f'^\{code}', number):
                 country = cntry
@@ -92,7 +135,7 @@ def get_isp():
             return None
 
         # TODO put something here in case the country does not have operator ids in the config file
-        operator_stds= config[country]
+        operator_stds= _config[country]
         for isp, stds in operator_stds.items():
             stds = stds.split(',')
 
