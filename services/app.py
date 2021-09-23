@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import pika
 import configparser,os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -39,39 +40,42 @@ isp: ""
 '''
 
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-config.read(os.path.join(os.path.dirname(__file__), '../configs', 'config.ini'))
+config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['NODE']['connection_url']))
 channel = connection.channel()
 
 def rabbit_new_sms_request(auth_id, auth_key, data):
 
 
+    ''' creates the exchange '''
+    '''
+    channel.exchange_declare( 
+            exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'])
+    '''
+
     # queue_name = config_queue_name + _ + isp
     for _data in data:
-        # queue_name = config['NODE']['outgoing_queue_name'] + '_' + _data['isp']
+        queue_name = auth_id + '_' + config['NODE']['outgoing_queue_name'] + '_' + _data['isp']
         routing_key = auth_id + '_' + config['NODE']['outgoing_queue_name'] + '.' + _data['isp']
         
-        ''' creates the exchange '''
-        '''
-        channel.exchange_declare( 
-                exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'])
-        '''
+        ''' creates the queue, due to not knowing the isp this compute is wasted'''
+        channel.queue_declare(queue_name, durable=True)
 
         text = _data['text']
         number = _data['number']
-        data = json.dumps({"text":text, "number":number})
+        _data = json.dumps({"text":text, "number":number})
 
         channel.basic_publish(
             exchange=config['NODE']['outgoing_exchange_name'],
             # routing_key=queue_name.replace('_', '.'),
             routing_key=routing_key,
-            body=data,
+            body=_data,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # make message persistent
             ))
         # print(" [x] Sent %r" % message)
         print(f"[x] text; {text} ::\n\tsent to {number}")
-        connection.close()
+        # connection.close()
 
 
 @app.route('/sms', methods=['POST'])
@@ -87,25 +91,28 @@ def send_sms():
 
     ''' auth_id and auth_key should be authenticated here '''
     ''' still unsure if to use tokens or actual keys (if used internally and not exposed, key doesn't matter '''
-    if not "auth_id" in request:
-        request_body["error_requests"] = 'auth ID missing'
-        return jsonify(request_body), 400
-    if not "auth_key" in request:
-        request_body["error_requests"] = 'auth Key missing'
-        return jsonify(request_body), 400
+    if not "auth_id" in request_body:
+        # request_body["error_requests"] = 'auth ID missing'
+        return 'auth ID missing', 400
+    if not "auth_key" in request_body:
+        # request_body["error_requests"] = 'auth Key missing'
+        return 'auth Key missing', 400
+    if not "data" in request_body:
+        # request_body["error_requests"] = 'auth Key missing'
+        return 'data missing', 400
 
 
-    for i in len(range(request_body)):
-        request_body[i]["error_requests"]=[]
-        if not "text" in request:
-            request_body[i]["error_requests"].append('text missing')
-        if not "number" in request:
-            request_body[i]["error_requests"].append('number missing')
-        if not "isp" in request:
-            request_body[i]["error_requests"].append('isp missing')
+    for i in range(len(request_body['data'])):
+        request_body['data'][i]["error_requests"]=[]
+        if not "text" in request_body['data'][i]:
+            request_body['data'][i]["error_requests"].append('text missing')
+        if not "number" in request_body['data'][i]:
+            request_body['data'][i]["error_requests"].append('number missing')
+        if not "isp" in request_body['data'][i]:
+            request_body['data'][i]["error_requests"].append('isp missing')
 
-        if len(request_body[i]["error_requests"]) < 1:
-            rabbit_new_sms_request(auth_id=auth_id, auth_key=auth_key, data=request)
+        if len(request_body['data'][i]["error_requests"]) < 1:
+            rabbit_new_sms_request(auth_id=auth_id, auth_key=auth_key, data=request_body['data'][i])
 
     return jsonify(request_body), 200
 
@@ -120,7 +127,7 @@ def get_isp():
         -> deduction based on default file, not all the file, it either knows it or it doesn't
         '''
 
-        _config = _configparser.ConfigParser()
+        _config = configparser.ConfigParser()
         _config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'default.ini'))
 
         country=None
