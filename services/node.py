@@ -175,7 +175,7 @@ class Node:
                 else:
                     status_counter=int(status_file[category]['counter'])
                 if status == 0:
-                    status_file['BENCHMARK']['counter'] = 0
+                    status_file['BENCHMARK']['counter'] = '0'
                 elif status == 1:
                     status_file['BENCHMARK']['counter'] = str(int(status_counter + 1))
                 else:
@@ -353,7 +353,7 @@ class Node:
             category='BENCHMARK'
             variable='counter'
             status=0
-            update_status(category, status)
+            self.__update_status(category, status)
 
 
     def __event_action_run(self, action):

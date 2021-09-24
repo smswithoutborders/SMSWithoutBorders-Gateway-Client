@@ -189,4 +189,4 @@ def get_isp():
 if __name__ == "__main__":
     # app.run(host='localhost', port='15673', debug=True, threaded=True )
     # app.run(host='localhost', port='15673', debug=True, threaded=True )
-    app.run(host='localhost', port='15673', debug=False, threaded=True )
+    app.run(host='localhost', port='15673', debug=False)
