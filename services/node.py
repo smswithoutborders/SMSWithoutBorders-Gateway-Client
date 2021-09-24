@@ -130,12 +130,12 @@ class Node:
         self.logger("Attempting connection...")
         self.outgoing_connection, self.outgoing_channel = self.__create_channel(
                 connection_url=config['NODE']['connection_url'],
-                queue_name=config['NODE']['outgoing_queue_name'] + '_' + m_isp,
+                queue_name=config['NODE']['username'] + '_' + config['NODE']['outgoing_queue_name'] + '_' + m_isp,
                 username=config['NODE']['username'],
                 password=config['NODE']['password'],
                 exchange_name=config['NODE']['outgoing_exchange_name'],
                 exchange_type=config['NODE']['outgoing_exchange_type'],
-                binding_key=config['NODE']['outgoing_queue_name'] + '.' + m_isp,
+                binding_key=config['NODE']['username'] + '_' + config['NODE']['outgoing_queue_name'] + '.' + m_isp,
                 callback=self.__sms_outgoing_callback,
                 durable=True,
                 prefetch_count=1)

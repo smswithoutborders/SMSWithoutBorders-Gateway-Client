@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pika
-import configparser,os
+import configparser, os, json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -41,25 +41,23 @@ isp: ""
 
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+
 connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['NODE']['connection_url']))
+
 channel = connection.channel()
 
+''' creates the exchange '''
+channel.exchange_declare( 
+        exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'], durable=True)
+
 def rabbit_new_sms_request(auth_id, auth_key, data):
-
-
-    ''' creates the exchange '''
-    '''
-    channel.exchange_declare( 
-            exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'])
-    '''
-
     # queue_name = config_queue_name + _ + isp
     for _data in data:
         queue_name = auth_id + '_' + config['NODE']['outgoing_queue_name'] + '_' + _data['isp']
         routing_key = auth_id + '_' + config['NODE']['outgoing_queue_name'] + '.' + _data['isp']
         
         ''' creates the queue, due to not knowing the isp this compute is wasted'''
-        channel.queue_declare(queue_name, durable=True)
+        # channel.queue_declare(queue_name, durable=True)
 
         text = _data['text']
         number = _data['number']
@@ -100,7 +98,11 @@ def send_sms():
     if not "data" in request_body:
         # request_body["error_requests"] = 'auth Key missing'
         return 'data missing', 400
-
+    
+    auth_id=request_body['auth_id']
+    auth_key=request_body['auth_key']
+    # TODO: authenticate(auth_id, auth_key)
+    # TODO: authenticate(auth_id, auth_key, scope)
 
     for i in range(len(request_body['data'])):
         request_body['data'][i]["error_requests"]=[]
@@ -112,7 +114,7 @@ def send_sms():
             request_body['data'][i]["error_requests"].append('isp missing')
 
         if len(request_body['data'][i]["error_requests"]) < 1:
-            rabbit_new_sms_request(auth_id=auth_id, auth_key=auth_key, data=request_body['data'][i])
+            rabbit_new_sms_request(auth_id=auth_id, auth_key=auth_key, data=request_body['data'])
 
     return jsonify(request_body), 200
 
@@ -185,4 +187,6 @@ def get_isp():
 
 
 if __name__ == "__main__":
-    app.run(host='localhost', port='15673', debug=True, threaded=True )
+    # app.run(host='localhost', port='15673', debug=True, threaded=True )
+    # app.run(host='localhost', port='15673', debug=True, threaded=True )
+    app.run(host='localhost', port='15673', debug=False, threaded=True )
