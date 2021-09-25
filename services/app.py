@@ -44,13 +44,16 @@ config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
 connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['NODE']['connection_url']))
 
-channel = connection.channel()
 
-''' creates the exchange '''
-channel.exchange_declare( 
-        exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'], durable=True)
 
 def rabbit_new_sms_request(auth_id, auth_key, data):
+    ''' is this wasted and just computational heavy? '''
+    channel = connection.channel()
+
+    ''' creates the exchange '''
+    channel.exchange_declare( 
+            exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'], durable=True)
+
     # queue_name = config_queue_name + _ + isp
     for _data in data:
         queue_name = auth_id + '_' + config['NODE']['outgoing_queue_name'] + '_' + _data['isp']
