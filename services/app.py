@@ -2,6 +2,10 @@
 
 import pika
 import configparser, os, json
+import re
+import requests
+import traceback
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -42,12 +46,20 @@ isp: ""
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
-connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['NODE']['connection_url']))
 
+def authenticate(auth_id, auth_key):
 
+    # results = requests.post(url=config['AUTH']['url'], json={"auth_id":auth_id, "auth_key":auth_key})
+    results = requests.post(url='http://localhost:9000/users/authentication', json={"auth_id":auth_id, "auth_key":auth_key})
+    print(results.text)
+
+    if results.status_code is 200 and results.json:
+        return False
+    return None
 
 def rabbit_new_sms_request(auth_id, auth_key, data):
     ''' is this wasted and just computational heavy? '''
+    connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['NODE']['connection_url']))
     channel = connection.channel()
 
     ''' creates the exchange '''
@@ -106,8 +118,17 @@ def send_sms():
     auth_key=request_body['auth_key']
     # TODO: authenticate(auth_id, auth_key)
     # TODO: authenticate(auth_id, auth_key, scope)
+    results = authenticate(auth_id, auth_key)
+
+    if results is None:
+        return jsonify({"results":results, "message":"failed to authenticate..."}), 403
+
+    def valid_number(number):
+        reg="\+[0-9]*"
+        return re.search(reg, number)
 
     for i in range(len(request_body['data'])):
+        ''' each request can have multiple errors involved, keep note of that '''
         request_body['data'][i]["error_requests"]=[]
         if not "text" in request_body['data'][i]:
             request_body['data'][i]["error_requests"].append('text missing')
@@ -117,7 +138,14 @@ def send_sms():
             request_body['data'][i]["error_requests"].append('isp missing')
 
         if len(request_body['data'][i]["error_requests"]) < 1:
-            rabbit_new_sms_request(auth_id=auth_id, auth_key=auth_key, data=request_body['data'])
+            '''authenticate for valid phonenumber '''
+            try:
+                if not valid_number(request_body['data'][i]['number']):
+                    request_body['data'][i]["error_requests"].append('invalid number')
+                    continue
+                rabbit_new_sms_request(auth_id=auth_id, auth_key=auth_key, data=request_body['data'])
+            except Exception as error:
+                print(traceback.format_exc())
 
     return jsonify(request_body), 200
 
@@ -125,7 +153,6 @@ def send_sms():
 @app.route('/isp', methods=['POST', 'GET'])
 def get_isp():
     def deduce_isp(number): # E.164 standard required
-        import re
         ''' operator files
         configs/isp/default.ini
         -> this is server code, so host should handle fitting in what they need
