@@ -1,0 +1,2 @@
+- Nodes do not create exchanges, so exchanges should exist before hand
+	- exchanges are created when new request are made
