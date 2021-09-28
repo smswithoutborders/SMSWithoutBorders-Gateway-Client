@@ -47,10 +47,10 @@ config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolat
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
 
-def authenticate(auth_id, auth_key):
+def authenticate(auth_id, auth_key, project_id):
 
     # results = requests.post(url=config['AUTH']['url'], json={"auth_id":auth_id, "auth_key":auth_key})
-    results = requests.post(url='http://localhost:9000/users/authentication', json={"auth_id":auth_id, "auth_key":auth_key})
+    results = requests.post(url='http://localhost:9000/users/authentication', json={"auth_id":auth_id, "auth_key":auth_key, "project_id":project_id, "scope":[]})
     print(results.text)
 
     if results.status_code is 200 and results.json:
@@ -116,9 +116,10 @@ def send_sms():
     
     auth_id=request_body['auth_id']
     auth_key=request_body['auth_key']
+    project_id=request_body['project_id']
     # TODO: authenticate(auth_id, auth_key)
     # TODO: authenticate(auth_id, auth_key, scope)
-    results = authenticate(auth_id, auth_key)
+    results = authenticate(auth_id, auth_key, project_id)
 
     if results is None:
         return jsonify({"results":results, "message":"failed to authenticate..."}), 403
@@ -218,5 +219,5 @@ def get_isp():
 
 if __name__ == "__main__":
     # app.run(host='localhost', port='15673', debug=True, threaded=True )
-    # app.run(host='localhost', port='15673', debug=True, threaded=True )
-    app.run(host='localhost', port='15673', debug=False)
+    app.run(host='localhost', port='15673', debug=True, threaded=True )
+    # app.run(host='localhost', port='15673', debug=False)
