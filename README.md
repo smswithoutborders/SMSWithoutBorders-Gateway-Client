@@ -2,6 +2,8 @@
 * python3
 * pip3
 * ModemManager (default on linux systems)
+* RabbitMQ
+>> Arch based: sudo pacman -S rabbitmq
 
 #### Installation
 ```bash
