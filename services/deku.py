@@ -141,7 +141,11 @@ class Deku(Modem):
         '''
         try:
             modem = Modem(modem_index)
+            '''
             if modem.state != 'registered':
+                modem.enable()
+            '''
+            if modem.state == 'disabled':
                 modem.enable()
             moc = modem.operator_code
         except NameError as error:
