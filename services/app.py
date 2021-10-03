@@ -47,10 +47,11 @@ config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolat
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
 
-def authenticate(auth_id, auth_key, project_id):
+def authenticate(auth_id, auth_key, project_id, scope=['read']):
 
     # results = requests.post(url=config['AUTH']['url'], json={"auth_id":auth_id, "auth_key":auth_key})
-    results = requests.post(url='http://localhost:9000/users/authentication', json={"auth_id":auth_id, "auth_key":auth_key, "project_id":project_id, "scope":[]})
+    url=f'http://localhost:9000/users/projects/{project_id}/authentication'
+    results = requests.post(url=url, json={"auth_id":auth_id, "auth_key":auth_key, "scope":scope})
     print(results.text)
 
     if results.status_code is 200 and results.json:
