@@ -1,2 +1,4 @@
 - Nodes do not create exchanges, so exchanges should exist before hand
 	- exchanges are created when new request are made
+- Users need permissions on server before they can connect 
+	- investigations into which types of permissions is very important
