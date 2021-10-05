@@ -162,6 +162,7 @@ class Node:
         """
         except socket.gaierror as error:
             ''' mostly when cannot connect '''
+            print(error.args[0])
         """
 
         if start_router:
@@ -353,7 +354,7 @@ class Node:
             -> 
             # with open(os.path.join(os.path.dirname(__file__), 'locks', f'{Modem(m_index).imei}.ini'), 'w') as log_file:
             '''
-            category='BENCHMARK'
+            category='FAILED'
             self.__update_status(category, status)
             self.__event_watch(category)
 
@@ -371,10 +372,10 @@ class Node:
             self.logger('message sent successfully')
 
             ''' 0 = success '''
-            category='BENCHMARK'
-            variable='counter'
+            category='SUCCESS'
             status=0
             self.__update_status(category, status)
+            self.__event_watch(category)
 
 
     def __event_action_run(self, action):
@@ -393,40 +394,22 @@ class Node:
 
     def __event_watch(self, category):
         ''' this is a parser of categories '''
+        """"
+        try:
+            output = self.__event_action_run(action)
+            self.logger(output)
+        except subprocess.CalledProcessError as error:
+            log_trace(error.output.decode('utf-8'))
+        except Exception as error:
+            # raise Exception(error)
+            log_trace(traceback.format_exc())
+        """
+        with open(os.path.join(os.path.dirname(__file__), 'rules', f'events.rules.json')) as event_rules_fd:
+            event_rules = event_rules_fd.read()
+        event_rules = json.loads(event_rules)
 
-        ''' case:BENCHMARK '''
-        if category == 'BENCHMARK':
-            '''
-            compare benchmark_limit(input) to current_status
-            '''
-
-            benchmark_limit=int(config['MODEMS']['benchmark_limit'])
-            rules=configparser.ConfigParser()
-            rules.read(os.path.join(os.path.dirname(__file__), 'rules', 'events.rules.ini'))
-
-            status=configparser.ConfigParser()
-            status.read(self.status_file)
-
-            ''' COUNTER = is respective to BENCHMARK '''
-            current_status=int(status[category]['counter'])
-
-            command=rules[category]['CONDITION']
-            action=rules[category]['ACTION']
-            if command == '">="':
-                if current_status > benchmark_limit:
-                    ''' action should be passed in here '''
-                    try:
-                        output = self.__event_action_run(action)
-                        self.logger(output)
-                    except subprocess.CalledProcessError as error:
-                        log_trace(error.output.decode('utf-8'))
-                    except Exception as error:
-                        # raise Exception(error)
-                        log_trace(traceback.format_exc())
-
-            ''' other options go here '''
-        else:
-           raise Exception('unknown category')
+        ''' iterate through everything and find out which ones are true and which are not '''
+        ''' the value to check against the benchmark should be taken from the status ( /status ) of the modem '''
 
     def __watchdog_incoming(self):
         # print('restart watchdog...')
