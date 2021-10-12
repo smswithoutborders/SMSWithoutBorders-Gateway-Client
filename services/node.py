@@ -43,6 +43,7 @@ import asyncio
 import subprocess
 import json, time, requests
 from datetime import datetime
+from enum import Enum
 
 from colorama import init
 from termcolor import colored
@@ -79,6 +80,31 @@ class Node:
     routing_consume_channel=None
 
     previousError=None
+
+    class Events(Enum):
+        class Category(Enum):
+            BENCHMARK='BENCHMARK'
+
+        class States(Enum):
+            FAILED=0
+            SUCCESS=1
+            UNKNOWN=2
+
+        @classmethod
+        def check_event(cls, node, category:Node.Events.Category, state:Node.Events.States):
+            print(f'>> checking event _{category}')
+
+            node_status=node.fetch_status()
+            node_value=int(node_status[state][category])
+
+            # rules['SUCCESS']['EQUALS']['BENCHMARK']
+            # rules[state][operand][category]
+            '''would iterate through all the states and fire all states that pass '''
+            for operand in rules[state]:
+                rules_value=rules[state][operand][category]
+                if operand == 'EQUALS':
+                    if rules_value != -1 and rules_value == node_value:
+                        print(f'\nFiring event - state={state}, operand={operand}, category={category}')
 
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -661,28 +687,37 @@ def master_watchdog():
     def __del__(self):
         self.logger("calling destructor", output="stderr")
 
+    def fetch_status(self):
+        '''
+        status_file=configparser.ConfigParser()
+        status_file.read(self.status_file)
+        '''
+        return configparser.ConfigParser().read(self.status_file)
 
-    def __update_status(self, category, status):
+
+    def __update_status(self, category:Node.Category):
         # status_file=os.path.join(os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
         self.logger(f'updating status.... {self.status_file}')
         status_file=configparser.ConfigParser()
         status_file.read(self.status_file)
         # print(status_file)
+        ''' a BENCHMARK event is fired when BENCHMARK limits are reached '''
         status_counter=0
-        if category == 'BENCHMARK':
+        if category == Category.BENCHMARK: # fires event FAILED
             with open(self.status_file, 'w') as st_file:
                 if not 'BENCHMARK' in status_file.sections():
                     status_file['BENCHMARK'] = {"counter":0}
                 else:
                     status_counter=int(status_file[category]['counter'])
-                if status == 0:
-                    status_file['BENCHMARK']['counter'] = '0'
-                elif status == 1:
-                    status_file['BENCHMARK']['counter'] = str(int(status_counter + 1))
-                else:
-                    raise Exception('unknown status_file')
+                status_file['BENCHMARK']['counter'] = str(int(status_counter + 1))
                 status_file.write(st_file)
-                self.logger('log file written....')
+                self.logger('Status Updated!')
+        else:
+            self.logger(f'Invalid event category {category}', output='stderr')
+            log_trace(f'Invalid event category {category}')
+
+        ''' checks if to fire this event '''
+        Event.check_event(self, category)
 
 
     def __sms_routing_callback(self, ch, method, properties, body):
@@ -782,7 +817,6 @@ def master_watchdog():
 
         text=json_body['text']
         number=json_body['number']
-        status=1
 
         try:
             self.logger('sending sms...')
@@ -833,9 +867,10 @@ def master_watchdog():
             -> 
             # with open(os.path.join(os.path.dirname(__file__), 'locks', f'{Modem(m_index).imei}.ini'), 'w') as log_file:
             '''
-            category='BENCHMARK'
-            self.__update_status(category, status)
-            self.__event_watch(category)
+            ''' whenever the status is updated, an event is fired '''
+            self.__update_status(Category.BENCHMARK)
+            # self.__event_watch(Category.BENCHMARK, Event.FAILED)
+            # Event.FAILED(self, Category.BENCHMARK)
 
 
         except Exception as error:
