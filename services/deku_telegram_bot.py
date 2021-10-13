@@ -11,7 +11,7 @@ from deku import Deku
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 # class DekuControlBot(Node):
-class DekuControlBot:
+class DekuControlBot(Deku):
     @classmethod
     def __init__(cls, token):
         cls.updater = Updater(token=token, use_context=True)
@@ -25,7 +25,7 @@ class DekuControlBot:
 
     @classmethod
     def status(cls, update, context):
-        indexes=Deku.modems_ready()
+        indexes=cls.modems_ready()
 
         if len(indexes) < 1:
             cls.send_message(update, context, 'Oops, no modems...')
