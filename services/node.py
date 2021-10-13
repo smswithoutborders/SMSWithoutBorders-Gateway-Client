@@ -92,7 +92,7 @@ class Node:
             UNKNOWN=2
 
         @classmethod
-        def check_event(cls, node, category:Node.Events.Category, state:Node.Events.States):
+        def check_event(cls, node, category:Category, state:States):
             print(f'>> checking event _{category}')
 
             node_status=node.fetch_status()
