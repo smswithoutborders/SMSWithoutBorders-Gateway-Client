@@ -5,17 +5,15 @@ import logging
 import configparser
 from telegram.ext import Updater, CommandHandler
 
+from node import Node
 from deku import Deku
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-class DekuControlBot(Deku):
+# class DekuControlBot(Node):
+class DekuControlBot:
     @classmethod
-    def __init__(cls):
-        cls.config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-        cls.config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
-
-        token=cls.config['TELEGRAM']['TOKEN']
+    def __init__(cls, token):
         cls.updater = Updater(token=token, use_context=True)
         cls.dispatcher = cls.updater.dispatcher
 
@@ -27,8 +25,24 @@ class DekuControlBot(Deku):
 
     @classmethod
     def status(cls, update, context):
-        logging.info('* status called')
-        cls.send_message(update, context, 'status...')
+        indexes=Deku.modems_ready()
+
+        if len(indexes) < 1:
+            cls.send_message(update, context, 'Oops, no modems...')
+
+        else:
+            for index in indexes:
+                modem=Deku.Modem(index)
+                message=f'\
+                imei={modem.imei}\n\
+                state={modem.state}\n\
+                model={modem.modem}\n\
+                dbus_path={modem.dbus_path}\n\
+                power_state={modem.power_state}\n\
+                operator_code={modem.operator_code}\n\
+                operator_name={modem.operator_name}'
+
+                cls.send_message(update, context, message)
 
     @classmethod
     def send_message(cls, update, context, text):
@@ -40,4 +54,8 @@ class DekuControlBot(Deku):
         cls.updater.start_polling()
 
 if __name__ == "__main__":
-    DekuControlBot().start_polling()
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+    config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+
+    token=config['TELEGRAM']['TOKEN']
+    DekuControlBot(token).start_polling()
