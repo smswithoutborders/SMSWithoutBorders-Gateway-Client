@@ -83,6 +83,7 @@ class Node:
 
     class Events(Enum):
         class Category(Enum):
+            ''' perhaps could be read from a file '''
             BENCHMARK='BENCHMARK'
 
         class States(Enum):
@@ -209,7 +210,7 @@ class Node:
         self.logger("calling destructor", output="stderr")
 
 
-    def __update_status(self, category, status):
+    def __update_status(self, category, status): # status file gets updated here
         # status_file=os.path.join(os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
         self.logger(f'updating status.... {self.status_file}')
         status_file=configparser.ConfigParser()
