@@ -93,8 +93,8 @@ class Node:
 
         @classmethod
         def check_event(cls, node, category:Category, state:States):
-            print(f'>> checking event _{category}')
-
+            DekuControlBot.send_message("Event fired!")
+            """
             node_status=node.fetch_status()
             node_value=int(node_status[state][category])
 
@@ -106,6 +106,7 @@ class Node:
                 if operand == 'EQUALS':
                     if rules_value != -1 and rules_value == node_value:
                         print(f'\nFiring event - state={state}, operand={operand}, category={category}')
+            """
 
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
