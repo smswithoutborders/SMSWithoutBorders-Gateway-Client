@@ -157,6 +157,21 @@ class Deku(Modem):
         # print('moc:', moc)
         return modem_index in Modem.list() and (moc != '--' and moc is not None)
 
+    @classmethod
+    def status(cls):
+        ''' should be used from the Deku lib '''
+        indexes=cls.modems_ready()
+
+
+        messages=[]
+        for index in indexes:
+            modem=Modem(index)
+            message=f'====Modem({modem.imei})====\n- index={index}\n- state={modem.state}\n- model={modem.model}\n- dbus_path={modem.dbus_path}\n- power_state={modem.power_state}\n- operator_code={modem.operator_code}\n- operator_name={modem.operator_name}\n\n'
+            messages.append(message)
+
+
+        return messages
+
     @staticmethod
     def modems_ready(isp=None, country=None, remove_lock=False):
         available_indexes=[]
