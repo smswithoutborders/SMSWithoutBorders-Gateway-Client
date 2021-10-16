@@ -193,6 +193,11 @@ class Deku(Modem):
             # print(Deku.ISP.__dict__)
             # print(country)
 
+            locked_state, lock_type, lock_file = Deku.modem_locked(Modem(_m_index).imei)
+
+            if locked_state:
+                return available_indexes
+
             ''' should be in setting before deciding to use isp checking here -
             credit is still a viable option '''
             if isp is None:
@@ -207,12 +212,10 @@ class Deku(Modem):
             else:
                 if country is None:
                     raise Exception('country cannot be None')
-
                 modem_isp = Deku.ISP.modems(operator_code=Modem(_m_index).operator_code, country=country)
-                status, lock_type, lock_file =Deku.modem_locked(Modem(_m_index).imei)
-                print('lock status', status)
-                if isp == modem_isp and not status:
+                if isp == modem_isp and Deku.modem_ready(_m_index):
                     available_indexes.append(_m_index)
+
         return available_indexes
 
 
