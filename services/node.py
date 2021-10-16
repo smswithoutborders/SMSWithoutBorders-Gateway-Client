@@ -223,7 +223,7 @@ class Node:
 
 
     def __event_listener(self, category:Category, counter):
-        def event_run(self, action):
+        def event_run(action):
             self.logger(f'event listener taking action: {action}')
 
             ''' this are all external commands '''
@@ -241,11 +241,14 @@ class Node:
         modem_status_file.read(self.status_file)
 
         ''' check if the modem's status matches the event's rules '''
-        status_count=int(event_rules[category._value_]['COUNTER'])
-        event_rule_count=int(modem_status_file[category._value_]['COUNTER'])
+        status_count=int(modem_status_file[category._value_]['COUNTER'])
+        event_rule_count=int(event_rules[category._value_]['COUNTER'])
 
-        if status_count == event_rule_count:
-            event_run(event_rules[category._value_]['ACTION'])
+        if status_count >= event_rule_count:
+            try:
+                event_run(event_rules[category._value_]['ACTION'])
+            except subprocess.CalledProcessError as error:
+                log_trace(error.output.decode('utf-8'))
 
 
     def __sms_routing_callback(self, ch, method, properties, body):
