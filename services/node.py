@@ -146,11 +146,25 @@ class Node:
     # def __init__(self, m_index, m_isp, rules=['STATUS']):
     # TODO: everything from config files should be externally sent and not read in the class
     def __init__(self, m_index, m_isp, start_router=True):
+        def generate_status_file(status_file):
+            modem_status_file=configparser.ConfigParser()
+            if os.path.isfile(status_file):
+                self.logger('Status file exist...')
+                modem_status_file.read(self.status_file)
+
+            with open(status_file, 'w') as fd_status_file:
+                for name, member in Node.Category.__members__.items():
+                    cat = member._value_
+                    if not cat in modem_status_file:
+                        modem_status_file[cat]= {'COUNTER': '0'}
+
+                modem_status_file.write(fd_status_file)
+
         self.m_index = m_index
         self.m_isp = m_isp
 
-        self.logger("Attempting connection...")
         try:
+            self.logger("Attempting connection...")
             self.outgoing_connection, self.outgoing_channel = self.__create_channel(
                     connection_url=config['NODE']['connection_url'],
                     queue_name=config['NODE']['api_id'] + '_' + config['NODE']['outgoing_queue_name'] + '_' + m_isp,
@@ -163,6 +177,7 @@ class Node:
                     durable=True,
                     prefetch_count=1)
             self.status_file=os.path.join( os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
+            generate_status_file(self.status_file)
             self.logger("Connected successfully...")
         except Exception as error:
             log_trace(traceback.format_exc())
@@ -181,11 +196,6 @@ class Node:
                     queue_name=config['NODE']['routing_queue_name'])
         
 
-        def generate_status_file(status):
-            ''' all the categories should be fitted here '''
-            status['BENCHMARK'] = {"counter":0}
-            return status
-
     def __del__(self):
         # self.logger("calling destructor", output="stderr")
         print("calling destructor")
@@ -194,18 +204,20 @@ class Node:
     def __update_status(self, category:Category): # status file gets updated here
         self.logger(f'updating status.... {self.status_file}')
         ''' should update status file of the modem '''
-        status_file=configparser.ConfigParser()
-        status_file.read(self.status_file)
+        modems_status_file=configparser.ConfigParser()
+        modems_status_file.read(self.status_file)
 
         counter=None
-        with open(status_file, 'w') as fd_status_file:
-            if category == Category.FAILED:
+        with open(self.status_file, 'w') as fd_status_file:
+            if category == Node.Category.FAILED:
                 ''' update failed counter for modem '''
-                status_file[category]['COUNTER']=int(status_file['FAILED'][COUNTER])+1
-                counter=int(status_file['FAILED'][COUNTER])
-            elif category == Category.SUCCESS:
+                modems_status_file[category._value_]['COUNTER']=str(int(modems_status_file[category._value_]['COUNTER'])+1)
+                counter=int(modems_status_file[category._value_]['COUNTER'])
+            elif category == Node.Category.SUCCESS:
                 ''' udpate success counter for modem '''
-                status_file[category]['COUNTER'] = '0'
+                modems_status_file[category._value_]['COUNTER'] = '0'
+
+            modems_status_file.write(fd_status_file)
 
         self.__event_listener(category, counter)
 
@@ -223,17 +235,17 @@ class Node:
                 raise subprocess.CalledProcessError(cmd=error.cmd, output=error.output, returncode=error.returncode)
 
         event_rules=configparser.ConfigParser()
-        event_rules.read(os.path.dirname(__file__), 'configs/events', f'rules.ini')
+        event_rules.read(os.path.join(os.path.dirname(__file__), 'configs/events', f'rules.ini'))
 
         modem_status_file=configparser.ConfigParser()
         modem_status_file.read(self.status_file)
 
         ''' check if the modem's status matches the event's rules '''
-        status_count=int(event_rules[category]['COUNTER'])
-        event_rule_count=int(modem_status_file[category]['COUNTER'])
+        status_count=int(event_rules[category._value_]['COUNTER'])
+        event_rule_count=int(modem_status_file[category._value_]['COUNTER'])
 
-        if status_count == event_rule_counter:
-            event_run(event_rules[category]['ACTION'])
+        if status_count == event_rule_count:
+            event_run(event_rules[category._value_]['ACTION'])
 
 
     def __sms_routing_callback(self, ch, method, properties, body):
@@ -385,8 +397,7 @@ class Node:
             -> 
             # with open(os.path.join(os.path.dirname(__file__), 'locks', f'{Modem(m_index).imei}.ini'), 'w') as log_file:
             '''
-            category='FAILED'
-            self.__update_status(category, status)
+            self.__update_status(Node.Category.FAILED)
             # self.__event_watch(category)
 
 
@@ -403,9 +414,7 @@ class Node:
             self.logger('message sent successfully')
 
             ''' 0 = success '''
-            category='SUCCESS'
-            status=0
-            self.__update_status(category, status)
+            self.__update_status(Node.Category.SUCCESS, status)
             # self.__event_watch(category)
 
 
@@ -649,11 +658,6 @@ def master_watchdog():
                     prefetch_count=1,
                     queue_name=config['NODE']['routing_queue_name'])
         
-
-        def generate_status_file(status):
-            ''' all the categories should be fitted here '''
-            status['BENCHMARK'] = {"counter":0}
-            return status
         self.status_file=os.path.join( os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
         self.logger("Connected successfully...")
 
