@@ -213,7 +213,7 @@ class Deku(Modem):
 
     @staticmethod
     # def send(text, number, timeout=20, q_exception:queue=None, identifier=None, t_lock:threading.Lock=None):
-    def send(text, number, timeout=20, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
+    def send(text, number, timeout=20, number_isp=True, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -239,19 +239,24 @@ class Deku(Modem):
         if number is None:
             raise Exception('number cannot be empty')
 
-        config = configparser.ConfigParser()
-        config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
-        country = config['ISP']['country']
-        print(f'number {number}, country {country}')
-        isp=Deku.ISP.determine(number=number, country=country)
 
-        if isp is None:
-            '''invalid number, should completely delete this from queueu'''
-            raise Deku.InvalidNumber(number, 'invalid number')
+        ''' determines if to check the isp of the number - best used without node '''
+        isp=None
+        index=None
+        if number_isp:
+            config = configparser.ConfigParser()
+            config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+            country = config['ISP']['country']
+            print(f'number {number}, country {country}')
+            isp=Deku.ISP.determine(number=number, country=country)
 
-        # print('isp ', isp)
-        # threading.Thread.acquire(blocking)
-        index= Deku.modems_ready(isp=isp, country=country)
+            if isp is None:
+                '''invalid number, should completely delete this from queueu'''
+                raise Deku.InvalidNumber(number, 'invalid number')
+
+            index= Deku.modems_ready(isp=isp, country=country)
+        else:
+            index=Deku.modems_ready()
         print('ready index:', index)
 
         # print('available modem with index at', index)
