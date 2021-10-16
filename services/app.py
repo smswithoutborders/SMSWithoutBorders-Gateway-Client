@@ -48,9 +48,8 @@ config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
 
 def authenticate(auth_id, auth_key, project_id, scope=['read']):
-
     # results = requests.post(url=config['AUTH']['url'], json={"auth_id":auth_id, "auth_key":auth_key})
-    url=f'http://localhost:9000/users/projects/{project_id}/authentication'
+    url=f'http://localhost:9000/auth/users/{user_id}/projects/{project_id}'
     results = requests.post(url=url, json={"auth_id":auth_id, "auth_key":auth_key, "scope":scope})
     print(results.text)
 
@@ -93,6 +92,16 @@ def rabbit_new_sms_request(auth_id, auth_key, data):
 
 
 @app.route('/sms', methods=['POST'])
+''' input keys - 
+auth_id
+auth_key
+project_id
+data
+   isp
+   text
+   number
+'''
+
 def send_sms():
     request_body=None
     try:
@@ -111,6 +120,9 @@ def send_sms():
     if not "auth_key" in request_body:
         # request_body["error_requests"] = 'auth Key missing'
         return 'auth Key missing', 400
+    if not "project_id" in request_body:
+        # request_body["error_requests"] = 'auth Key missing'
+        return 'project ID missing', 400
     if not "data" in request_body:
         # request_body["error_requests"] = 'auth Key missing'
         return 'data missing', 400
