@@ -146,7 +146,6 @@ class Node:
     # def __init__(self, m_index, m_isp, rules=['STATUS']):
     # TODO: everything from config files should be externally sent and not read in the class
     def __init__(self, m_index, m_isp, start_router=True):
-        super.__init__()
         self.m_index = m_index
         self.m_isp = m_isp
 
@@ -338,7 +337,8 @@ class Node:
 
         try:
             self.logger('sending sms...')
-            Deku.send(text=text, number=number)
+            # number_isp False says do not base on the number's isp
+            Deku.send(text=text, number=number, number_isp=False)
 
         except Deku.InvalidNumber as error:
             ''' wrong number: message does not comes back '''
@@ -1063,7 +1063,7 @@ def master_watchdog():
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    with open(os.path.join(os.path.dirname(__file__), 'log_trace', 'logs_node.txt'), 'a') as log_file:
+    with open(os.path.join(os.path.dirname(__file__), 'logs', 'logs_node.txt'), 'a') as log_file:
         log_file.write(timestamp + " " +text + "\n\n")
 
     if show:
@@ -1145,9 +1145,5 @@ def master_watchdog():
         time.sleep(int(config['MODEMS']['sleep_time']))
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == '-t':
-        print('* testing events')
-        Events.check_event(Node(sys.argv[2], 'mtn', False))
-    elif len(sys.argv) < 1:
-        print('* master watchdog booting up')
-        master_watchdog()
+    print('* master watchdog booting up')
+    master_watchdog()
