@@ -154,7 +154,7 @@ class Node:
 
             with open(status_file, 'w') as fd_status_file:
                 for name, member in Node.Category.__members__.items():
-                    cat = member._value_
+                    cat = member.value
                     if not cat in modem_status_file:
                         modem_status_file[cat]= {'COUNTER': '0'}
 
@@ -211,11 +211,12 @@ class Node:
         with open(self.status_file, 'w') as fd_status_file:
             if category == Node.Category.FAILED:
                 ''' update failed counter for modem '''
-                modems_status_file[category._value_]['COUNTER']=str(int(modems_status_file[category._value_]['COUNTER'])+1)
-                counter=int(modems_status_file[category._value_]['COUNTER'])
+                modems_status_file[category.value]['COUNTER']=str(int(modems_status_file[category.value]['COUNTER'])+1)
+                counter=int(modems_status_file[category.value]['COUNTER'])
             elif category == Node.Category.SUCCESS:
                 ''' udpate success counter for modem '''
-                modems_status_file[category._value_]['COUNTER'] = '0'
+                modems_status_file[category.value]['COUNTER']=str(int(modems_status_file[category.value]['COUNTER'])+1)
+                modems_status_file[Node.Category.FAILED.value]['COUNTER'] = '0'
 
             modems_status_file.write(fd_status_file)
 
@@ -241,14 +242,25 @@ class Node:
         modem_status_file.read(self.status_file)
 
         ''' check if the modem's status matches the event's rules '''
-        status_count=int(modem_status_file[category._value_]['COUNTER'])
-        event_rule_count=int(event_rules[category._value_]['COUNTER'])
+        status_count=int(modem_status_file[category.value]['COUNTER'])
+        event_rule_count=int(event_rules[category.value]['COUNTER'])
 
-        if status_count >= event_rule_count:
+        # print(f'status_count {status_count}')
+        # print(f'event_rule_count {event_rule_count}')
+
+        ''' -1 means do not perform this rule '''
+        if event_rule_count > -1 and status_count >= event_rule_count:
             try:
-                event_run(event_rules[category._value_]['ACTION'])
+                ''' add some layer which transmits the feedback of the event listener to something else '''
+                ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
+                event_run(event_rules[category.value]['ACTION'])
             except subprocess.CalledProcessError as error:
+                ''' in this case don't reset the counter - so it tries again '''
                 log_trace(error.output.decode('utf-8'))
+            """
+            else:
+                ''' in this case, reset the counter '''
+            """
 
 
     def __sms_routing_callback(self, ch, method, properties, body):
@@ -417,7 +429,7 @@ class Node:
             self.logger('message sent successfully')
 
             ''' 0 = success '''
-            self.__update_status(Node.Category.SUCCESS, status)
+            self.__update_status(Node.Category.SUCCESS)
             # self.__event_watch(category)
 
 
@@ -666,38 +678,6 @@ def master_watchdog():
 
     def __del__(self):
         self.logger("calling destructor", output="stderr")
-
-    def fetch_status(self):
-        '''
-        status_file=configparser.ConfigParser()
-        status_file.read(self.status_file)
-        '''
-        return configparser.ConfigParser().read(self.status_file)
-
-
-    def __update_status(self, category:Node.Category):
-        # status_file=os.path.join(os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
-        self.logger(f'updating status.... {self.status_file}')
-        status_file=configparser.ConfigParser()
-        status_file.read(self.status_file)
-        # print(status_file)
-        ''' a BENCHMARK event is fired when BENCHMARK limits are reached '''
-        status_counter=0
-        if category == Category.BENCHMARK: # fires event FAILED
-            with open(self.status_file, 'w') as st_file:
-                if not 'BENCHMARK' in status_file.sections():
-                    status_file['BENCHMARK'] = {"counter":0}
-                else:
-                    status_counter=int(status_file[category]['counter'])
-                status_file['BENCHMARK']['counter'] = str(int(status_counter + 1))
-                status_file.write(st_file)
-                self.logger('Status Updated!')
-        else:
-            self.logger(f'Invalid event category {category}', output='stderr')
-            log_trace(f'Invalid event category {category}')
-
-        ''' checks if to fire this event '''
-        Event.check_event(self, category)
 
 
     def __sms_routing_callback(self, ch, method, properties, body):
