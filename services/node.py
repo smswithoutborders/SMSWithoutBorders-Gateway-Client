@@ -73,7 +73,6 @@ initialize term colors
 init()
 
 class Node:
-
     outgoing_connection=None
     outgoing_channel=None
     routing_consume_connection=None
@@ -81,32 +80,12 @@ class Node:
 
     previousError=None
 
-    class Events(Enum):
-        class Category(Enum):
-            ''' perhaps could be read from a file '''
-            BENCHMARK='BENCHMARK'
 
-        class States(Enum):
-            FAILED=0
-            SUCCESS=1
-            UNKNOWN=2
+    class Category(Enum):
+        SUCCESS='SUCCESS'
+        FAILED='FAILED'
+        UNKNOWN='UNKNOWN'
 
-        @classmethod
-        def check_event(cls, node, category:Category, state:States):
-            DekuControlBot.send_message("Event fired!")
-            """
-            node_status=node.fetch_status()
-            node_value=int(node_status[state][category])
-
-            # rules['SUCCESS']['EQUALS']['BENCHMARK']
-            # rules[state][operand][category]
-            '''would iterate through all the states and fire all states that pass '''
-            for operand in rules[state]:
-                rules_value=rules[state][operand][category]
-                if operand == 'EQUALS':
-                    if rules_value != -1 and rules_value == node_value:
-                        print(f'\nFiring event - state={state}, operand={operand}, category={category}')
-            """
 
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -167,6 +146,7 @@ class Node:
     # def __init__(self, m_index, m_isp, rules=['STATUS']):
     # TODO: everything from config files should be externally sent and not read in the class
     def __init__(self, m_index, m_isp, start_router=True):
+        super.__init__()
         self.m_index = m_index
         self.m_isp = m_isp
 
@@ -208,30 +188,53 @@ class Node:
             return status
 
     def __del__(self):
-        self.logger("calling destructor", output="stderr")
+        # self.logger("calling destructor", output="stderr")
+        print("calling destructor")
 
 
-    def __update_status(self, category, status): # status file gets updated here
-        # status_file=os.path.join(os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
+    def __update_status(self, category:Category): # status file gets updated here
         self.logger(f'updating status.... {self.status_file}')
+        ''' should update status file of the modem '''
         status_file=configparser.ConfigParser()
         status_file.read(self.status_file)
-        # print(status_file)
-        status_counter=0
-        if category == 'BENCHMARK':
-            with open(self.status_file, 'w') as st_file:
-                if not 'BENCHMARK' in status_file.sections():
-                    status_file['BENCHMARK'] = {"counter":0}
-                else:
-                    status_counter=int(status_file[category]['counter'])
-                if status == 0:
-                    status_file['BENCHMARK']['counter'] = '0'
-                elif status == 1:
-                    status_file['BENCHMARK']['counter'] = str(int(status_counter + 1))
-                else:
-                    raise Exception('unknown status_file')
-                status_file.write(st_file)
-                self.logger('log file written....')
+
+        counter=None
+        with open(status_file, 'w') as fd_status_file:
+            if category == Category.FAILED:
+                ''' update failed counter for modem '''
+                status_file[category]['COUNTER']=int(status_file['FAILED'][COUNTER])+1
+                counter=int(status_file['FAILED'][COUNTER])
+            elif category == Category.SUCCESS:
+                ''' udpate success counter for modem '''
+                status_file[category]['COUNTER'] = '0'
+
+        self.__event_listener(category, counter)
+
+
+    def __event_listener(self, category:Category, counter):
+        def event_run(self, action):
+            self.logger(f'event listener taking action: {action}')
+
+            ''' this are all external commands '''
+            try:
+                output = subprocess.check_output(action.split(' '), stderr=subprocess.STDOUT).decode('unicode_escape')
+
+                return output
+            except subprocess.CalledProcessError as error:
+                raise subprocess.CalledProcessError(cmd=error.cmd, output=error.output, returncode=error.returncode)
+
+        event_rules=configparser.ConfigParser()
+        event_rules.read(os.path.dirname(__file__), 'configs/events', f'rules.ini')
+
+        modem_status_file=configparser.ConfigParser()
+        modem_status_file.read(self.status_file)
+
+        ''' check if the modem's status matches the event's rules '''
+        status_count=int(event_rules[category]['COUNTER'])
+        event_rule_count=int(modem_status_file[category]['COUNTER'])
+
+        if status_count == event_rule_counter:
+            event_run(event_rules[category]['ACTION'])
 
 
     def __sms_routing_callback(self, ch, method, properties, body):
@@ -384,7 +387,7 @@ class Node:
             '''
             category='FAILED'
             self.__update_status(category, status)
-            self.__event_watch(category)
+            # self.__event_watch(category)
 
 
         except Exception as error:
@@ -403,41 +406,9 @@ class Node:
             category='SUCCESS'
             status=0
             self.__update_status(category, status)
-            self.__event_watch(category)
+            # self.__event_watch(category)
 
 
-    def __event_action_run(self, action):
-        '''
-        '''
-        self.logger(f'event listener taking action: {action}')
-
-        ''' this are all external commands '''
-        try:
-            output = subprocess.check_output(action.split(' '), stderr=subprocess.STDOUT).decode('unicode_escape')
-
-            return output
-        except subprocess.CalledProcessError as error:
-            raise subprocess.CalledProcessError(cmd=error.cmd, output=error.output, returncode=error.returncode)
-        
-
-    def __event_watch(self, category):
-        ''' this is a parser of categories '''
-        """"
-        try:
-            output = self.__event_action_run(action)
-            self.logger(output)
-        except subprocess.CalledProcessError as error:
-            log_trace(error.output.decode('utf-8'))
-        except Exception as error:
-            # raise Exception(error)
-            log_trace(traceback.format_exc())
-        """
-        with open(os.path.join(os.path.dirname(__file__), 'rules', f'events.rules.json')) as event_rules_fd:
-            event_rules = event_rules_fd.read()
-        event_rules = json.loads(event_rules)
-
-        ''' iterate through everything and find out which ones are true and which are not '''
-        ''' the value to check against the benchmark should be taken from the status ( /status ) of the modem '''
 
     def __watchdog_incoming(self):
         # print('restart watchdog...')
@@ -593,7 +564,7 @@ class Node:
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    with open(os.path.join(os.path.dirname(__file__), 'log_trace', 'logs_node.txt'), 'a') as log_file:
+    with open(os.path.join(os.path.dirname(__file__), 'logs', 'logs_node.txt'), 'a') as log_file:
         log_file.write(timestamp + " " +text + "\n\n")
 
     if show:
@@ -870,10 +841,7 @@ def master_watchdog():
             # with open(os.path.join(os.path.dirname(__file__), 'locks', f'{Modem(m_index).imei}.ini'), 'w') as log_file:
             '''
             ''' whenever the status is updated, an event is fired '''
-            self.__update_status(Category.BENCHMARK)
-            # self.__event_watch(Category.BENCHMARK, Event.FAILED)
-            # Event.FAILED(self, Category.BENCHMARK)
-
+            self.__update_status(Category.FAILED)
 
         except Exception as error:
             ''' code crashed here '''
@@ -887,11 +855,7 @@ def master_watchdog():
             ch.basic_ack(delivery_tag=method.delivery_tag)
             self.logger('message sent successfully')
 
-            ''' 0 = success '''
-            category='BENCHMARK'
-            variable='counter'
-            status=0
-            self.__update_status(category, status)
+            self.__update_status(Category.SUCCESS)
 
 
     def __event_action_run(self, action):
@@ -1181,5 +1145,9 @@ def master_watchdog():
         time.sleep(int(config['MODEMS']['sleep_time']))
 
 if __name__ == "__main__":
-    print('* master watchdog booting up')
-    master_watchdog()
+    if len(sys.argv) > 1 and sys.argv[1] == '-t':
+        print('* testing events')
+        Events.check_event(Node(sys.argv[2], 'mtn', False))
+    elif len(sys.argv) < 1:
+        print('* master watchdog booting up')
+        master_watchdog()
