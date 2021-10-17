@@ -140,7 +140,14 @@ class Deku(Modem):
         -etc
         '''
         try:
-            moc = Modem(modem_index).operator_code
+            modem = Modem(modem_index)
+            '''
+            if modem.state != 'registered':
+                modem.enable()
+            '''
+            if modem.state == 'disabled':
+                modem.enable()
+            moc = modem.operator_code
         except NameError as error:
             # raise Exception(error)
             return False
@@ -150,13 +157,33 @@ class Deku(Modem):
         # print('moc:', moc)
         return modem_index in Modem.list() and (moc != '--' and moc is not None)
 
+    @classmethod
+    def status(cls):
+        ''' should be used from the Deku lib '''
+        indexes=cls.modems_ready()
+
+
+        messages=[]
+        for index in indexes:
+            modem=Modem(index)
+            message=f'====Modem({modem.imei})====\n- index={index}\n- state={modem.state}\n- model={modem.model}\n- dbus_path={modem.dbus_path}\n- power_state={modem.power_state}\n- operator_code={modem.operator_code}\n- operator_name={modem.operator_name}\n\n'
+            messages.append(message)
+
+
+        return messages
+
     @staticmethod
-    def modems_ready(isp=None, country=None, remove_lock=False):
+    def modems_ready(isp=None, country=None, m_index=None, remove_lock=False):
         available_indexes=[]
-        indexes= Modem.list()
         # print('fetching available modems')
 
-        for m_index in indexes:
+        indexes=[]
+        if m_index is not None:
+            indexes.append(m_index)
+        else:
+            indexes= Modem.list()
+
+        for _m_index in indexes:
             # filter for same isp
             '''
             checking operator_name is wrong... the name changes very frequently
@@ -166,6 +193,11 @@ class Deku(Modem):
             # print(Deku.ISP.__dict__)
             # print(country)
 
+            locked_state, lock_type, lock_file = Deku.modem_locked(Modem(_m_index).imei)
+
+            if locked_state:
+                return available_indexes
+
             ''' should be in setting before deciding to use isp checking here -
             credit is still a viable option '''
             if isp is None:
@@ -174,24 +206,22 @@ class Deku(Modem):
                     # print('modem is not locked')
                     available_indexes.append(index)
                 '''
-                if Deku.modem_ready(m_index):
-                    available_indexes.append(m_index)
+                if Deku.modem_ready(_m_index):
+                    available_indexes.append(_m_index)
 
             else:
                 if country is None:
                     raise Exception('country cannot be None')
+                modem_isp = Deku.ISP.modems(operator_code=Modem(_m_index).operator_code, country=country)
+                if isp == modem_isp and Deku.modem_ready(_m_index):
+                    available_indexes.append(_m_index)
 
-                modem_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
-                status, lock_type, lock_file =Deku.modem_locked(Modem(m_index).imei)
-                print('lock status', status)
-                if isp == modem_isp and not status:
-                    available_indexes.append(m_index)
         return available_indexes
 
 
     @staticmethod
     # def send(text, number, timeout=20, q_exception:queue=None, identifier=None, t_lock:threading.Lock=None):
-    def send(text, number, timeout=20, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
+    def send(text, number, timeout=20, number_isp=True, m_index=None, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -217,25 +247,33 @@ class Deku(Modem):
         if number is None:
             raise Exception('number cannot be empty')
 
-        config = configparser.ConfigParser()
-        config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
-        country = config['ISP']['country']
-        print(f'number {number}, country {country}')
-        isp=Deku.ISP.determine(number=number, country=country)
 
-        if isp is None:
-            '''invalid number, should completely delete this from queueu'''
-            raise Deku.InvalidNumber(number, 'invalid number')
+        ''' determines if to check the isp of the number - best used without node '''
+        isp=None
+        index=[]
+        if m_index is None:
+            if number_isp:
+                config = configparser.ConfigParser()
+                config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+                country = config['ISP']['country']
+                print(f'number {number}, country {country}')
+                isp=Deku.ISP.determine(number=number, country=country)
 
-        # print('isp ', isp)
-        # threading.Thread.acquire(blocking)
-        index= Deku.modems_ready(isp=isp, country=country)
+                if isp is None:
+                    '''invalid number, should completely delete this from queueu'''
+                    raise Deku.InvalidNumber(number, 'invalid number')
+
+                index= Deku.modems_ready(isp=isp, country=country)
+            else:
+                index=Deku.modems_ready()
+        else:
+            index=Deku.modems_ready(m_index=m_index)
         print('ready index:', index)
 
         # print('available modem with index at', index)
         lock_dir=None
 
-        if len(index) < 1 or index is None:
+        if len(index) < 1:
             msg=f'message[{identifier}] - no available modem for type {isp}'
 
             ''' release thread lock '''

@@ -1,0 +1,1 @@
+status - Get the full status of your Node
