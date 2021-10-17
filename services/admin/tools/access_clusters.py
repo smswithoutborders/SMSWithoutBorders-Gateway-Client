@@ -22,7 +22,7 @@ import configparser
 #TODO use credentials on Nodes and they can now connect to the server
 
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-config.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
+config.read(os.path.join(os.path.dirname(__file__), '..', 'config.ini'))
 # probably the credentials from mysql server
 # acquire the keys once you create the admin
 admin_auth_key=config['ADMIN']['auth_key']

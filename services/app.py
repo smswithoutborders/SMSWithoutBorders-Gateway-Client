@@ -47,13 +47,28 @@ config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolat
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
 
-def authenticate(auth_id, auth_key, project_id, scope=['read']):
+def authenticate(user_id, auth_id, auth_key, project_id, scope=['read']):
     # results = requests.post(url=config['AUTH']['url'], json={"auth_id":auth_id, "auth_key":auth_key})
-    url=f'http://localhost:9000/auth/users/{user_id}/projects/{project_id}'
-    results = requests.post(url=url, json={"auth_id":auth_id, "auth_key":auth_key, "scope":scope})
-    print(results.text)
+    url=f'http://localhost:9000/auth/users/{user_id}'
 
-    if results.status_code is 200 and results.json:
+    admin_config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+    admin_config.read(os.path.join(os.path.dirname(__file__), 'admin', 'config.ini'))
+
+    admin_auth_id=admin_config['ADMIN']['auth_id']
+    admin_auth_key=admin_config['ADMIN']['auth_key']
+
+    ''' should be user creds - wait for Promise's fix of the API ''' 
+    results = requests.post(url=url, json={"auth_id":auth_id, "auth_key":auth_key})
+    print(">> results.json()", results.json())
+
+    if results.status_code == 200 and results.json() == True:
+        url=f'http://localhost:9000/auth/users/{user_id}/projects/{project_id}'
+        ''' auth details here belong to admin '''
+
+        results = requests.post(url=url, json={"auth_id":admin_auth_id, "auth_key":admin_auth_key, "scope":scope})
+        print(results.text)
+        return results.status_code == 200 and results.json() == True
+    else:
         return False
     return None
 
@@ -92,17 +107,16 @@ def rabbit_new_sms_request(auth_id, auth_key, data):
 
 
 @app.route('/sms', methods=['POST'])
-''' input keys - 
-auth_id
-auth_key
-project_id
-data
-   isp
-   text
-   number
-'''
-
 def send_sms():
+    ''' input keys - 
+    auth_id
+    auth_key
+    project_id
+    data
+       isp
+       text
+       number
+    '''
     request_body=None
     try:
         request_body = request.json
@@ -127,14 +141,15 @@ def send_sms():
         # request_body["error_requests"] = 'auth Key missing'
         return 'data missing', 400
     
+    user_id=request_body['user_id']
     auth_id=request_body['auth_id']
     auth_key=request_body['auth_key']
     project_id=request_body['project_id']
     # TODO: authenticate(auth_id, auth_key)
     # TODO: authenticate(auth_id, auth_key, scope)
-    results = authenticate(auth_id, auth_key, project_id)
+    results = authenticate(user_id, auth_id, auth_key, project_id)
 
-    if results is None:
+    if not results or results is None:
         return jsonify({"results":results, "message":"failed to authenticate..."}), 403
 
     def valid_number(number):
