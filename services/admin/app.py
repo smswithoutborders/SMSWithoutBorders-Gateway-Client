@@ -43,19 +43,21 @@ isp: ""
 }]
 '''
 
+'''
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+'''
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+cofing.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
 
 
 def authenticate(user_id, auth_id, auth_key, project_id, scope=['read']):
     # results = requests.post(url=config['AUTH']['url'], json={"auth_id":auth_id, "auth_key":auth_key})
     url=f'http://localhost:9000/auth/users/{user_id}'
 
-    admin_config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-    admin_config.read(os.path.join(os.path.dirname(__file__), 'admin', 'config.ini'))
 
-    admin_auth_id=admin_config['ADMIN']['auth_id']
-    admin_auth_key=admin_config['ADMIN']['auth_key']
+    admin_auth_id=config['ADMIN']['auth_id']
+    admin_auth_key=config['ADMIN']['auth_key']
 
     ''' should be user creds - wait for Promise's fix of the API ''' 
     results = requests.post(url=url, json={"auth_id":auth_id, "auth_key":auth_key})
@@ -74,17 +76,19 @@ def authenticate(user_id, auth_id, auth_key, project_id, scope=['read']):
 
 def rabbit_new_sms_request(auth_id, auth_key, data):
     ''' is this wasted and just computational heavy? '''
-    connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['NODE']['connection_url']))
+    connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['RABBITMQ']['connection_url']))
     channel = connection.channel()
 
     ''' creates the exchange '''
     channel.exchange_declare( 
-            exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'], durable=True)
+            exchange=config['RABBITMQ']['outgoing_exchange_name'], 
+            exchange_type=config['RABBITMQ']['outgoing_exchange_type'], 
+            durable=True)
 
     # queue_name = config_queue_name + _ + isp
     for _data in data:
-        queue_name = auth_id + '_' + config['NODE']['outgoing_queue_name'] + '_' + _data['isp']
-        routing_key = auth_id + '_' + config['NODE']['outgoing_queue_name'] + '.' + _data['isp']
+        queue_name = auth_id + '_' + config['RABBITMQ']['outgoing_queue_name'] + '_' + _data['isp']
+        routing_key = auth_id + '_' + config['RABBITMQ']['outgoing_queue_name'] + '.' + _data['isp']
         
         ''' creates the queue, due to not knowing the isp this compute is wasted'''
         # channel.queue_declare(queue_name, durable=True)
@@ -94,7 +98,7 @@ def rabbit_new_sms_request(auth_id, auth_key, data):
         _data = json.dumps({"text":text, "number":number})
 
         channel.basic_publish(
-            exchange=config['NODE']['outgoing_exchange_name'],
+            exchange=config['RABBITMQ']['outgoing_exchange_name'],
             # routing_key=queue_name.replace('_', '.'),
             routing_key=routing_key,
             body=_data,
@@ -189,7 +193,7 @@ def get_isp():
         '''
 
         _config = configparser.ConfigParser()
-        _config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'default.ini'))
+        _config.read(os.path.join(os.path.dirname(__file__), '../configs/isp', 'default.ini'))
 
         country=None
         country_code=None
