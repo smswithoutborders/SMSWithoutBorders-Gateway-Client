@@ -19,9 +19,11 @@ if __name__ == "__main__":
     routing_key = config['NODE']['outgoing_queue_name'] + '.' + sys.argv[1]
     
     ''' creates the exchange '''
+    """
     channel.exchange_declare( 
             exchange=config['NODE']['outgoing_exchange_name'], exchange_type=config['NODE']['outgoing_exchange_type'])
 
+    """
     number = sys.argv[2]
     message = ' '.join(sys.argv[3:]) or "Hello World!"
     data = json.dumps({"text":message, "number":number})
