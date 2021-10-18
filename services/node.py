@@ -93,9 +93,9 @@ class Node:
         if output == 'stderr':
             color='\033[31m'
         if _type=='primary':
-            print(color + timestamp + f'* [{self.m_index}] {text}')
+            print(color + timestamp + f'* [{self.m_isp}|{self.m_index}] {text}')
         else:
-            print(color + timestamp + f'\t* [{self.m_index}] {text}')
+            print(color + timestamp + f'\t* [{self.m_isp}|{self.m_index}] {text}')
         print('\x1b[0m')
 
 
@@ -176,7 +176,7 @@ class Node:
                     callback=self.__sms_outgoing_callback,
                     durable=True,
                     prefetch_count=1)
-            self.status_file=os.path.join( os.path.dirname(__file__), 'status', f'{Modem(self.m_index).imei}.ini')
+            self.status_file=os.path.join( os.path.dirname(__file__), 'service_files/status', f'{Modem(self.m_index).imei}.ini')
             generate_status_file(self.status_file)
             self.logger("Connected successfully...")
         except Exception as error:
@@ -583,12 +583,13 @@ class Node:
             # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
             log_trace(traceback.format_exc())
         finally:
-            del l_threads[self.m_index]
+            if self.m_index in l_threads:
+                del l_threads[self.m_index]
         # self.logger('ending consumption....')
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    with open(os.path.join(os.path.dirname(__file__), 'logs', 'logs_node.txt'), 'a') as log_file:
+    with open(os.path.join(os.path.dirname(__file__), 'service_files/logs', 'logs_node.txt'), 'a') as log_file:
         log_file.write(timestamp + " " +text + "\n\n")
 
     if show:
