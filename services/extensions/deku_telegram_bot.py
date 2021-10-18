@@ -72,7 +72,7 @@ class DekuControlBot(Deku):
         cls.updater.start_polling()
 
 if __name__ == "__main__":
-    configfile=os.path.join(os.path.dirname(__file__), 'configs', 'config.ini')
+    configfile=os.path.join(os.path.dirname(__file__), '', 'config.ini')
     configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     configs.read(configfile)
 

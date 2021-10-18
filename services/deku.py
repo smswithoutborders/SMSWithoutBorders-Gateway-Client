@@ -83,7 +83,7 @@ class Deku(Modem):
             ''' convert to imei '''
             identifier= Modem(identifier).imei
 
-        lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{identifier}.lock')
+        lock_dir = os.path.join(os.path.dirname(__file__), 'service_files/locks', f'{identifier}.lock')
         lock_type=None
         start_time=None
         if os.path.isfile(lock_dir):
@@ -294,7 +294,7 @@ class Deku(Modem):
         lock_dir = None
         ''' use paths from config '''
         ''' user may not change the default value so relative paths should be used in configs '''
-        lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
+        lock_dir = os.path.join(os.path.dirname(__file__), 'service_files/locks', f'{modem.imei}.lock')
         def create_benchmark_file():
             with open(lock_dir, 'w') as lock_file:
                 write_config = configparser.ConfigParser()
