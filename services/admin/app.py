@@ -48,7 +48,7 @@ config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolat
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 '''
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-cofing.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
+config.read(os.path.join(os.path.dirname(__file__), '', 'config.ini'))
 
 
 def authenticate(user_id, auth_id, auth_key, project_id, scope=['read']):
@@ -60,7 +60,7 @@ def authenticate(user_id, auth_id, auth_key, project_id, scope=['read']):
     admin_auth_key=config['ADMIN']['auth_key']
 
     ''' should be user creds - wait for Promise's fix of the API ''' 
-    results = requests.post(url=url, json={"auth_id":auth_id, "auth_key":auth_key})
+    results = requests.post(url=url, json={"auth_id":admin_auth_id, "auth_key":admin_auth_key, "dev_auth_id":auth_id, "dev_auth_key":auth_key})
     print(">> results.json()", results.json())
 
     if results.status_code == 200 and results.json() == True:
@@ -68,15 +68,15 @@ def authenticate(user_id, auth_id, auth_key, project_id, scope=['read']):
         ''' auth details here belong to admin '''
 
         results = requests.post(url=url, json={"auth_id":admin_auth_id, "auth_key":admin_auth_key, "scope":scope})
-        print(results.text)
-        return results.status_code == 200 and results.json() == True
+        # print(results.text)
+        return results.status_code == 200 and results.json() == True, results.json()
     else:
-        return False
+        return False, results.text
     return None
 
 def rabbit_new_sms_request(auth_id, auth_key, data):
     ''' is this wasted and just computational heavy? '''
-    connection = pika.BlockingConnection( pika.ConnectionParameters(host=config['RABBITMQ']['connection_url']))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=config['RABBITMQ']['url']))
     channel = connection.channel()
 
     ''' creates the exchange '''
@@ -151,10 +151,10 @@ def send_sms():
     project_id=request_body['project_id']
     # TODO: authenticate(auth_id, auth_key)
     # TODO: authenticate(auth_id, auth_key, scope)
-    results = authenticate(user_id, auth_id, auth_key, project_id)
+    results, response = authenticate(user_id, auth_id, auth_key, project_id)
 
     if not results or results is None:
-        return jsonify({"results":results, "message":"failed to authenticate..."}), 403
+        return jsonify({"results":results, "response":response}), 403
 
     def valid_number(number):
         reg="\+[0-9]*"
