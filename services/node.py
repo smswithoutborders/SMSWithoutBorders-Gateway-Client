@@ -198,7 +198,8 @@ class Node:
 
     def __del__(self):
         # self.logger("calling destructor", output="stderr")
-        print("calling destructor")
+        # print("calling destructor")
+        pass
 
 
     def __update_status(self, category:Category): # status file gets updated here
@@ -253,7 +254,9 @@ class Node:
             try:
                 ''' add some layer which transmits the feedback of the event listener to something else '''
                 ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
-                event_run(event_rules[category.value]['ACTION'])
+                output=event_run(event_rules[category.value]['ACTION'])
+                ''' choose from a list of numbers to receive the notifications '''
+                ''' choose from a list of protocols which ones receive the notifications '''
             except subprocess.CalledProcessError as error:
                 ''' in this case don't reset the counter - so it tries again '''
                 log_trace(error.output.decode('utf-8'))
