@@ -20,7 +20,7 @@ import os
 import logging
 import configparser
 import traceback
-from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler,Filters
 
 from node import Node
@@ -36,6 +36,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 class DekuControlBot(Deku):
     @classmethod
     def __init__(cls, token, configfile, adminfile=None):
+        cls.token = token
         cls.configfile = configfile
         cls.adminfile = adminfile
 
@@ -74,7 +75,7 @@ class DekuControlBot(Deku):
             cls.configs['TELEGRAM']['CHAT_ID'] = str(chat_id)
             cls.configs.write(w_configfile)
             # self.logging('log file written....')
-        cls.send_message(chat_id, f'Ready - {chat_id}', context)
+        # cls.send_message(chat_id, f'Ready - {chat_id}', context)
         reply_request_phonenumber = KeyboardButton(text="Share phone number", request_contact=True)
         reply_request_phonenumber = ReplyKeyboardMarkup([[reply_request_phonenumber]])
         request_phonenumber = context.bot.send_message(chat_id, text=cls.request_phonenumber_text, reply_markup=reply_request_phonenumber) 
@@ -96,13 +97,14 @@ class DekuControlBot(Deku):
                         # print(message['contact']['phone_number'])
 
                         ''' should be stored for some for of authentication '''
+                        # print(message)
                         phonenumber = message['contact']['phone_number']
                         # print(">> phonenumber:", phonenumber)
                         
                         try:
-                            cls.new_record(phonenumber, update.effective_chat.id)
-                            context.bot.send_message(update.effective_chat.id, f"Great! Got number - {phonenumber}", 
-                                    reply_markup=ReplyKeyboardRemove())
+                            if cls.new_record(phonenumber, update.effective_chat.id):
+                                context.bot.send_message(update.effective_chat.id, f"Great! Got number - {phonenumber}", 
+                                        reply_markup=ReplyKeyboardRemove())
                         except Exception as error:
                             print(traceback.format_exc())
 
@@ -119,17 +121,18 @@ class DekuControlBot(Deku):
 
 
         ''' checks if number is in the whitelist, then stores it, else dumps it '''
-        # TODO
-        # read whitelist
-        # search phonennumber
-            # store if found
-        
+        if phonenumber[0] != '+':
+            phonenumber = '+' + phonenumber
+
         if phonenumber in cls.admins['WHITELIST']:
             with open(cls.adminfile, 'w') as fd_admin_list:
                 cls.admins['WHITELIST'][phonenumber] = str(chat_id)
                 cls.admins.write(fd_admin_list)
+
+            return True
         else:
             logging.warning("phonenumber not found in whitelist")
+        return False
 
 
     @classmethod
@@ -138,7 +141,7 @@ class DekuControlBot(Deku):
         message='Oops, no modems...'
         if len(status) > 0:
             message=''.join(status)
-        cls.send_message(update.effective_chat.id, message, context)
+        DekuControlBot.send_message(update.effective_chat.id, message, context)
 
     """
     @classmethod
@@ -147,23 +150,33 @@ class DekuControlBot(Deku):
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
     """
 
-    @classmethod
-    def send_message(cls, chat_id, text, context=None):
+    @staticmethod
+    def send_message(token, chat_id, text, context=None):
         # logging.info(f'chat id: {update.effective_chat.id}')
-        if context == None:
-            context=CallBackContext
-        context.bot.send_message(chat_id=chat_id, text=text)
+        bot = Bot(token)
+        bot.send_message(chat_id=chat_id, text=text)
 
     @classmethod
     def start_polling(cls):
         cls.updater.start_polling()
 
 if __name__ == "__main__":
+    import sys
     configfile=os.path.join(os.path.dirname(__file__), 'extensions', 'config.ini')
     adminfile=os.path.join(os.path.dirname(__file__), 'extensions', 'admins.ini')
 
     configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     configs.read(configfile)
-
     token=configs['TELEGRAM']['TOKEN']
-    DekuControlBot(token=token, configfile=configfile, adminfile=adminfile).start_polling()
+
+    if len(sys.argv) > 1:
+        ''' this can be made better as a cli '''
+        number=sys.argv[1]
+        text = sys.argv[2]
+
+        admin = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+        admin.read(adminfile)
+
+        DekuControlBot(token=token, configfile=configfile, adminfile=adminfile).send_message(token, chat_id=admin['WHITELIST'][number], text=text)
+    else:
+        DekuControlBot(token=token, configfile=configfile, adminfile=adminfile).start_polling()
