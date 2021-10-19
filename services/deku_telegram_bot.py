@@ -3,6 +3,7 @@
 import os
 import logging
 import configparser
+from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
 from node import Node
@@ -36,6 +37,8 @@ class DekuControlBot(Deku):
 
     @classmethod
     def start(cls, update, context):
+        print(context)
+        print(update)
         ''' get the chat id and store in configs, will be used to continue message '''
         chat_id = update.effective_chat.id
         with open(cls.configfile, 'w') as w_configfile: #careful, if error here, the whole file is lost
@@ -43,6 +46,9 @@ class DekuControlBot(Deku):
             cls.configs.write(w_configfile)
             # self.logger('log file written....')
         cls.send_message(chat_id, f'Ready - {chat_id}', context)
+        reply_request_phonenumber = KeyboardButton(text="Sending this request for your phonenumber", request_contact=True)
+        reply_request_phonenumber = ReplyKeyboardMarkup([[reply_request_phonenumber]])
+        context.bot.send_message(chat_id, text="Should see button", reply_markup=reply_request_phonenumber) 
 
 
     @classmethod
@@ -72,7 +78,7 @@ class DekuControlBot(Deku):
         cls.updater.start_polling()
 
 if __name__ == "__main__":
-    configfile=os.path.join(os.path.dirname(__file__), '', 'config.ini')
+    configfile=os.path.join(os.path.dirname(__file__), 'extensions', 'config.ini')
     configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     configs.read(configfile)
 
