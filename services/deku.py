@@ -384,6 +384,43 @@ class Deku(Modem):
         ''' should handle cleansing MMS messages '''
 
 
+    @classmethod
+    def cli_parse_ussd(cls, modem_index, command):
+        # parse it first
+        # *158*0#|1
+        command = command.split('|')
+        ussd_output=None
+        try:
+            output=[[command[0], cls.USSD(Modem(modem_index)).initiate(command[0])] ]
+            print(output)
+            for cmd in command:
+                output=[cmd, cls.USSD(Modem(modem_index)).respond(cmd)]
+                print(output)
+                ussd_output.append(output)
+        except subprocess.CalledProcessError as error:
+            print(error.cmd, error.output)
+
+        return ussd_output
+
 if __name__ == "__main__":
-    ''' this is the main program so everything should start from here '''
-    Deku.inbound_listener(sys.argv[1])
+    ''' should use command line arg parser here '''
+    modem_index=None
+    ussd_command=None
+    for i in range(len(sys.argv[1:])):
+        arg = sys.argv[i]
+        if arg == '--modem' or arg == '-m':
+            modem_index = sys.argv[i+1]
+            continue
+        elif arg == '--ussd':
+            ussd_command = sys.argv[i+1]
+            continue
+
+    if modem_index == None:
+        print("usage: --[modem_index] --[option] [value]")
+        exit(1)
+
+    if ussd_command is not None:
+        print(f"* Dailing USSD - {ussd_command}")
+        ussd_output=Deku.cli_parse_ussd(modem_index, ussd_command)
+        print(ussd_output)
+
