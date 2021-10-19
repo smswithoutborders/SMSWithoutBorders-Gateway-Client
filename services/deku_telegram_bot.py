@@ -4,7 +4,7 @@ import os
 import logging
 import configparser
 from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler,Filters
 
 from node import Node
 from deku import Deku
@@ -30,15 +30,22 @@ class DekuControlBot(Deku):
         ''' handlers '''
         cls.start_handler = CommandHandler('start', cls.start)
         cls.status_handler = CommandHandler('status', cls.status)
+        cls.unknown_handler = MessageHandler(Filters.all, cls.unknown)
 
         ''' bind handlers to dispatchers '''
         cls.dispatcher.add_handler(cls.start_handler)
         cls.dispatcher.add_handler(cls.status_handler)
+        cls.dispatcher.add_handler(cls.unknown_handler)
+
+
+        ''' constants '''
+        cls.bot_name = "Deku_ControlBot"
+        cls.request_phonenumber_text = "Hi there\nShare phone number below to continue..."
 
     @classmethod
     def start(cls, update, context):
-        print(context)
-        print(update)
+        # print(context)
+        # print(update)
         ''' get the chat id and store in configs, will be used to continue message '''
         chat_id = update.effective_chat.id
         with open(cls.configfile, 'w') as w_configfile: #careful, if error here, the whole file is lost
@@ -46,10 +53,33 @@ class DekuControlBot(Deku):
             cls.configs.write(w_configfile)
             # self.logger('log file written....')
         cls.send_message(chat_id, f'Ready - {chat_id}', context)
-        reply_request_phonenumber = KeyboardButton(text="Sending this request for your phonenumber", request_contact=True)
+        reply_request_phonenumber = KeyboardButton(text="Share phone number", request_contact=True)
         reply_request_phonenumber = ReplyKeyboardMarkup([[reply_request_phonenumber]])
-        context.bot.send_message(chat_id, text="Should see button", reply_markup=reply_request_phonenumber) 
+        request_phonenumber = context.bot.send_message(chat_id, text=cls.request_phonenumber_text, reply_markup=reply_request_phonenumber) 
+        # context.bot.register_next_step_handler(message =request_phonenumber, callback=cls.request_phonenumber) 
 
+    @classmethod
+    def request_phonenumber(message):
+        print(f"-> New message: {message}")
+
+    @classmethod
+    def unknown(cls, update, context):
+        ''' in case commands come which have not been pre-programmed yet '''
+        if 'message' in update.to_dict():
+            message = update['message'].to_dict()
+            if 'reply_to_message' in message:
+                reply_to_message=message['reply_to_message']
+                # print(f"Reply:", reply_to_message)
+                _from=reply_to_message['from']
+
+                ''' Checking = User Validation '''
+                if 'username' in _from and 'is_bot' in _from:
+                    if _from['username'] == cls.bot_name and _from['is_bot'] and 'contact' in message:
+                        # print(message['contact']['phone_number'])
+                        phonenumber = message['contact']['phone_number']
+                        print(">> phonenumber:", phonenumber)
+                        context.bot.send_message(update.effective_chat.id, f"Great! Got number - {phonenumber}", 
+                                reply_markup=ReplyKeyboardRemove())
 
     @classmethod
     def status(cls, update, context):
