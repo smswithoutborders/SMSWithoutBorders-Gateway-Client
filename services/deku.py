@@ -378,13 +378,14 @@ class Deku(Modem):
         # parse it first
         # *158*0#|1
         command = command.split('|')
-        ussd_output=None
+        ussd_output=[]
         try:
             output=[[command[0], cls.USSD(Modem(modem_index)).initiate(command[0])] ]
-            print(output)
+            # print(output)
+            ussd_output.append(output)
             for cmd in command:
                 output=[cmd, cls.USSD(Modem(modem_index)).respond(cmd)]
-                print(output)
+                # print(output)
                 ussd_output.append(output)
         except subprocess.CalledProcessError as error:
             print(error.cmd, error.output)
