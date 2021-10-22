@@ -50,16 +50,20 @@ from termcolor import colored
 
 # from configparser import configparser.ConfigParser, ExtendedInterpolation
 import configparser
+from CustomConfigParser.customconfigparser import CustomConfigParser
 
 import pika
 
-sys.path.append(os.path.abspath(os.getcwd()))
+# sys.path.append(os.path.abspath(os.getcwd()))
 from deku import Deku
 from mmcli_python.modem import Modem
 
 
+"""
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
+"""
+
 
 ''' 
 - monitor for modem comes and goes
@@ -145,7 +149,7 @@ class Node:
 
     # def __init__(self, m_index, m_isp, rules=['STATUS']):
     # TODO: everything from config files should be externally sent and not read in the class
-    def __init__(self, m_index, m_isp, start_router=True):
+    def __init__(self, m_index, m_isp, config, start_router=True):
         def generate_status_file(status_file):
             modem_status_file=configparser.ConfigParser()
             if os.path.isfile(status_file):
@@ -162,6 +166,18 @@ class Node:
 
         self.m_index = m_index
         self.m_isp = m_isp
+        self.config = config
+
+        try:
+            self.configreader=CustomConfigParser()
+            self.config_event_rules=self.configreader.read("config/events/rules.ini")
+        except CustomConfigParser.NoDefaultFile as error:
+            print(traceback.format_exc())
+        except CustomConfigParser.ConfigFileNotFound as error:
+            ''' with this implementation, it stops at the first exception - intended?? '''
+            print(traceback.format_exc())
+        except CustomConfigParser.ConfigFileNotInList as error:
+            print(traceback.format_exc())
 
         try:
             self.logger("Attempting connection...")
@@ -236,15 +252,18 @@ class Node:
             except subprocess.CalledProcessError as error:
                 raise subprocess.CalledProcessError(cmd=error.cmd, output=error.output, returncode=error.returncode)
 
+        """
         event_rules=configparser.ConfigParser()
         event_rules.read(os.path.join(os.path.dirname(__file__), 'configs/events', f'rules.ini'))
+        """
+        # event_rules.read(os.path.join(os.path.dirname(__file__), 'configs/events', f'rules.ini'))
 
         modem_status_file=configparser.ConfigParser()
         modem_status_file.read(self.status_file)
 
         ''' check if the modem's status matches the event's rules '''
         status_count=int(modem_status_file[category.value]['COUNTER'])
-        event_rule_count=int(event_rules[category.value]['COUNTER'])
+        event_rule_count=int(cls.config_event_rules[category.value]['COUNTER'])
 
         # print(f'status_count {status_count}')
         # print(f'event_rule_count {event_rule_count}')
@@ -254,7 +273,7 @@ class Node:
             try:
                 ''' add some layer which transmits the feedback of the event listener to something else '''
                 ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
-                output=event_run(event_rules[category.value]['ACTION'])
+                output=event_run(cls.config_event_rules[category.value]['ACTION'])
                 ''' choose from a list of numbers to receive the notifications '''
                 ''' choose from a list of protocols which ones receive the notifications '''
             except subprocess.CalledProcessError as error:
@@ -606,72 +625,96 @@ def log_trace(text, show=False, output='stdout', _type='primary'):
         print('\x1b[0m')
 
 
-def master_watchdog():
+def master_watchdog(config):
     shown=False
-    while( True ):
-        indexes=[]
-        try:
-            indexes=Deku.modems_ready()
-            # indexes=['1', '2']
-        except Exception as error:
-            log_trace(error)
-            continue
 
-        if not shown and len(indexes) < 1:
-            # print(colored('* waiting for modems...', 'green'))
-            print('* waiting for modems...')
-            shown=True
+    ''' instantiate configuration for all of Deku '''
+    try:
+        Deku()
+    except CustomConfigParser.NoDefaultFile as error:
+        raise(error)
+    except CustomConfigParser.ConfigFileNotFound as error:
+        raise(error)
+    except CustomConfigParser.ConfigFileNotInList as error:
+        raise(error)
+    else:
+        while( True ):
+            indexes=[]
+            try:
+                indexes=Deku.modems_ready()
+                # indexes=['1', '2']
+            except Exception as error:
+                log_trace(error)
+                continue
+
+            if not shown and len(indexes) < 1:
+                # print(colored('* waiting for modems...', 'green'))
+                print('* No Modem Detected...')
+                shown=True
+                time.sleep(int(config['MODEMS']['sleep_time']))
+                continue
+
+            shown=False
+            # print('[x] starting consumer for modems with indexes:', indexes)
+            for m_index in indexes:
+                '''starting consumers for modems not already running,
+                should be a more reliable way of doing it'''
+                if m_index not in l_threads:
+                    country=config['ISP']['country']
+                    if not Deku.modem_ready(m_index):
+                        continue
+                    try:
+                        m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
+                    except Exception as error:
+                        # print(error)
+                        log_trace(error, show=True)
+                        continue
+
+                    try:
+                        outgoing_node=Node(m_index, m_isp, config, start_router=False)
+                        outgoing_thread=threading.Thread(target=outgoing_node.start_consuming, daemon=True)
+
+                        '''
+                        routing_node=Node(m_index, m_isp)
+                        routing_thread=threading.Thread(target=routing_node.routing_start_consuming, daemon=True)
+                        '''
+
+                        # l_threads[m_index] = [outgoing_thread, routing_thread]
+                        l_threads[m_index] = [outgoing_thread]
+                        # print('\t* Node created')
+                    except Exception as error:
+                        log_trace(traceback.format_exc(), show=True)
+
+                    shown=False
+
+            try:
+                for m_index, thread in l_threads.items():
+                    try:
+                        # if not thread in threading.enumerate():
+                        for i in range(len(thread)):
+                            if thread[i].native_id is None:
+                                print('\t* starting thread...')
+                                thread[i].start()
+
+                    except Exception as error:
+                        log_trace(traceback.format_exc(), show=True)
+            except Exception as error:
+                log_trace(error)
+
             time.sleep(int(config['MODEMS']['sleep_time']))
-            continue
-
-        # print('[x] starting consumer for modems with indexes:', indexes)
-        for m_index in indexes:
-            '''starting consumers for modems not already running,
-            should be a more reliable way of doing it'''
-            if m_index not in l_threads:
-                country=config['ISP']['country']
-                if not Deku.modem_ready(m_index):
-                    continue
-                try:
-                    m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
-                except Exception as error:
-                    # print(error)
-                    log_trace(error, show=True)
-                    continue
-
-                try:
-                    outgoing_node=Node(m_index, m_isp, start_router=False)
-                    outgoing_thread=threading.Thread(target=outgoing_node.start_consuming, daemon=True)
-
-                    '''
-                    routing_node=Node(m_index, m_isp)
-                    routing_thread=threading.Thread(target=routing_node.routing_start_consuming, daemon=True)
-                    '''
-
-                    # l_threads[m_index] = [outgoing_thread, routing_thread]
-                    l_threads[m_index] = [outgoing_thread]
-                    # print('\t* Node created')
-                except Exception as error:
-                    log_trace(traceback.format_exc(), show=True)
-
-                shown=False
-
-        try:
-            for m_index, thread in l_threads.items():
-                try:
-                    # if not thread in threading.enumerate():
-                    for i in range(len(thread)):
-                        if thread[i].native_id is None:
-                            print('\t* starting thread...')
-                            thread[i].start()
-
-                except Exception as error:
-                    log_trace(traceback.format_exc(), show=True)
-        except Exception as error:
-            log_trace(error)
-
-        time.sleep(int(config['MODEMS']['sleep_time']))
 
 if __name__ == "__main__":
-    print('* master watchdog booting up')
-    master_watchdog()
+    try:
+        config=None
+        config=CustomConfigParser()
+        config=config.read("configs/config.ini")
+
+        print('* master watchdog booting up')
+        master_watchdog(config)
+    except CustomConfigParser.NoDefaultFile as error:
+        print(traceback.format_exc())
+    except CustomConfigParser.ConfigFileNotFound as error:
+        ''' with this implementation, it stops at the first exception - intended?? '''
+        print(traceback.format_exc())
+    except CustomConfigParser.ConfigFileNotInList as error:
+        print(traceback.format_exc())

@@ -5,6 +5,7 @@
 - Deku runs in the terminal no place else
 '''
 
+import configparser, re
 import os, sys, time, queue, json, traceback
 import configparser, threading
 from datetime import datetime
@@ -12,8 +13,9 @@ import subprocess
 
 import pika
 
-sys.path.append(os.path.abspath(os.getcwd()))
+# sys.path.append(os.path.abspath(os.getcwd()))
 from mmcli_python.modem import Modem
+from CustomConfigParser.customconfigparser import CustomConfigParser
 
 class Deku(Modem):
 
@@ -34,42 +36,52 @@ class Deku(Modem):
         - checks the isp_configs for matching rules
         - numbers have to be in the E.164 standards (country code included); https://en.wikipedia.org/wiki/E.164
         '''
+        
+        @classmethod
+        def __init__(cls):
+            try:
+                cls.config = CustomConfigParser()
+                cls.config_isp_default = cls.config.read('configs/isp/default.ini')
+                cls.config_isp_operators = cls.config.read('configs/isp/operators.ini')
+            except CustomConfigParser.NoDefaultFile as error:
+                # print(traceback.format_exc())
+                raise(error)
+            except CustomConfigParser.ConfigFileNotFound as error:
+                ''' with this implementation, it stops at the first exception - intended?? '''
+                # print(traceback.format_exc())
+                raise(error)
+            except CustomConfigParser.ConfigFileNotInList as error:
+                # print(traceback.format_exc())
+                raise(error)
 
-        @staticmethod
-        def determine(number, country, parsed_rules=None):
-            import configparser, re
-            config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'default.ini'))
-
-            if number.find(config['country_codes'][country]) > -1:
-                number= number.replace(config['country_codes'][country], '')
+        @classmethod
+        def determine(cls, number, country, parsed_rules=None):
+            if number.find(cls.config_isp_default['country_codes'][country]) > -1:
+                number= number.replace(cls.config_isp_default['country_codes'][country], '')
             # print('number', number)
-            for rules in config[country]:
+            for rules in cls.config_isp_default[country]:
                 # print(rules)
                 ''' checks if has country code '''
-                for rule in config[country][rules].split(','):
+                for rule in cls.config_isp_default[country][rules].split(','):
                     if re.search(rule, number):
                         return rules
 
             print('could not determine rule')
             return None
 
-        @staticmethod
-        def modems(country, operator_code):
+        @classmethod
+        def modems(cls, country, operator_code):
             # print(f"determining modem's isp {country} {operator_code}")
-            config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.dirname(__file__), 'configs/isp', 'operators.ini'))
-
-            for isp in config[country]:
-                if config[country][isp].lower() == operator_code.lower():
+            for isp in cls.config_isp_operators[country]:
+                if config_isp_operators.config[country][isp].lower() == operator_code.lower():
                     # print('modems isp found: ', isp)
                     return isp
 
             return None
 
         
-    @staticmethod
-    def modem_locked(identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI, benchmark_remove=True):
+    @classmethod
+    def modem_locked(cls, identifier, id_type:Modem.IDENTIFIERS=Modem.IDENTIFIERS.IMEI, benchmark_remove=True):
         '''
         pdu-type might be what determines the kind of message this is
         - check latest message, if pdu-type == submit
@@ -102,20 +114,18 @@ class Deku(Modem):
             ''' checks the duration of the lock, then frees up the lock file '''
             lock_config = configparser.ConfigParser()
             lock_config.read(lock_dir)
-            config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
 
-            start_time = float(lock_config['LOCKS']['START_TIME'])
-            lock_type = lock_config['LOCKS']['TYPE']
+            start_time = float(lock_cls.config['LOCKS']['START_TIME'])
+            lock_type = lock_cls.config['LOCKS']['TYPE']
 
             ''' benchmark limit should come from configs 
             calculate the time difference
             '''
             ''' how long should benchmarks last before expiring '''
-            benchmark_timelimit = int(config['MODEMS']['failed_sleep'])
+            benchmark_timelimit = int(cls.config['MODEMS']['failed_sleep'])
 
             ''' how long should benchmarks last before expiring if state is busy '''
-            busy_timelimit = int(config['MODEMS']['busy_benchmark_limit'])
+            busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
 
             # print(f'lt: {lock_type}\nnow: {time.time()}\nstart_time: {start_time}\ndiff: {time.time() - start_time}')
             if benchmark_remove and ((time.time() - start_time ) > benchmark_timelimit and lock_type == 'BENCHMARK') or ((time.time() - start_time ) > busy_timelimit and lock_type == 'BUSY'): #seconds
@@ -219,9 +229,9 @@ class Deku(Modem):
         return available_indexes
 
 
-    @staticmethod
+    @classmethod
     # def send(text, number, timeout=20, q_exception:queue=None, identifier=None, t_lock:threading.Lock=None):
-    def send(text, number, timeout=20, number_isp=True, m_index=None, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
+    def send(cls, text, number, timeout=20, number_isp=True, m_index=None, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -253,9 +263,11 @@ class Deku(Modem):
         index=[]
         if m_index is None:
             if number_isp:
+                """
                 config = configparser.ConfigParser()
                 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
-                country = config['ISP']['country']
+                """
+                country = cls.config['ISP']['country']
                 print(f'number {number}, country {country}')
                 isp=Deku.ISP.determine(number=number, country=country)
 
@@ -345,44 +357,23 @@ class Deku(Modem):
     def modem(modem_index):
         return Modem(index)
 
-
-    @staticmethod
-    def reset(modem_index=None):
-        pass
-
-    @staticmethod
-    def stats(modem_index=None):
-        pass
-
-    @staticmethod
-    def delete(sms_index, modem_index=None):
-        pass
-
-    @staticmethod
-    def logs():
-        pass
-
-    @classmethod
-    def __del__(cls):
-        print('deleting Deku instances - should set lock files free')
-
     @classmethod
     def __init__(cls):
-        # lock_dir = os.path.join(os.path.dirname(__file__), 'locks', f'{modem.imei}.lock')
-        # os.rmdir(os.path.join(os.path.dirname(__file__), 'locks', f''))
-        # os.makedirs(os.path.join(os.path.dirname(__file__), 'locks', f''), exists_ok=True)
-        '''
-        LOAD BALANCING
-        --------------
-        - Check the contents of locks to make sure it's appropriate to remove the files
-        - checks if file type is busy
-        '''
-        print('instantiated new Deku')
+        ''' test deps for config files '''
+        try:
+            cls.ISP()
 
-    @classmethod
-    def __watchdog(cls):
-        ''' should handle cleansing MMS messages '''
-
+            cls.configreader=CusomConfigParser()
+            cls.config=cls.configreader.read('configs/config.ini')
+            # print('instantiated new Deku')
+        except CustomConfigParser.NoDefaultFile as error:
+            # print(traceback.format_exc())
+            raise(error)
+        except CustomConfigParser.ConfigFileNotFound as error:
+            ''' with this implementation, it stops at the first exception - intended?? '''
+            raise(error)
+        except CustomConfigParser.ConfigFileNotInList as error:
+            raise(error)
 
     @classmethod
     def cli_parse_ussd(cls, modem_index, command):
