@@ -179,6 +179,8 @@ class Node:
         except CustomConfigParser.ConfigFileNotInList as error:
             raise(error)
         """
+        self.m_index = m_index
+        self.m_isp = m_isp
         try:
             self.logger("Attempting connection...")
             self.outgoing_connection, self.outgoing_channel = create_channel(
@@ -284,7 +286,7 @@ class Node:
 
         ''' check if the modem's status matches the event's rules '''
         status_count=int(modem_status_file[category.value]['COUNTER'])
-        event_rule_count=int(cls.config_event_rules[category.value]['COUNTER'])
+        event_rule_count=int(self.config_event_rules[category.value]['COUNTER'])
 
         # print(f'status_count {status_count}')
         # print(f'event_rule_count {event_rule_count}')
@@ -695,7 +697,7 @@ def master_watchdog(config):
 
                     try:
                         outgoing_node=Node(m_index, m_isp, config, config_event_rules, start_router=False)
-                        print(outgoing_node, outgoing_node.__dict__)
+                        # print(outgoing_node, outgoing_node.__dict__)
                         outgoing_thread=threading.Thread(target=outgoing_node.start_consuming, daemon=True)
 
                         '''

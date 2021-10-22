@@ -115,8 +115,8 @@ class Deku(Modem):
             lock_config = configparser.ConfigParser()
             lock_config.read(lock_dir)
 
-            start_time = float(lock_cls.config['LOCKS']['START_TIME'])
-            lock_type = lock_cls.config['LOCKS']['TYPE']
+            start_time = float(lock_config['LOCKS']['START_TIME'])
+            lock_type = lock_config['LOCKS']['TYPE']
 
             ''' benchmark limit should come from configs 
             calculate the time difference
