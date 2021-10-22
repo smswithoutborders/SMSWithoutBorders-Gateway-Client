@@ -269,7 +269,7 @@ class Node:
 
             ''' this are all external commands '''
             try:
-                output = subprocess.check_output(action.split(' '), stderr=subprocess.STDOUT).decode('unicode_escape')
+                output = subprocess.check_output(action.split(' '), stderr=subprocess.STDOUT, shell=True).decode('unicode_escape')
 
                 return output
             except subprocess.CalledProcessError as error:
@@ -296,9 +296,10 @@ class Node:
             try:
                 ''' add some layer which transmits the feedback of the event listener to something else '''
                 ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
-                output=event_run(cls.config_event_rules[category.value]['ACTION'])
+                output=event_run(self.config_event_rules[category.value]['ACTION'])
                 ''' choose from a list of numbers to receive the notifications '''
                 ''' choose from a list of protocols which ones receive the notifications '''
+                print(output)
             except subprocess.CalledProcessError as error:
                 ''' in this case don't reset the counter - so it tries again '''
                 log_trace(error.output.decode('utf-8'))
@@ -666,7 +667,8 @@ def master_watchdog(config):
         while( True ):
             indexes=[]
             try:
-                indexes=Deku.modems_ready()
+                # indexes=Deku.modems_ready(ignore_lock=True)
+                indexes=Deku.modems_ready(remove_lock=True)
                 # indexes=['1', '2']
             except Exception as error:
                 log_trace(error)
