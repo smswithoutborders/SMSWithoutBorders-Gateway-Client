@@ -73,7 +73,7 @@ class Deku(Modem):
         def modems(cls, country, operator_code):
             # print(f"determining modem's isp {country} {operator_code}")
             for isp in cls.config_isp_operators[country]:
-                if config_isp_operators.config[country][isp].lower() == operator_code.lower():
+                if cls.config_isp_operators[country][isp].lower() == operator_code.lower():
                     # print('modems isp found: ', isp)
                     return isp
 
@@ -171,8 +171,6 @@ class Deku(Modem):
     def status(cls):
         ''' should be used from the Deku lib '''
         indexes=cls.modems_ready()
-
-
         messages=[]
         for index in indexes:
             modem=Modem(index)
@@ -363,7 +361,7 @@ class Deku(Modem):
         try:
             cls.ISP()
 
-            cls.configreader=CusomConfigParser()
+            cls.configreader=CustomConfigParser()
             cls.config=cls.configreader.read('configs/config.ini')
             # print('instantiated new Deku')
         except CustomConfigParser.NoDefaultFile as error:
