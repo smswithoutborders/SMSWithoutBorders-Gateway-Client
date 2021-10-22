@@ -77,6 +77,10 @@ initialize term colors
 init()
 
 class Node:
+    m_index = None
+    m_isp = None
+    config = None
+
     outgoing_connection=None
     outgoing_channel=None
     routing_consume_connection=None
@@ -103,53 +107,52 @@ class Node:
         print('\x1b[0m')
 
 
-
-    def __create_channel(self, connection_url, queue_name, username=None, password=None, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
-        credentials=None
-        if username is not None and password is not None:
-            credentials=pika.credentials.PlainCredentials(
-                    username=username,
-                    password=password)
-
-        try:
-            # TODO: port should come from config
-            parameters=pika.ConnectionParameters(connection_url, 5672, '/', credentials)
-            connection=pika.BlockingConnection(parameters=parameters)
-            channel=connection.channel()
-            channel.queue_declare(queue_name, durable=durable)
-            channel.basic_qos(prefetch_count=prefetch_count)
-
-            if binding_key is not None:
-                channel.queue_bind(
-                        exchange=exchange_name, 
-                        queue=queue_name, 
-                        routing_key=binding_key)
-
-            if callback is not None:
-                channel.basic_consume(
-                        queue=queue_name, 
-                        on_message_callback=callback)
-
-            return connection, channel
-        except pika.exceptions.ConnectionClosedByBroker:
-            log_trace(traceback.format_exc())
-        except pika.exceptions.AMQPChannelError as error:
-            self.logger("Caught a chanel error: {}, stopping...".format(error))
-            log_trace(traceback.format_exc())
-        except pika.exceptions.AMQPConnectionError as error:
-            self.logger("Connection was closed, should retry...")
-            log_trace(traceback.format_exc())
-        except socket.gaierror as error:
-            # print(error.__doc__)
-            # print(type(error))
-            # print(error)
-            # if error == "[Errno -2] Name or service not known":
-            self.logger("Unstable internet connection, retrying...", output="stderr")
-
-
     # def __init__(self, m_index, m_isp, rules=['STATUS']):
     # TODO: everything from config files should be externally sent and not read in the class
-    def __init__(self, m_index, m_isp, config, start_router=True):
+    def __init__(self, m_index, m_isp, config, config_event_rules, start_router=True):
+        self.config_event_rules = config_event_rules
+        def create_channel(connection_url, queue_name, username=None, password=None, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
+            credentials=None
+            if username is not None and password is not None:
+                credentials=pika.credentials.PlainCredentials(
+                        username=username,
+                        password=password)
+
+            try:
+                # TODO: port should come from config
+                parameters=pika.ConnectionParameters(connection_url, 5672, '/', credentials)
+                connection=pika.BlockingConnection(parameters=parameters)
+                channel=connection.channel()
+                channel.queue_declare(queue_name, durable=durable)
+                channel.basic_qos(prefetch_count=prefetch_count)
+
+                if binding_key is not None:
+                    channel.queue_bind(
+                            exchange=exchange_name, 
+                            queue=queue_name, 
+                            routing_key=binding_key)
+
+                if callback is not None:
+                    channel.basic_consume(
+                            queue=queue_name, 
+                            on_message_callback=callback)
+
+                return connection, channel
+            except pika.exceptions.ConnectionClosedByBroker:
+                raise(error)
+            except pika.exceptions.AMQPChannelError as error:
+                # self.logger("Caught a chanel error: {}, stopping...".format(error))
+                raise(error)
+            except pika.exceptions.AMQPConnectionError as error:
+                # self.logger("Connection was closed, should retry...")
+                raise(error)
+            except socket.gaierror as error:
+                # print(error.__doc__)
+                # print(type(error))
+                # print(error)
+                # if error == "[Errno -2] Name or service not known":
+                raise(error)
+
         def generate_status_file(status_file):
             modem_status_file=configparser.ConfigParser()
             if os.path.isfile(status_file):
@@ -164,24 +167,21 @@ class Node:
 
                 modem_status_file.write(fd_status_file)
 
-        self.m_index = m_index
-        self.m_isp = m_isp
-        self.config = config
-
+        """
         try:
             self.configreader=CustomConfigParser()
             self.config_event_rules=self.configreader.read("config/events/rules.ini")
         except CustomConfigParser.NoDefaultFile as error:
-            print(traceback.format_exc())
+            raise(error)
         except CustomConfigParser.ConfigFileNotFound as error:
             ''' with this implementation, it stops at the first exception - intended?? '''
-            print(traceback.format_exc())
+            raise(error)
         except CustomConfigParser.ConfigFileNotInList as error:
-            print(traceback.format_exc())
-
+            raise(error)
+        """
         try:
             self.logger("Attempting connection...")
-            self.outgoing_connection, self.outgoing_channel = self.__create_channel(
+            self.outgoing_connection, self.outgoing_channel = create_channel(
                     connection_url=config['NODE']['connection_url'],
                     queue_name=config['NODE']['api_id'] + '_' + config['NODE']['outgoing_queue_name'] + '_' + m_isp,
                     username=config['NODE']['api_id'],
@@ -195,23 +195,44 @@ class Node:
             self.status_file=os.path.join( os.path.dirname(__file__), 'service_files/status', f'{Modem(self.m_index).imei}.ini')
             generate_status_file(self.status_file)
             self.logger("Connected successfully...")
-        except Exception as error:
-            log_trace(traceback.format_exc())
-        """
+        except pika.exceptions.ConnectionClosedByBroker:
+            raise(error)
+        except pika.exceptions.AMQPChannelError as error:
+            # self.logger("Caught a chanel error: {}, stopping...".format(error))
+            raise(error)
+        except pika.exceptions.AMQPConnectionError as error:
+            # self.logger("Connection was closed, should retry...")
+            raise(error)
         except socket.gaierror as error:
-            ''' mostly when cannot connect '''
-            print(error.args[0])
-        """
+            # print(error.__doc__)
+            # print(type(error))
+            # print(error)
+            # if error == "[Errno -2] Name or service not known":
+            raise(error)
 
         if start_router:
-            self.routing_consume_connection, self.routing_consume_channel = self.__create_channel(
-                    connection_url=config['NODE']['connection_url'],
-                    callback=self.__sms_routing_callback,
-                    durable=True,
-                    prefetch_count=1,
-                    queue_name=config['NODE']['routing_queue_name'])
+            try:
+                self.routing_consume_connection, self.routing_consume_channel = create_channel(
+                        connection_url=config['NODE']['connection_url'],
+                        callback=self.__sms_routing_callback,
+                        durable=True,
+                        prefetch_count=1,
+                        queue_name=config['NODE']['routing_queue_name'])
+            except pika.exceptions.ConnectionClosedByBroker:
+                raise(error)
+            except pika.exceptions.AMQPChannelError as error:
+                # self.logger("Caught a chanel error: {}, stopping...".format(error))
+                raise(error)
+            except pika.exceptions.AMQPConnectionError as error:
+                # self.logger("Connection was closed, should retry...")
+                raise(error)
+            except socket.gaierror as error:
+                # print(error.__doc__)
+                # print(type(error))
+                # print(error)
+                # if error == "[Errno -2] Name or service not known":
+                raise(error)
         
-
     def __del__(self):
         # self.logger("calling destructor", output="stderr")
         # print("calling destructor")
@@ -631,6 +652,8 @@ def master_watchdog(config):
     ''' instantiate configuration for all of Deku '''
     try:
         Deku()
+        configreader=CustomConfigParser()
+        config_event_rules=configreader.read("configs/events/rules.ini")
     except CustomConfigParser.NoDefaultFile as error:
         raise(error)
     except CustomConfigParser.ConfigFileNotFound as error:
@@ -671,7 +694,8 @@ def master_watchdog(config):
                         continue
 
                     try:
-                        outgoing_node=Node(m_index, m_isp, config, start_router=False)
+                        outgoing_node=Node(m_index, m_isp, config, config_event_rules, start_router=False)
+                        print(outgoing_node, outgoing_node.__dict__)
                         outgoing_thread=threading.Thread(target=outgoing_node.start_consuming, daemon=True)
 
                         '''
@@ -682,8 +706,30 @@ def master_watchdog(config):
                         # l_threads[m_index] = [outgoing_thread, routing_thread]
                         l_threads[m_index] = [outgoing_thread]
                         # print('\t* Node created')
+                    except pika.exceptions.ConnectionClosedByBroker:
+                        log_trace(traceback.format_exc(), output='stderr', show=True)
+                    except pika.exceptions.AMQPChannelError as error:
+                        # self.logger("Caught a chanel error: {}, stopping...".format(error))
+                        log_trace(traceback.format_exc(), output='stderr', show=True)
+                    except pika.exceptions.AMQPConnectionError as error:
+                        # self.logger("Connection was closed, should retry...")
+                        log_trace(traceback.format_exc(), output='stderr', show=True)
+                    except socket.gaierror as error:
+                        # print(error.__doc__)
+                        # print(type(error))
+                        # print(error)
+                        # if error == "[Errno -2] Name or service not known":
+                        log_trace(traceback.format_exc(), output='stderr', show=True)
+                    except CustomConfigParser.NoDefaultFile as error:
+                        # print(traceback.format_exc())
+                        log_trace(traceback.format_exc(), output='stderr', show=True)
+                    except CustomConfigParser.ConfigFileNotFound as error:
+                        ''' with this implementation, it stops at the first exception - intended?? '''
+                        log_trace(traceback.format_exc(), output='stderr', show=True)
+                    except CustomConfigParser.ConfigFileNotInList as error:
+                        log_trace(traceback.format_exc(), output='stderr', show=True)
                     except Exception as error:
-                        log_trace(traceback.format_exc(), show=True)
+                        log_trace(traceback.format_exc(), output='stderr', show=True)
 
                     shown=False
 
