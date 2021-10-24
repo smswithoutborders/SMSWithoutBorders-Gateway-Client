@@ -6,7 +6,7 @@
 '''
 
 import configparser, re
-import os, sys, time, queue, json, traceback
+import os, sys, time, queue, json, traceback 
 import configparser, threading
 from datetime import datetime
 import subprocess
@@ -386,30 +386,77 @@ class Deku(Modem):
                 # print(output)
                 ussd_output.append(output)
         except subprocess.CalledProcessError as error:
-            print("::Error>", error.cmd, error.output)
+            # print("::Error>", error.cmd, error.output)
             # print(traceback.format_exc())
+            raise(error)
 
         return ussd_output
+
+    @classmethod
+    def cli_parse_labels(cls, modem_index, label):
+
+        def execute_command(command):
+            print('* executing label command', command)
+            command=command.split(' ')
+            
+            if command[0] == 'ussd':
+                try:
+                    return cls.cli_parse_ussd(modem_index, command[1])
+                except subprocess.CalledProcessError as error:
+                    raise(error)
+            else:
+                print("** unknown label command requested")
+
+            return None
+
+        country=cls.config['ISP']['country']
+        modem_isp = cls.ISP.modems(operator_code=Modem(modem_index).operator_code, country=country)
+        print("modem isp:", modem_isp)
+
+        ''' check of for labels that match the requested labels, 
+        then execute for the matching isp for that label '''
+        path_label = os.path.join(os.path.dirname(__file__), 'extensions', f'labels.ini')
+
+        label_config = configparser.ConfigParser()
+        label_config.read(path_label)
+
+        if label in label_config and modem_isp in label_config[label]:
+            ''' parse the commands for their correspondences '''
+            return execute_command(label_config[label][modem_isp])
+        else:
+            print(f"** no label({label}) in labels file")
+            
 
 if __name__ == "__main__":
     ''' should use command line arg parser here '''
     modem_index=None
     ussd_command=None
+    label_command=None
     for i in range(len(sys.argv[1:])):
         arg = sys.argv[i]
         if arg == '--modem' or arg == '-m':
             modem_index = sys.argv[i+1]
-            continue
+            i += 1
         elif arg == '--ussd':
             ussd_command = sys.argv[i+1]
-            continue
+            i += 1
+        elif arg == '--label':
+            label_command = sys.argv[i+1]
+            i += 1
 
     if modem_index == None:
         print("usage: --[modem_index] --[option] [value]")
         exit(1)
 
+
     if ussd_command is not None:
         print(f"* Dailing USSD - {ussd_command}")
         ussd_output=Deku.cli_parse_ussd(modem_index, ussd_command)
         print(ussd_output)
+
+    elif label_command is not None:
+        print(f"* Executing label command - {label_command}")
+        label_output=Deku().cli_parse_labels(modem_index, label_command)
+        print(label_output)
+
 
