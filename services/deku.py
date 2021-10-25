@@ -388,6 +388,10 @@ class Deku(Modem):
                 ussd_output.append(output)
         except cls.USSD.UnknownError as error:
             raise(error)
+        except cls.USSD.ActiveSession as error:
+            # raise(error)
+            print("* active sessions, cancelling sessions")
+            cls.USSD.cancel()
         except cls.USSD.CannotInitiateUSSD as error:
             # print("- output:", error.output)
             # print("- command:", error.command)

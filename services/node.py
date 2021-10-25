@@ -307,10 +307,17 @@ class Node:
                 ''' add some layer which transmits the feedback of the event listener to something else '''
                 ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
                 ''' #TODO: increment throught he various actions based on trailing # '''
+                i=1
                 output=event_run(self.config_event_rules[category.value]['ACTION'])
-                ''' choose from a list of numbers to receive the notifications '''
-                ''' choose from a list of protocols which ones receive the notifications '''
                 print(output)
+                while( ('ACTION'+str(i)) in self.config_event_rules[category.value]):
+                    # action = self.config_event_rules[category.value]['ACTION'+str(i)]
+                    output=event_run(self.config_event_rules[category.value]['ACTION'+str(i)])
+
+                    ''' choose from a list of numbers to receive the notifications '''
+                    ''' choose from a list of protocols which ones receive the notifications '''
+                    print(output)
+                    i+=1
             except subprocess.CalledProcessError as error:
                 # print(error)
                 ''' in this case don't reset the counter - so it tries again '''
