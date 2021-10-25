@@ -26,6 +26,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandle
 from node import Node
 from deku import Deku
 from mmcli_python.modem import Modem
+from CustomConfigParser.customconfigparser import CustomConfigParser 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -37,14 +38,32 @@ class DekuControlBot(Deku):
     @classmethod
     def __init__(cls, token, configfile, adminfile=None):
         cls.token = token
+        cls.configs=None
+        cls.admins=None
         cls.configfile = configfile
         cls.adminfile = adminfile
 
+        
+        cls.configreader = CustomConfigParser()
+        try:
+            cls.configs = cls.configreader.read(cls.configfile)
+            cls.admins = cls.configreader.read(cls.adminfile)
+        except CustomConfigParser.NoDefaultFile as error:
+            raise(error)
+        except CustomConfigParser.ConfigFileNotFound as error:
+            ''' with this implementation, it stops at the first exception - intended?? '''
+            raise(error)
+        except CustomConfigParser.ConfigFileNotInList as error:
+            raise(error)
+
+
+        """
         cls.configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         cls.configs.read(cls.configfile)
 
         cls.admins = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         cls.admins.read(cls.adminfile)
+        """
 
         cls.updater = Updater(token=token, use_context=True)
         cls.dispatcher = cls.updater.dispatcher
@@ -71,11 +90,16 @@ class DekuControlBot(Deku):
         ''' get the chat id and store in configs, will be used to continue message '''
         logging.info("start requested....")
         chat_id = update.effective_chat.id
+        """
         with open(cls.configfile, 'w') as w_configfile: #careful, if error here, the whole file is lost
+            if not 'CHAT_ID' in cls.configs['TELEGRAM']:
+                cls.configs['TELEGRAM']['CHAT_ID'] = ''
+
             cls.configs['TELEGRAM']['CHAT_ID'] = str(chat_id)
             cls.configs.write(w_configfile)
             # self.logging('log file written....')
         # cls.send_message(chat_id, f'Ready - {chat_id}', context)
+        """
         reply_request_phonenumber = KeyboardButton(text="Share phone number", request_contact=True)
         reply_request_phonenumber = ReplyKeyboardMarkup([[reply_request_phonenumber]])
         request_phonenumber = context.bot.send_message(chat_id, text=cls.request_phonenumber_text, reply_markup=reply_request_phonenumber) 
@@ -162,11 +186,17 @@ class DekuControlBot(Deku):
 
 if __name__ == "__main__":
     import sys
+
+    configfile = 'extensions/config.ini'
+    adminfile = 'extensions/admins.ini'
+    """
     configfile=os.path.join(os.path.dirname(__file__), 'extensions', 'config.ini')
     adminfile=os.path.join(os.path.dirname(__file__), 'extensions', 'admins.ini')
-
     configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     configs.read(configfile)
+    """
+    configreader = CustomConfigParser()
+    configs = configreader.read(configfile)
     token=configs['TELEGRAM']['TOKEN']
 
     if len(sys.argv) > 1:

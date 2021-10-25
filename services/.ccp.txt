@@ -2,3 +2,5 @@ configs/config.ini
 configs/isp/default.ini
 configs/isp/operators.ini
 configs/events/rules.ini
+extensions/config.ini
+extensions/admins.ini
