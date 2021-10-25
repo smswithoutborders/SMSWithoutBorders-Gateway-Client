@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 
+import os
+import threading
+import traceback
+import socket
+# import asyncio
+import subprocess
+import json
+import time
+# import requests
+
 ''' testing criterias----
 - when modem is present a node should start up
     - should be able to receive messages from a producer
@@ -11,7 +21,8 @@
 - messages are routed to queues from exchanges
 
 - gateway states
-    - online -> messages come directly from server (this is the case we're looking at)
+    - online -> messages come directly from server
+    (this is the case we're looking at)
     - offline -> messages come from sms services like Twilio
 
 - user_id:user_key = exchange
@@ -38,15 +49,11 @@ topic methods
 - stop nodes from declaring exchange and queues
 '''
 
-import sys, os, threading, traceback, socket
-import asyncio
-import subprocess
-import json, time, requests
 from datetime import datetime
 from enum import Enum
 
 from colorama import init
-from termcolor import colored
+# from termcolor import colored
 
 # from configparser import configparser.ConfigParser, ExtendedInterpolation
 import configparser
@@ -138,7 +145,7 @@ class Node:
                             on_message_callback=callback)
 
                 return connection, channel
-            except pika.exceptions.ConnectionClosedByBroker:
+            except pika.exceptions.ConnectionClosedByBroker as error:
                 raise(error)
             except pika.exceptions.AMQPChannelError as error:
                 # self.logger("Caught a chanel error: {}, stopping...".format(error))
@@ -264,12 +271,15 @@ class Node:
 
 
     def __event_listener(self, category:Category, counter):
+        ''' how to test event listener without all the dep '''
         def event_run(action):
             self.logger(f'event listener taking action: {action}')
 
             ''' this are all external commands '''
             try:
-                output = subprocess.check_output(action.split(' '), stderr=subprocess.STDOUT, shell=True).decode('unicode_escape')
+                command = action.split(' ') + [self.m_index]
+                output = subprocess.check_output(command, stderr=subprocess.STDOUT).decode('unicode_escape')
+                # self.logger(output)
 
                 return output
             except subprocess.CalledProcessError as error:
@@ -296,13 +306,16 @@ class Node:
             try:
                 ''' add some layer which transmits the feedback of the event listener to something else '''
                 ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
+                ''' #TODO: increment throught he various actions based on trailing # '''
                 output=event_run(self.config_event_rules[category.value]['ACTION'])
                 ''' choose from a list of numbers to receive the notifications '''
                 ''' choose from a list of protocols which ones receive the notifications '''
                 print(output)
             except subprocess.CalledProcessError as error:
+                # print(error)
                 ''' in this case don't reset the counter - so it tries again '''
-                log_trace(error.output.decode('utf-8'))
+                # log_trace(f"Event listener output: {error.output.decode('utf-8')}")
+                print(error.output)
             """
             else:
                 ''' in this case, reset the counter '''
@@ -668,16 +681,18 @@ def master_watchdog(config):
             indexes=[]
             try:
                 # indexes=Deku.modems_ready(ignore_lock=True)
+                # indexes=Deku.modems_ready(remove_lock=True, ignore_lock=True)
                 indexes=Deku.modems_ready(remove_lock=True)
                 # indexes=['1', '2']
             except Exception as error:
                 log_trace(error)
                 continue
 
-            if not shown and len(indexes) < 1:
+            if len(indexes) < 1:
                 # print(colored('* waiting for modems...', 'green'))
-                print('* No Modem Detected...')
-                shown=True
+                if not shown:
+                    print('* No Modem Detected...')
+                    shown=True
                 time.sleep(int(config['MODEMS']['sleep_time']))
                 continue
 
