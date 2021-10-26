@@ -5,8 +5,14 @@
 - Deku runs in the terminal no place else
 '''
 
-import configparser, re
-import os, sys, time, queue, json, traceback 
+import configparser
+import re
+import os 
+import sys 
+import time 
+import queue 
+import json
+import traceback 
 import configparser, threading
 from datetime import datetime
 import subprocess

@@ -20,7 +20,7 @@ import os
 import logging
 import configparser
 import traceback
-from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot
+from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler,Filters
 
 # from node import Node
@@ -176,7 +176,10 @@ class TelegramTransmissionLayer(Deku):
         list_chat_ids = self.admins['WHITELIST']
         for phonenumber, chat_id in list_chat_ids.items():
             print(f"* sending text to: {phonenumber}")
-            self.bot.send_message(chat_id=chat_id, text=text)
+            if chat_id is not None or chat_id != '':
+                self.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
+            else:
+                print("\t* unregisterd contact")
 
     @staticmethod
     def send_message(token, chat_id, text, context=None):
