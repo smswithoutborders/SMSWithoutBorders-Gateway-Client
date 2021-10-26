@@ -23,7 +23,8 @@ import traceback
 from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler,Filters
 
-from node import Node
+# from node import Node
+# import node.Node
 from deku import Deku
 from mmcli_python.modem import Modem
 from CustomConfigParser.customconfigparser import CustomConfigParser 
@@ -37,15 +38,12 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 class TelegramTransmissionLayer(Deku):
     # def __init__(self, token, configfile, adminfile=None):
     def __init__(self):
-        # TODO automatically fetch details from default config file location
-        self.token = token
+        super().__init__()
         self.configs=None
         self.admins=None
         self.configfile = "extensions/config.ini"
-        self.adminfile = "extensions/admins.ini"
+        self.adminfile = "extensions/telegram.ini"
 
-
-        
         self.configreader = CustomConfigParser()
         try:
             self.configs = self.configreader.read(self.configfile)
@@ -64,7 +62,10 @@ class TelegramTransmissionLayer(Deku):
         self.admins = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         self.admins.read(self.adminfile)
 
-        self.updater = Updater(token=token, use_context=True)
+        self.token = self.configs['TELEGRAM']['token']
+        self.bot = Bot(self.token)
+
+        self.updater = Updater(token=self.token, use_context=True)
         self.dispatcher = self.updater.dispatcher
 
         ''' handlers '''
@@ -82,8 +83,7 @@ class TelegramTransmissionLayer(Deku):
         self.bot_name = "Deku_ControlBot"
         self.request_phonenumber_text = "Hi there\nShare phone number below to continue..."
 
-        self.token = self.configs['TELEGRAM']['token']
-        self.bot = Bot(self.token)
+
 
     def start(self, update, context):
         # print(context)
@@ -191,10 +191,10 @@ if __name__ == "__main__":
     import sys
 
     configfile = 'extensions/config.ini'
-    adminfile = 'extensions/admins.ini'
+    adminfile = 'extensions/telegram.ini'
     """
     configfile=os.path.join(os.path.dirname(__file__), 'extensions', 'config.ini')
-    adminfile=os.path.join(os.path.dirname(__file__), 'extensions', 'admins.ini')
+    adminfile=os.path.join(os.path.dirname(__file__), 'extensions', 'telegram.ini')
     configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     configs.read(configfile)
     """

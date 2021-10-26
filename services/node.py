@@ -10,6 +10,8 @@ import json
 import time
 # import requests
 
+from transmissionLayer import TransmissionLayer
+
 ''' testing criterias----
 - when modem is present a node should start up
     - should be able to receive messages from a producer
@@ -82,6 +84,7 @@ l_threads={}
 initialize term colors
 '''
 init()
+transmission_layer = TransmissionLayer()
 
 class Node:
     m_index = None
@@ -310,6 +313,7 @@ class Node:
                 i=1
                 output=event_run(self.config_event_rules[category.value]['ACTION'])
                 print(output)
+                transmission_layer.send(output)
                 while( ('ACTION'+str(i)) in self.config_event_rules[category.value]):
                     # action = self.config_event_rules[category.value]['ACTION'+str(i)]
                     output=event_run(self.config_event_rules[category.value]['ACTION'+str(i)])
@@ -317,6 +321,7 @@ class Node:
                     ''' choose from a list of numbers to receive the notifications '''
                     ''' choose from a list of protocols which ones receive the notifications '''
                     print(output)
+                    transmission_layer.send(output)
                     i+=1
             except subprocess.CalledProcessError as error:
                 # print(error)
