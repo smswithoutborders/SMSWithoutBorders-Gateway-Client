@@ -103,6 +103,7 @@ class Node:
         SUCCESS='SUCCESS'
         FAILED='FAILED'
         UNKNOWN='UNKNOWN'
+        TRANSMISSION='TRANSMISSION'
 
 
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
@@ -121,6 +122,7 @@ class Node:
     # TODO: everything from config files should be externally sent and not read in the class
     def __init__(self, m_index, m_isp, config, config_event_rules, start_router=True):
         self.config_event_rules = config_event_rules
+        self.config = config
         def create_channel(connection_url, queue_name, username=None, password=None, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
             credentials=None
             if username is not None and password is not None:
@@ -311,19 +313,39 @@ class Node:
                         === Executing action: {category.value} =====\n
                         Results:= {output}"
             """
-            return (f"My {category} action was triggered!\n\n"
-            f"=== Executing action: {action} =====\n"
-            f"Results:= {output}")
+            return (f"My *{category}* action was triggered!\n\n"
+            f"=== *Executing action:* _{action}_ =====\n\n"
+            f"*Results:=* {output}")
+
+        def next_transmission():
+            self.logger('updating next transmission...')
+            modems_status_file=configparser.ConfigParser()
+            modems_status_file.read(self.status_file)
+
+            with open(self.status_file, 'w') as fd_modems_status_file:
+                modems_status_file['TRANSMISSION']['counter'] = str(
+                        float(time.time() + (float(self.config['TRANSMISSION']['duration'])*60)))
+                modems_status_file.write(fd_modems_status_file)
+
         if event_rule_count > -1 and status_count >= event_rule_count:
             try:
+                modems_status_file=configparser.ConfigParser()
+                modems_status_file.read(self.status_file)
+
+                next_transmission_timer = float(modems_status_file['TRANSMISSION']['counter'])
+                request_transmission_timer = time.time()
                 ''' add some layer which transmits the feedback of the event listener to something else '''
                 ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
                 ''' #TODO: increment throught he various actions based on trailing # '''
                 i=1
                 action = self.config_event_rules[category.value]['ACTION']
                 output=event_run(action)
+                if request_transmission_timer > next_transmission_timer:
+                    transmission_layer.send(format_transmissions(category.value, action, output))
                 print(output)
-                transmission_layer.send(format_transmissions(category.value, action, output))
+
+                ''' check transmission state '''
+
                 while( ('ACTION'+str(i)) in self.config_event_rules[category.value]):
                     # action = self.config_event_rules[category.value]['ACTION'+str(i)]
                     output=event_run(self.config_event_rules[category.value]['ACTION'+str(i)])
@@ -331,15 +353,20 @@ class Node:
                     ''' choose from a list of numbers to receive the notifications '''
                     ''' choose from a list of protocols which ones receive the notifications '''
                     print(output)
+                    if request_transmission_timer > next_transmission_timer:
+                        transmission_layer.send(format_transmissions(category.value, action, output))
 
-                    # TODO: can turn off transmission when starting an instance
-                    transmission_layer.send(format_transmissions(category.value, action, output))
                     i+=1
+
+                if request_transmission_timer > next_transmission_timer:
+                    next_transmission()
             except subprocess.CalledProcessError as error:
                 # print(error)
                 ''' in this case don't reset the counter - so it tries again '''
                 # log_trace(f"Event listener output: {error.output.decode('utf-8')}")
                 print(error.output)
+            except Exception as error:
+                log_trace(traceback.format_exc())
             """
             else:
                 ''' in this case, reset the counter '''
@@ -715,7 +742,7 @@ def master_watchdog(config):
             if len(indexes) < 1:
                 # print(colored('* waiting for modems...', 'green'))
                 if not shown:
-                    print('* No Modem Detected...')
+                    print('* No Available Modem...')
                     shown=True
                 time.sleep(int(config['MODEMS']['sleep_time']))
                 continue
