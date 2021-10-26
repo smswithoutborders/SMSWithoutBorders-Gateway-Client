@@ -34,20 +34,22 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 ''' 
 - should be able to inform of events
 '''
-class DekuControlBot(Deku):
-    @classmethod
-    def __init__(cls, token, configfile, adminfile=None):
-        cls.token = token
-        cls.configs=None
-        cls.admins=None
-        cls.configfile = configfile
-        cls.adminfile = adminfile
+class TelegramTransmissionLayer(Deku):
+    # def __init__(self, token, configfile, adminfile=None):
+    def __init__(self):
+        # TODO automatically fetch details from default config file location
+        self.token = token
+        self.configs=None
+        self.admins=None
+        self.configfile = "extensions/config.ini"
+        self.adminfile = "extensions/admins.ini"
+
 
         
-        cls.configreader = CustomConfigParser()
+        self.configreader = CustomConfigParser()
         try:
-            cls.configs = cls.configreader.read(cls.configfile)
-            cls.admins = cls.configreader.read(cls.adminfile)
+            self.configs = self.configreader.read(self.configfile)
+            self.admins = self.configreader.read(self.adminfile)
         except CustomConfigParser.NoDefaultFile as error:
             raise(error)
         except CustomConfigParser.ConfigFileNotFound as error:
@@ -56,57 +58,55 @@ class DekuControlBot(Deku):
         except CustomConfigParser.ConfigFileNotInList as error:
             raise(error)
 
+        self.configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+        self.configs.read(self.configfile)
 
-        """
-        cls.configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-        cls.configs.read(cls.configfile)
+        self.admins = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+        self.admins.read(self.adminfile)
 
-        cls.admins = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-        cls.admins.read(cls.adminfile)
-        """
-
-        cls.updater = Updater(token=token, use_context=True)
-        cls.dispatcher = cls.updater.dispatcher
+        self.updater = Updater(token=token, use_context=True)
+        self.dispatcher = self.updater.dispatcher
 
         ''' handlers '''
-        cls.start_handler = CommandHandler('start', cls.start)
-        cls.status_handler = CommandHandler('status', cls.status)
-        cls.unknown_handler = MessageHandler(Filters.all, cls.unknown)
+        self.start_handler = CommandHandler('start', self.start)
+        self.status_handler = CommandHandler('status', self.status)
+        self.unknown_handler = MessageHandler(Filters.all, self.unknown)
 
         ''' bind handlers to dispatchers '''
-        cls.dispatcher.add_handler(cls.start_handler)
-        cls.dispatcher.add_handler(cls.status_handler)
-        cls.dispatcher.add_handler(cls.unknown_handler)
+        self.dispatcher.add_handler(self.start_handler)
+        self.dispatcher.add_handler(self.status_handler)
+        self.dispatcher.add_handler(self.unknown_handler)
 
 
         ''' constants '''
-        cls.bot_name = "Deku_ControlBot"
-        cls.request_phonenumber_text = "Hi there\nShare phone number below to continue..."
+        self.bot_name = "Deku_ControlBot"
+        self.request_phonenumber_text = "Hi there\nShare phone number below to continue..."
 
-    @classmethod
-    def start(cls, update, context):
+        self.token = self.configs['TELEGRAM']['token']
+        self.bot = Bot(self.token)
+
+    def start(self, update, context):
         # print(context)
         # print(update)
         ''' get the chat id and store in configs, will be used to continue message '''
         logging.info("start requested....")
         chat_id = update.effective_chat.id
         """
-        with open(cls.configfile, 'w') as w_configfile: #careful, if error here, the whole file is lost
-            if not 'CHAT_ID' in cls.configs['TELEGRAM']:
-                cls.configs['TELEGRAM']['CHAT_ID'] = ''
+        with open(self.configfile, 'w') as w_configfile: #careful, if error here, the whole file is lost
+            if not 'CHAT_ID' in self.configs['TELEGRAM']:
+                self.configs['TELEGRAM']['CHAT_ID'] = ''
 
-            cls.configs['TELEGRAM']['CHAT_ID'] = str(chat_id)
-            cls.configs.write(w_configfile)
+            self.configs['TELEGRAM']['CHAT_ID'] = str(chat_id)
+            self.configs.write(w_configfile)
             # self.logging('log file written....')
-        # cls.send_message(chat_id, f'Ready - {chat_id}', context)
+        # self.send_message(chat_id, f'Ready - {chat_id}', context)
         """
         reply_request_phonenumber = KeyboardButton(text="Share phone number", request_contact=True)
         reply_request_phonenumber = ReplyKeyboardMarkup([[reply_request_phonenumber]])
-        request_phonenumber = context.bot.send_message(chat_id, text=cls.request_phonenumber_text, reply_markup=reply_request_phonenumber) 
-        # context.bot.register_next_step_handler(message =request_phonenumber, callback=cls.request_phonenumber) 
+        request_phonenumber = context.bot.send_message(chat_id, text=self.request_phonenumber_text, reply_markup=reply_request_phonenumber) 
+        # context.bot.register_next_step_handler(message =request_phonenumber, callback=self.request_phonenumber) 
 
-    @classmethod
-    def unknown(cls, update, context):
+    def unknown(self, update, context):
         ''' in case commands come which have not been pre-programmed yet '''
         if 'message' in update.to_dict():
             message = update['message'].to_dict()
@@ -117,7 +117,7 @@ class DekuControlBot(Deku):
 
                 ''' Checking = User Validation '''
                 if 'username' in _from and 'is_bot' in _from:
-                    if _from['username'] == cls.bot_name and _from['is_bot'] and 'contact' in message:
+                    if _from['username'] == self.bot_name and _from['is_bot'] and 'contact' in message:
                         # print(message['contact']['phone_number'])
 
                         ''' should be stored for some for of authentication '''
@@ -126,7 +126,7 @@ class DekuControlBot(Deku):
                         # print(">> phonenumber:", phonenumber)
                         
                         try:
-                            if cls.new_record(phonenumber, update.effective_chat.id):
+                            if self.new_record(phonenumber, update.effective_chat.id):
                                 context.bot.send_message(update.effective_chat.id, f"Great! Got number - {phonenumber}", 
                                         reply_markup=ReplyKeyboardRemove())
                         except Exception as error:
@@ -137,9 +137,7 @@ class DekuControlBot(Deku):
                 context.bot.send_message(update.effective_chat.id, f"Sorry, I do not understand that!")
             """
 
-
-    @classmethod
-    def new_record(cls, phonenumber, chat_id):
+    def new_record(self, phonenumber, chat_id):
         log = f"Logging both phonenumber and chat ID {phonenumber} {chat_id}"
         logging.info(log)
 
@@ -148,10 +146,10 @@ class DekuControlBot(Deku):
         if phonenumber[0] != '+':
             phonenumber = '+' + phonenumber
 
-        if phonenumber in cls.admins['WHITELIST']:
-            with open(cls.adminfile, 'w') as fd_admin_list:
-                cls.admins['WHITELIST'][phonenumber] = str(chat_id)
-                cls.admins.write(fd_admin_list)
+        if phonenumber in self.admins['WHITELIST']:
+            with open(self.adminfile, 'w') as fd_admin_list:
+                self.admins['WHITELIST'][phonenumber] = str(chat_id)
+                self.admins.write(fd_admin_list)
 
             return True
         else:
@@ -159,7 +157,6 @@ class DekuControlBot(Deku):
         return False
 
 
-    @classmethod
     def status(cls, update, context):
         status=Deku.status()
         message='Oops, no modems...'
@@ -174,15 +171,21 @@ class DekuControlBot(Deku):
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
     """
 
+    def send(self, text):
+        ''' read every whitelist chat id '''
+        list_chat_ids = self.admins['WHITELIST']
+        for phonenumber, chat_id in list_chat_ids.items():
+            print(f"* sending text to: {phonenumber}")
+            self.bot.send_message(chat_id=chat_id, text=text)
+
     @staticmethod
     def send_message(token, chat_id, text, context=None):
         # logging.info(f'chat id: {update.effective_chat.id}')
         bot = Bot(token)
         bot.send_message(chat_id=chat_id, text=text)
 
-    @classmethod
-    def start_polling(cls):
-        cls.updater.start_polling()
+    def start_polling(self):
+        self.updater.start_polling()
 
 if __name__ == "__main__":
     import sys
@@ -201,12 +204,16 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         ''' this can be made better as a cli '''
-        number=sys.argv[1]
-        text = sys.argv[2]
+        # number=sys.argv[1]
+        # text = sys.argv[2]
+        text = sys.argv[1]
 
         admin = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         admin.read(adminfile)
 
-        DekuControlBot(token=token, configfile=configfile, adminfile=adminfile).send_message(token, chat_id=admin['WHITELIST'][number], text=text)
+        telegram_layer = TelegramTransmissionLayer()
+        # telegram_layer.send_message(token, chat_id=admin['WHITELIST'][number], text=text)
+        telegram_layer.send(text)
     else:
-        DekuControlBot(token=token, configfile=configfile, adminfile=adminfile).start_polling()
+        telegram_layer = TelegramTransmissionLayer()
+        telegram_layer.start_polling()
