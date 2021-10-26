@@ -390,8 +390,9 @@ class Deku(Modem):
             raise(error)
         except cls.USSD.ActiveSession as error:
             # raise(error)
-            print("* active sessions, cancelling sessions")
+            # print("* active sessions, cancelling sessions")
             cls.USSD.cancel()
+            ussd_output = cls.cli_parse_ussd(modem_index, command)
         except cls.USSD.CannotInitiateUSSD as error:
             # print("- output:", error.output)
             # print("- command:", error.command)
@@ -409,7 +410,7 @@ class Deku(Modem):
     def cli_parse_labels(cls, modem_index, label):
 
         def execute_command(command):
-            print('* executing label command', command)
+            # print('* executing label command', command)
             command=command.split(' ')
             
             if command[0] == 'ussd':
@@ -428,7 +429,7 @@ class Deku(Modem):
 
         country=cls.config['ISP']['country']
         modem_isp = cls.ISP.modems(operator_code=Modem(modem_index).operator_code, country=country)
-        print("modem isp:", modem_isp)
+        print("Modem's Service Provider:", modem_isp)
         if modem_isp is None:
             print("* cannot determine modem's isp")
             return None
@@ -474,19 +475,19 @@ if __name__ == "__main__":
 
     if ussd_command is not None:
         if ussd_command == '--ussd-cancel':
-            print("* cancelling USSD command...")
+            # print("* cancelling USSD command...")
             try:
                 Modem(modem_index).USSD.cancel()
             except Deku.USSD.UnknownError as error:
-                print("USSD error:", str(error.output))
+                # print("USSD error:", str(error.output))
                 exit(1)
         else:
-            print(f"* Dailing USSD - {ussd_command}")
+            # print(f"* Dailing USSD - {ussd_command}")
             ussd_output=Deku.cli_parse_ussd(modem_index, ussd_command)
             print(ussd_output)
 
     elif label_command is not None:
-        print(f"* Executing label command - {label_command}")
+        # print(f"* Executing label command - {label_command}")
         try:
             label_output=Deku().cli_parse_labels(modem_index, label_command)
         except Deku.USSD.CannotInitiateUSSD as error:

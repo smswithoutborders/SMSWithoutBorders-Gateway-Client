@@ -305,15 +305,25 @@ class Node:
         # print(f'event_rule_count {event_rule_count}')
 
         ''' -1 means do not perform this rule '''
+        def format_transmissions(category, action, output):
+            """
+                reason_for_transmission=f"My {category.value} action was triggered!\n\n\
+                        === Executing action: {category.value} =====\n
+                        Results:= {output}"
+            """
+            return (f"My {category} action was triggered!\n\n"
+            f"=== Executing action: {action} =====\n"
+            f"Results:= {output}")
         if event_rule_count > -1 and status_count >= event_rule_count:
             try:
                 ''' add some layer which transmits the feedback of the event listener to something else '''
                 ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
                 ''' #TODO: increment throught he various actions based on trailing # '''
                 i=1
-                output=event_run(self.config_event_rules[category.value]['ACTION'])
+                action = self.config_event_rules[category.value]['ACTION']
+                output=event_run(action)
                 print(output)
-                transmission_layer.send(output)
+                transmission_layer.send(format_transmissions(category.value, action, output))
                 while( ('ACTION'+str(i)) in self.config_event_rules[category.value]):
                     # action = self.config_event_rules[category.value]['ACTION'+str(i)]
                     output=event_run(self.config_event_rules[category.value]['ACTION'+str(i)])
@@ -321,7 +331,9 @@ class Node:
                     ''' choose from a list of numbers to receive the notifications '''
                     ''' choose from a list of protocols which ones receive the notifications '''
                     print(output)
-                    transmission_layer.send(output)
+
+                    # TODO: can turn off transmission when starting an instance
+                    transmission_layer.send(format_transmissions(category.value, action, output))
                     i+=1
             except subprocess.CalledProcessError as error:
                 # print(error)
