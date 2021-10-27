@@ -2,6 +2,7 @@
 
 ''' Telegram '''
 from transmissionLayer_telegram import TelegramTransmissionLayer
+from CustomConfigParser.customconfigparser import CustomConfigParser
 
 class TransmissionLayer:
     @classmethod
@@ -15,13 +16,16 @@ class TransmissionLayer:
             cls.transmission_layers.append(cls.telegram)
         except CustomConfigParser.NoDefaultFile as error:
             raise(error)
+            # print(error)
         except CustomConfigParser.ConfigFileNotFound as error:
             ''' with this implementation, it stops at the first exception - intended?? '''
             raise(error)
+            # print(error)
         except CustomConfigParser.ConfigFileNotInList as error:
             raise(error)
+            # print(error)
         except Exception as error:
-            raise(error)
+            print(error)
 
 
     # def send(self, data, tranmission_platform='telegram'):
