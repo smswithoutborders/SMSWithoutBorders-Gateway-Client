@@ -4,6 +4,17 @@ from deku import Deku
 from mmcli_python.modem import Modem
 
 class Gateway:
+    def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
+        timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        color='\033[32m'
+        if output == 'stderr':
+            color='\033[31m'
+        if _type=='primary':
+            print(color + timestamp + f'* [{self.m_isp}|{self.m_index}] {text}')
+        else:
+            print(color + timestamp + f'\t* [{self.m_isp}|{self.m_index}] {text}')
+        print('\x1b[0m')
+
     def __init__(self, modem_index):
         self.modem_index = modem_index
         def create_channel(connection_url, queue_name, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
@@ -134,7 +145,7 @@ class Gateway:
 
         try:
             self.logger('watchdog monitor gone into effect...')
-            messages=Modem(self.m_index).SMS.list('received')
+            # messages=Modem(self.m_index).SMS.list('received')
             while(Deku.modem_ready(self.m_index)):
                 time.sleep(int(config['MODEMS']['sleep_time']))
 
