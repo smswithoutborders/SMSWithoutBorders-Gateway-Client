@@ -6,6 +6,8 @@ import pika
 import socket
 import threading
 import traceback
+import json
+import requests
 from datetime import datetime
 
 from deku import Deku

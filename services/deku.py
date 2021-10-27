@@ -473,6 +473,8 @@ if __name__ == "__main__":
         elif arg == '--label':
             label_command = sys.argv[i+1]
             # i += 1
+        elif arg == '--sms':
+            sms_message = sys.argv[i+1]
 
     if modem_index == None:
         print("usage: --[modem_index] --[option] [value]")
