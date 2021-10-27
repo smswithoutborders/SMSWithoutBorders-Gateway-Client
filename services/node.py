@@ -11,7 +11,6 @@ import time
 # import requests
 
 from transmissionLayer import TransmissionLayer
-
 ''' testing criterias----
 - when modem is present a node should start up
     - should be able to receive messages from a producer
@@ -82,7 +81,17 @@ l_threads={}
 initialize term colors
 '''
 init()
-transmission_layer = TransmissionLayer()
+
+transmission_layer=None
+try:
+    transmission_layer = TransmissionLayer()
+except CustomConfigParser.NoDefaultFile as error:
+    raise(error)
+except CustomConfigParser.ConfigFileNotFound as error:
+    ''' with this implementation, it stops at the first exception - intended?? '''
+    raise(error)
+except CustomConfigParser.ConfigFileNotInList as error:
+    raise(error)
 
 class Node:
     m_index = None
@@ -313,7 +322,7 @@ class Node:
                 i=1
                 action = self.config_event_rules[category.value]['ACTION']
                 output=event_run(action)
-                if request_transmission_timer > next_transmission_timer:
+                if transmission_layer is not None and request_transmission_timer > next_transmission_timer:
                     transmission_layer.send(format_transmissions(category.value, action, output))
                 print(output)
 
@@ -326,7 +335,7 @@ class Node:
                     ''' choose from a list of numbers to receive the notifications '''
                     ''' choose from a list of protocols which ones receive the notifications '''
                     print(output)
-                    if request_transmission_timer > next_transmission_timer:
+                    if transmission_layer is not None and request_transmission_timer > next_transmission_timer:
                         transmission_layer.send(format_transmissions(category.value, action, output))
 
                     i+=1
