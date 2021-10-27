@@ -83,15 +83,23 @@ initialize term colors
 init()
 
 transmission_layer=None
+"""
 try:
     transmission_layer = TransmissionLayer()
 except CustomConfigParser.NoDefaultFile as error:
-    raise(error)
+    # raise(error)
+    print(error)
 except CustomConfigParser.ConfigFileNotFound as error:
     ''' with this implementation, it stops at the first exception - intended?? '''
-    raise(error)
+    # raise(error)
+    print(error)
 except CustomConfigParser.ConfigFileNotInList as error:
-    raise(error)
+    # raise(error)
+    print(error)
+except Exception as error:
+    print(error)
+"""
+
 
 class Node:
     m_index = None
