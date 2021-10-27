@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+import time 
+
 from deku import Deku
 from mmcli_python.modem import Modem
 from enum import Enum
+
+from CustomConfigParser.customconfigparser import CustomConfigParser
 
 class Gateway:
 
@@ -22,8 +26,10 @@ class Gateway:
             print(color + timestamp + f'\t* [{self.m_isp}|{self.m_index}] {text}')
         print('\x1b[0m')
 
-    def __init__(self, modem_index):
+    def __init__(self, modem_index, config):
         self.modem_index = modem_index
+        self.config = config
+
         def create_channel(connection_url, queue_name, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
             credentials=None
             try:
@@ -282,6 +288,7 @@ def master_watchdog(config):
     shown=False
 
     ''' instantiate configuration for all of Deku '''
+    """
     try:
         Gateway()
         # configreader=CustomConfigParser()
@@ -293,95 +300,99 @@ def master_watchdog(config):
     except CustomConfigParser.ConfigFileNotInList as error:
         raise(error)
     else:
-        while( True ):
-            indexes=[]
-            try:
-                # indexes=Deku.modems_ready(ignore_lock=True)
-                # indexes=Deku.modems_ready(remove_lock=True, ignore_lock=True)
-                indexes=Deku.modems_ready(remove_lock=True)
-                # indexes=['1', '2']
-            except Exception as error:
-                log_trace(error)
-                continue
+    """
+    while( True ):
+        indexes=[]
+        try:
+            # indexes=Deku.modems_ready(ignore_lock=True)
+            # indexes=Deku.modems_ready(remove_lock=True, ignore_lock=True)
+            indexes=Deku.modems_ready(remove_lock=True)
+            # indexes=['1', '2']
+        except Exception as error:
+            log_trace(error)
+            continue
 
-            if len(indexes) < 1:
-                # print(colored('* waiting for modems...', 'green'))
-                if not shown:
-                    print('* No Available Modem...')
-                    shown=True
-                time.sleep(int(config['MODEMS']['sleep_time']))
-                continue
-
-            shown=False
-            # print('[x] starting consumer for modems with indexes:', indexes)
-            for m_index in indexes:
-                '''starting consumers for modems not already running,
-                should be a more reliable way of doing it'''
-                if m_index not in l_threads:
-                    country=config['ISP']['country']
-                    if not Deku.modem_ready(m_index):
-                        continue
-                    try:
-                        m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
-                    except Exception as error:
-                        # print(error)
-                        log_trace(error, show=True)
-                        continue
-
-                    try:
-                        gateway=Gateway(modem_index=m_index)
-                        # print(outgoing_node, outgoing_node.__dict__)
-                        gateway_thread=threading.Thread(target=gateway.start_consuming, daemon=True)
-
-                        # l_threads[m_index] = [outgoing_thread, routing_thread]
-                        l_threads[m_index] = [outgoing_thread]
-                        # print('\t* Node created')
-                    except pika.exceptions.ConnectionClosedByBroker:
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except pika.exceptions.AMQPChannelError as error:
-                        # self.logger("Caught a chanel error: {}, stopping...".format(error))
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except pika.exceptions.AMQPConnectionError as error:
-                        # self.logger("Connection was closed, should retry...")
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except socket.gaierror as error:
-                        # print(error.__doc__)
-                        # print(type(error))
-                        # print(error)
-                        # if error == "[Errno -2] Name or service not known":
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except CustomConfigParser.NoDefaultFile as error:
-                        # print(traceback.format_exc())
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except CustomConfigParser.ConfigFileNotFound as error:
-                        ''' with this implementation, it stops at the first exception - intended?? '''
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except CustomConfigParser.ConfigFileNotInList as error:
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except Exception as error:
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-
-                    shown=False
-
-            try:
-                for m_index, thread in l_threads.items():
-                    try:
-                        # if not thread in threading.enumerate():
-                        for i in range(len(thread)):
-                            if thread[i].native_id is None:
-                                print('\t* starting thread...')
-                                thread[i].start()
-
-                    except Exception as error:
-                        log_trace(traceback.format_exc(), show=True)
-            except Exception as error:
-                log_trace(error)
-
+        if len(indexes) < 1:
+            # print(colored('* waiting for modems...', 'green'))
+            if not shown:
+                print('* No Available Modem...')
+                shown=True
             time.sleep(int(config['MODEMS']['sleep_time']))
+            continue
+
+        shown=False
+        # print('[x] starting consumer for modems with indexes:', indexes)
+        for m_index in indexes:
+            '''starting consumers for modems not already running,
+            should be a more reliable way of doing it'''
+            if m_index not in l_threads:
+                country=config['ISP']['country']
+                if not Deku.modem_ready(m_index):
+                    continue
+                try:
+                    m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
+                except Exception as error:
+                    # print(error)
+                    log_trace(error, show=True)
+                    continue
+
+                try:
+                    gateway=Gateway(modem_index=m_index, config=config)
+                    # print(outgoing_node, outgoing_node.__dict__)
+                    gateway_thread=threading.Thread(target=gateway.start_consuming, daemon=True)
+
+                    # l_threads[m_index] = [outgoing_thread, routing_thread]
+                    l_threads[m_index] = [outgoing_thread]
+                    # print('\t* Node created')
+                except pika.exceptions.ConnectionClosedByBroker:
+                    log_trace(traceback.format_exc(), output='stderr', show=True)
+                except pika.exceptions.AMQPChannelError as error:
+                    # self.logger("Caught a chanel error: {}, stopping...".format(error))
+                    log_trace(traceback.format_exc(), output='stderr', show=True)
+                except pika.exceptions.AMQPConnectionError as error:
+                    # self.logger("Connection was closed, should retry...")
+                    log_trace(traceback.format_exc(), output='stderr', show=True)
+                except socket.gaierror as error:
+                    # print(error.__doc__)
+                    # print(type(error))
+                    # print(error)
+                    # if error == "[Errno -2] Name or service not known":
+                    log_trace(traceback.format_exc(), output='stderr', show=True)
+                except CustomConfigParser.NoDefaultFile as error:
+                    # print(traceback.format_exc())
+                    log_trace(traceback.format_exc(), output='stderr', show=True)
+                except CustomConfigParser.ConfigFileNotFound as error:
+                    ''' with this implementation, it stops at the first exception - intended?? '''
+                    log_trace(traceback.format_exc(), output='stderr', show=True)
+                except CustomConfigParser.ConfigFileNotInList as error:
+                    log_trace(traceback.format_exc(), output='stderr', show=True)
+                except Exception as error:
+                    log_trace(traceback.format_exc(), output='stderr', show=True)
+
+                shown=False
+
+        try:
+            for m_index, thread in l_threads.items():
+                try:
+                    # if not thread in threading.enumerate():
+                    for i in range(len(thread)):
+                        if thread[i].native_id is None:
+                            print('\t* starting thread...')
+                            thread[i].start()
+
+                except Exception as error:
+                    log_trace(traceback.format_exc(), show=True)
+        except Exception as error:
+            log_trace(error)
+
+        time.sleep(int(config['MODEMS']['sleep_time']))
 
 
 if __name__ == "__main__":
     ''' checks for incoming messages and routes them '''
+    config=None
+    config=CustomConfigParser()
+    config=config.read("configs/config.ini")
 
-    master_watchdog()
+    master_watchdog(config)
     exit(0)
