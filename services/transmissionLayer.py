@@ -23,6 +23,8 @@ class TransmissionLayer:
         except CustomConfigParser.ConfigFileNotInList as error:
             # raise(error)
             print(error)
+        except Exception as error:
+            print(error)
 
 
     # def send(self, data, tranmission_platform='telegram'):

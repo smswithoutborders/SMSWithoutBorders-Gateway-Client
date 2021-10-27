@@ -62,8 +62,12 @@ class TelegramTransmissionLayer(Deku):
         self.admins = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         self.admins.read(self.adminfile)
 
-        self.token = self.configs['TELEGRAM']['token']
-        self.bot = Bot(self.token)
+        try:
+            self.token = self.configs['TELEGRAM']['token']
+            self.bot = Bot(self.token)
+
+        except telegram.error.InvalidToken as error:
+            raise(error)
 
         self.updater = Updater(token=self.token, use_context=True)
         self.dispatcher = self.updater.dispatcher
