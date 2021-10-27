@@ -19,10 +19,52 @@ from CustomConfigParser.customconfigparser import CustomConfigParser
 # l_threads = {}
 class Gateway:
 
-    class Route_modes(Enum):
-        ONLINE='0'
-        OFFLINE='1'
-        SWITCH='2'
+    class Router:
+        class Modes(Enum):
+            ONLINE='0'
+            OFFLINE='1'
+            SWITCH='2'
+
+        class MissingComponent(Exception):
+            def __init__(self, component):
+                self.component = component
+
+        def __init__(self, url, priority_offline_isp):
+            self.url = url
+            self.priority_offline_isp = priority_offline_isp
+
+        def route_online(self, data):
+            if not "text" in data:
+                raise self.MissingComponent("text")
+            if not "number" in data:
+                raise self.MissingComponent("number")
+
+            try:
+                print("Preparing to route...")
+                response = requests.post(url=self.url, json=data)
+                print(response)
+            except requests.HTTPError as error:
+                print("* Failed to route request")
+                print("\t* Text:", response.text)
+                print("\t* status code:", response.status_code)
+
+                print(error)
+                log_trace(traceback.format_exc())
+                raise(error)
+            except Exception as error:
+                # print(traceback.format_exc())
+                print(error)
+                log_trace(traceback.format_exc())
+                raise(error)
+            else:
+                print("* Successfully routed request")
+                print("\t* response:", response)
+            
+
+        def route_offline(self, text, number):
+            print("* Routing offline...")
+
+
 
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -126,6 +168,8 @@ class Gateway:
                     ''' if deleted, then only the same gateway can send it further '''
                     ''' if not deleted, then only the modem can send the message '''
                     ''' given how reabbit works, the modem can't know when messages are sent '''
+                    msg=f"Publishing {msg_index} for routing..."
+                    self.logger(msg)
                     publish_channel.basic_publish(
                             exchange='',
                             routing_key=config['GATEWAY']['routing_queue_name'],
@@ -134,6 +178,7 @@ class Gateway:
                                 delivery_mode=2))
                     ''' delete messages from here '''
                     ''' use mockup so testing can continue '''
+                    # self.logger(f"Published...")
                     # modem.delete(msg_index)
 
                 messages=[]
@@ -229,7 +274,7 @@ class Gateway:
     def __sms_routing_callback(self, ch, method, properties, body):
         json_body = json.loads(body.decode('unicode_escape'))
         self.logger(f'routing: {json_body}')
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        # ch.basic_ack(delivery_tag=method.delivery_tag)
 
         ''' attempts both forms of routing, then decides if success or failed '''
         ''' checks config if for which state of routing is activated '''
@@ -244,42 +289,56 @@ class Gateway:
             ''' acks so that the message does not go back to the queue '''
         try:
             results=None
-            router = Router(url=router_url, priority_offline_isp=offline_isp)
-            # online routing '''
-            if configs['GATEWAY']['route_mode'] == self.Route_modes.OFFLINE:
+            router = self.Router(url=self.config['ROUTER']['default'], priority_offline_isp=self.config['ROUTER']['isp'])
+            if self.config['GATEWAY']['route_mode'] == self.Router.Modes.ONLINE.value:
                 results = router.route_online(data={"text":json_body['text'], "number":json_body['number']})
-            # offline routing '''
-            elif configs['GATEWAY']['route_mode'] == self.Route_modes.ONLINE:
+                self.logger(f"Routing results (OFFLINE): {results}")
+
+
+            elif self.config['GATEWAY']['route_mode'] == self.Router.Modes.OFFLINE.value:
                 results = router.route_offline(text=json_body['text'], number=json_body['number'])
-            # online, then offline '''
-            elif configs['GATEWAY']['route_mode'] == self.Route_modes.SWITCH:
+                self.logger(f"Routing results (ONLINE): {results}")
+
+
+            elif self.config['GATEWAY']['route_mode'] == self.Router.Modes.SWITCH.value:
                 try:
                     results = router.route_online(data={"text":json_body['text'], "number":json_body['number']})
+                    self.logger(f"Routing results (SWITCH|ONLINE): {results}")
+
                 except Exception as error:
                     try:
                         results = router.route_offline(text=json_body['text'], number=json_body['number'])
+                        self.logger(f"Routing results (SWITCH|OFFLINE): {results}")
                     except Exception as error:
-                        raise Exception(error)
+                        # raise Exception(error)
+                        log_trace(traceback.format_exc())
+                        raise(error)
+            """
             ''' acks that the message has been received (routed) '''
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-            self.logger(f"Routing results: {results}")
+            self.routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
+            """
+        except self.Router.MissingComponent as error:
+            # print(error)
+            ''' ack so that the messages don't go continue queueing '''
+            self.routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
+            log_trace(traceback.format_exc(), show=True)
         except ConnectionError as error:
             '''
             In the event of a network problem (e.g. DNS failure, refused connection, etc), Requests will raise a ConnectionError exception.
             '''
-            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            self.routing_consume_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
         except requests.Timeout as error:
             '''
             If a request times out, a Timeout exception is raised.
             '''
-            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            self.routing_consume_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
         except requests.TooManyRedirects as error:
             '''
             If a request exceeds the configured number of maximum redirections, a TooManyRedirects exception is raised.
             '''
-            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            self.routing_consume_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
         except Exception as error:
-            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            self.routing_consume_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
             log_trace(traceback.format_exc(), show=True)
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
