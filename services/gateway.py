@@ -2,8 +2,15 @@
 
 from deku import Deku
 from mmcli_python.modem import Modem
+from enum import Enum
 
 class Gateway:
+
+    class Route_modes(Enum):
+        ONLINE='0'
+        OFFLINE='1'
+        SWITCH='2'
+
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         color='\033[32m'
@@ -198,6 +205,63 @@ class Gateway:
             del l_threads[self.m_index]
 
         # self.logger('ending consumption....')
+
+
+        def __sms_routing_callback(self, ch, method, properties, body):
+            json_body = json.loads(body.decode('unicode_escape'))
+            self.logger(f'routing: {json_body}')
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+
+            ''' attempts both forms of routing, then decides if success or failed '''
+            ''' checks config if for which state of routing is activated '''
+            ''' if online only, if offline only, if both '''
+            ''' also looks into which means of routing has been made available (which ISP if offline) '''
+            # if Router.route( body.decode('utf-8')):
+            if not "text" in json_body:
+                log_trace('poorly formed message - text missing')
+                ''' acks so that the message does not go back to the queue '''
+            if not "number" in json_body:
+                log_trace('poorly formed message - number missing')
+                ''' acks so that the message does not go back to the queue '''
+            try:
+                results=None
+                router = Router(url=router_url, priority_offline_isp=offline_isp)
+                # online routing '''
+                if configs['GATEWAY']['route_mode'] == self.Route_modes.OFFLINE:
+                    results = router.route_online(data={"text":json_body['text'], "number":json_body['number']})
+                # offline routing '''
+                elif configs['GATEWAY']['route_mode'] == self.Route_modes.ONLINE:
+                    results = router.route_offline(text=json_body['text'], number=json_body['number'])
+                # online, then offline '''
+                elif configs['GATEWAY']['route_mode'] == self.Route_modes.SWITCH:
+                    try:
+                        results = router.route_online(data={"text":json_body['text'], "number":json_body['number']})
+                    except Exception as error:
+                        try:
+                            results = router.route_offline(text=json_body['text'], number=json_body['number'])
+                        except Exception as error:
+                            raise Exception(error)
+                ''' acks that the message has been received (routed) '''
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                self.logger(f"Routing results: {results}")
+            except ConnectionError as error:
+                '''
+                In the event of a network problem (e.g. DNS failure, refused connection, etc), Requests will raise a ConnectionError exception.
+                '''
+                ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            except requests.Timeout as error:
+                '''
+                If a request times out, a Timeout exception is raised.
+                '''
+                ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            except requests.TooManyRedirects as error:
+                '''
+                If a request exceeds the configured number of maximum redirections, a TooManyRedirects exception is raised.
+                '''
+                ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            except Exception as error:
+                ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+                log_trace(traceback.format_exc(), show=True)
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
