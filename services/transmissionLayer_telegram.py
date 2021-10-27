@@ -21,6 +21,7 @@ import logging
 import configparser
 import traceback
 from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot, ParseMode
+import telegram
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler,Filters
 
 # from node import Node
