@@ -82,24 +82,6 @@ initialize term colors
 '''
 init()
 
-transmission_layer=None
-"""
-try:
-    transmission_layer = TransmissionLayer()
-except CustomConfigParser.NoDefaultFile as error:
-    # raise(error)
-    print(error)
-except CustomConfigParser.ConfigFileNotFound as error:
-    ''' with this implementation, it stops at the first exception - intended?? '''
-    # raise(error)
-    print(error)
-except CustomConfigParser.ConfigFileNotInList as error:
-    # raise(error)
-    print(error)
-except Exception as error:
-    print(error)
-"""
-
 
 class Node:
     m_index = None
@@ -642,7 +624,10 @@ def master_watchdog(config):
             time.sleep(int(config['MODEMS']['sleep_time']))
 
 if __name__ == "__main__":
+    global transmission_layer
+    transmission_layer=None
     try:
+        transmission_layer = TransmissionLayer()
         config=None
         config=CustomConfigParser()
         config=config.read("configs/config.ini")
