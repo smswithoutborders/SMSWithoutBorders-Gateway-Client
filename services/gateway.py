@@ -71,32 +71,33 @@ class Gateway:
             # if error == "[Errno -2] Name or service not known":
             raise(error)
 
-    try:
-        self.routing_consume_connection, self.routing_consume_channel = self.create_channel(
-                connection_url=config['GATEWAY']['connection_url'],
-                callback=self.__sms_routing_callback,
-                durable=True,
-                prefetch_count=1,
-                queue_name=config['GATEWAY']['routing_queue_name'])
-    except pika.exceptions.ConnectionClosedByBroker:
-        raise(error)
-    except pika.exceptions.AMQPChannelError as error:
-        # self.logger("Caught a chanel error: {}, stopping...".format(error))
-        raise(error)
-    except pika.exceptions.AMQPConnectionError as error:
-        # self.logger("Connection was closed, should retry...")
-        raise(error)
-    except socket.gaierror as error:
-        # print(error.__doc__)
-        # print(type(error))
-        # print(error)
-        # if error == "[Errno -2] Name or service not known":
-        raise(error)
 
     def __init__(self, m_index, m_isp, config):
         self.m_index = m_index
         self.m_isp = m_isp
         self.config = config
+
+        try:
+            self.routing_consume_connection, self.routing_consume_channel = self.create_channel(
+                    connection_url=config['GATEWAY']['connection_url'],
+                    callback=self.__sms_routing_callback,
+                    durable=True,
+                    prefetch_count=1,
+                    queue_name=config['GATEWAY']['routing_queue_name'])
+        except pika.exceptions.ConnectionClosedByBroker:
+            raise(error)
+        except pika.exceptions.AMQPChannelError as error:
+            # self.logger("Caught a chanel error: {}, stopping...".format(error))
+            raise(error)
+        except pika.exceptions.AMQPConnectionError as error:
+            # self.logger("Connection was closed, should retry...")
+            raise(error)
+        except socket.gaierror as error:
+            # print(error.__doc__)
+            # print(type(error))
+            # print(error)
+            # if error == "[Errno -2] Name or service not known":
+            raise(error)
 
 
     def __watchdog_incoming(self):
