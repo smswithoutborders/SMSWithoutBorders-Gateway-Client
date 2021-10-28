@@ -2,17 +2,13 @@
 * python3
 * pip3
 * ModemManager (default on linux systems)
-* RabbitMQ
 ```bash
 sudo pacman -S rabbitmq
 ```
 
 #### Installation
 ```bash
-git submodule update --init --recursive
 make
-sudo make install
-sudo make run
 ```
 
 #### Deku Usage
