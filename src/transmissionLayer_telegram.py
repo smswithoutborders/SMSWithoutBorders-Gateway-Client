@@ -45,7 +45,7 @@ class TelegramTransmissionLayer(Deku):
         self.configfile = ".configs/extensions/config.ini"
         self.authorizefile = ".configs/extensions/platforms/telegram.ini"
 
-        self.configreader = CustomConfigParser("..")
+        self.configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
         try:
             self.configs = self.configreader.read(self.configfile)
             self.admins = self.configreader.read(self.authorizefile)
