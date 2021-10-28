@@ -10,7 +10,7 @@ StartLimitIntervalSec=500
 StartLimitBurst=5
 Restart=on-failure
 RestartSec=5s
-ExecStart=python3 /usr/local/bin/deku/package/main.py
+ExecStart=python3 /usr/local/bin/deku/services/main.py
 
 [Install]
 WantedBy=multi-user.target

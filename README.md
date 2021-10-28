@@ -1,69 +1,34 @@
-#### Requirements
-* python3
-* pip3
-* MySQL (mariadb)
-* ModemManager (default on linux systems)
-
+### Cluster - Outgoing SMS messages
+Everything is a file, everything can be configured. \
+Everything is exaggerated to the extent it implies, but there is the option to configure aspects a user will most likely need to customize.
 #### Installation
 ```bash
-git submodule update --init --recursive
+git clone https://github.com/smswithoutborders/Deku.git
+git checkout lightweight
+cd Deku
 make
-# goto package/configs/configs.mysql.ini and configure your settings before proceeding
-# goto package/configs/configs.ini and configure your settings before proceeding
+```
+#### Configuration
+<p>
+Your clusters require a server to communicate with, and you will need to point to this in your configuration files.</p>
 
-sudo make install
-sudo make run
+- Edit (.config/config.ini [.config](example.config.ini))
+```ini
+[NODE]
+api_id=<insert your server username here (same as an Afkanerd developer Auth ID)
+api_key=<insert your server password here (same as an Afkanerd develper Auth Key)
 ```
 
-### API Endpoints
-#### Sending SMS
-> POST: localhost:6868/messages
-```JSON
-{
-	"text" : "",
-	"phonenumber" : ""
-}
+#### Running
+##### Linux
+```bash
+. ~/.virtualenvs/deku/bin/activate
+src/node.py
 ```
 
-#### Reading received SMS messages
-> GET: localhost:6868/messages
-```JSON
-{
-}
-```
 
-#### Checking state
-> GET: localhost:6868/state
-```JSON
-{
-	"status" : 200,
-	"state" : "active" || "inactive"  
-}
-```
-If `status != 200` : No Daemon has not been installed, and is not running manually<br>
-If `status == 200` and `state == "inactive"`: Daemon has not been installed, but is running manually<br>
-If `status == 200` and `state == "failed"`: Daemon successfully installed, but failed to start <br>
-If `status == 200` and `state == "active"`: Daemon has been installed<br>
 
-#### Acquiring logs
-> GET: localhost:6868/logs
-```JSON
-{
-      "date": "Thu, 01 Apr 2021 16:59:01 GMT", 
-      "id": 116, 
-      "mdate": "Thu, 01 Apr 2021 16:59:06 GMT", 
-      "message": "successfully sent the SMS", 
-      "messageID": 110, 
-      "other_id": null, 
-      "status": "sent"
-    },....
-```
-<h2>Notes</h2>
-- if modem is not receiving messages, sometimes it's due to a block casued by queue of 'receiving' messages. 
-Removing all messages, disabling and re-enabling the modems seems to solve it
-
-<h2>Beta features</h2>
 <h3>Setting up on Raspberry pi (tested on 4B)</h3>
 <h4>Ubuntu Server</h4>
-- https://ubuntu.com/tutorials/how-to-install-ubuntu-on-your-raspberry-pi#4-boot-ubuntu-server<br>
-- https://itsfoss.com/connect-wifi-terminal-ubuntu/
+> https://ubuntu.com/tutorials/how-to-install-ubuntu-on-your-raspberry-pi#4-boot-ubuntu-server<br>
+> https://itsfoss.com/connect-wifi-terminal-ubuntu/

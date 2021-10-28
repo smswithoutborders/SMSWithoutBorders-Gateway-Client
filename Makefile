@@ -1,56 +1,25 @@
-# lsb_release -> check versions of linux
-# cat /etc/*release
-# cat /etc/issue
-# cat /etc/issue.net
-# cat /etc/lsb-release
-SHELL := $(shell which bash)
-venv_path=.venv
+python=python3
 pip=pip3
+venv_path := $$HOME/.virtualenvs/deku
+configs:
+	cp .configs/example.config.ini .configs/config.ini
+	cp .configs/events/example.rules.ini .configs/events/rules.ini
+	cp .configs/isp/example.operators.ini .configs/isp/operators.ini
+	cp .configs/extensions/example.config.ini .configs/extensions/config.ini
+	cp .configs/extensions/example.authorize.ini .configs/extensions/authorize.ini
+	cp .configs/extensions/example.labels.ini .configs/extensions/labels.ini
+	cp .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
 
-CONFIGS_PATH=package/configs
-INSTALL_PATH=/usr/local/bin/deku
-SYSTEMD_PATH=/usr/lib/systemd/system
+install:configs
+	python -m virtualenv $(venv_path)
+	( \
+		. $(venv_path)/bin/activate; \
+		pip install -r requirements.txt \
+	)
 
-EXAMPLE_CONFIG_FILE=example.config.ini
-EXAMPLE_CONFIG_MYSQL_FILE=example.config.mysql.ini
+reset:configs
 
-CONFIG_FILE=config.ini
-CONFIG_MYSQL_FILE=config.mysql.ini
 
-PWD := $(shell pwd)
-
-copy_configs:
-	cp -iv $(CONFIGS_PATH)/$(EXAMPLE_CONFIG_FILE) $(CONFIGS_PATH)/$(CONFIG_FILE)
-	cp -iv $(CONFIGS_PATH)/$(EXAMPLE_CONFIG_MYSQL_FILE) $(CONFIGS_PATH)/$(CONFIG_MYSQL_FILE)
-
-install_deps:requirements.txt
-	sudo $(pip) install -r requirements.txt
-	git submodule update --init --recursive
-
-install:install_deps
-	# sudo ln -s "$(pwd)" $(INSTALL_PATH)
-	sudo cp -rv "$(PWD)" $(INSTALL_PATH)
-	if [ -f /etc/debian_version ]; then \
-		if [ -f "$(INSTALL_PATH)"/install/system/debian/deku.service ]; then \
-		sudo ln -s "$(INSTALL_PATH)"/install/system/debian/deku.service $(SYSTEMD_PATH)/deku.service; \
-		fi \
-	fi
-	
-	if [ -f /etc/manjaro-release ]; then \
-		if [ -f "$(INSTALL_PATH)"/install/system/arch/deku.service ]; then \
-		sudo ln -s "$(INSTALL_PATH)"/install/system/arch/deku.service $(SYSTEMD_PATH)/deku.service; \
-		fi \
-	fi
-	sudo systemctl daemon-reload
-
-run: 
-	test -f $(SYSTEMD_PATH)/deku.service && \
-	sudo systemctl start deku.service && \
-	sudo systemctl enable deku.service
-
-remove:
-	sudo rm -rv $(INSTALL_PATH)
-	sudo rm -v $(SYSTEMD_PATH)/deku.service
-	sudo systemctl daemon-reload
-	sudo systemctl kill deku.service
-	sudo systemctl disable deku.service
+uninstall:
+	rm -rf $(venv_path)
+	# rm -rf .configs
