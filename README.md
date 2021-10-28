@@ -4,7 +4,6 @@ Everything is exaggerated to the extent it implies, but there is the option to c
 #### Installation
 ```bash
 git clone https://github.com/smswithoutborders/Deku.git
-git checkout lightweight
 cd Deku
 make
 ```
