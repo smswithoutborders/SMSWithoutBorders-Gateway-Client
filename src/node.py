@@ -264,7 +264,7 @@ class Node:
 
         """
         event_rules=configparser.ConfigParser()
-        event_rules.read(os.path.join(os.path.dirname(__file__), 'configs/events', f'rules.ini'))
+        event_rules.read(os.path.join(os.path.dirname(__file__), '.configs/events', f'rules.ini'))
         """
         # event_rules.read(os.path.join(os.path.dirname(__file__), 'configs/events', f'rules.ini'))
 
@@ -528,8 +528,8 @@ def master_watchdog(config):
     ''' instantiate configuration for all of Deku '''
     try:
         Deku()
-        configreader=CustomConfigParser()
-        config_event_rules=configreader.read("configs/events/rules.ini")
+        configreader=CustomConfigParser("..")
+        config_event_rules=configreader.read(".configs/events/rules.ini")
     except CustomConfigParser.NoDefaultFile as error:
         raise(error)
     except CustomConfigParser.ConfigFileNotFound as error:
@@ -626,11 +626,13 @@ def master_watchdog(config):
 if __name__ == "__main__":
     global transmission_layer
     transmission_layer=None
+    print(os.getcwd())
+    # CustomConfigParser("..")
     try:
         transmission_layer = TransmissionLayer()
         config=None
-        config=CustomConfigParser()
-        config=config.read("configs/config.ini")
+        config=CustomConfigParser("..")
+        config=config.read(".configs/config.ini")
 
         print('* master watchdog booting up')
         master_watchdog(config)
