@@ -44,7 +44,7 @@ class Deku(Modem):
         @classmethod
         def __init__(cls):
             try:
-                cls.config = CustomConfigParser("..")
+                cls.config=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
                 cls.config_isp_default = cls.config.read('.configs/isp/default.ini')
                 cls.config_isp_operators = cls.config.read('.configs/isp/operators.ini')
             except CustomConfigParser.NoDefaultFile as error:
@@ -366,7 +366,7 @@ class Deku(Modem):
         try:
             cls.ISP()
 
-            cls.configreader=CustomConfigParser("..")
+            cls.configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
             cls.config=cls.configreader.read('.configs/config.ini')
             # print('instantiated new Deku')
         except CustomConfigParser.NoDefaultFile as error:

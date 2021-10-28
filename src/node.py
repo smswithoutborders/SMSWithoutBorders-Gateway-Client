@@ -528,7 +528,7 @@ def master_watchdog(config):
     ''' instantiate configuration for all of Deku '''
     try:
         Deku()
-        configreader=CustomConfigParser("..")
+        configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
         config_event_rules=configreader.read(".configs/events/rules.ini")
     except CustomConfigParser.NoDefaultFile as error:
         raise(error)
@@ -631,7 +631,7 @@ if __name__ == "__main__":
     try:
         transmission_layer = TransmissionLayer()
         config=None
-        config=CustomConfigParser("..")
+        config=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
         config=config.read(".configs/config.ini")
 
         print('* master watchdog booting up')
