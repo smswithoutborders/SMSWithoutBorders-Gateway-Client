@@ -42,13 +42,13 @@ class TelegramTransmissionLayer(Deku):
         super().__init__()
         self.configs=None
         self.admins=None
-        self.configfile = "extensions/config.ini"
-        self.adminfile = "extensions/telegram.ini"
+        self.configfile = ".configs/extensions/config.ini"
+        self.authorizefile = ".configs/extensions/platforms/telegram.ini"
 
-        self.configreader = CustomConfigParser()
+        self.configreader = CustomConfigParser("..")
         try:
             self.configs = self.configreader.read(self.configfile)
-            self.admins = self.configreader.read(self.adminfile)
+            self.admins = self.configreader.read(self.authorizefile)
         except CustomConfigParser.NoDefaultFile as error:
             raise(error)
         except CustomConfigParser.ConfigFileNotFound as error:
@@ -61,7 +61,7 @@ class TelegramTransmissionLayer(Deku):
         self.configs.read(self.configfile)
 
         self.admins = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-        self.admins.read(self.adminfile)
+        self.admins.read(self.authorizefile)
 
         try:
             self.token = self.configs['TELEGRAM']['token']
@@ -152,7 +152,7 @@ class TelegramTransmissionLayer(Deku):
             phonenumber = '+' + phonenumber
 
         if phonenumber in self.admins['WHITELIST']:
-            with open(self.adminfile, 'w') as fd_admin_list:
+            with open(self.authorizefile, 'w') as fd_admin_list:
                 self.admins['WHITELIST'][phonenumber] = str(chat_id)
                 self.admins.write(fd_admin_list)
 
@@ -198,8 +198,8 @@ class TelegramTransmissionLayer(Deku):
 if __name__ == "__main__":
     import sys
 
-    configfile = 'extensions/config.ini'
-    adminfile = 'extensions/telegram.ini'
+    configfile = '.configs/extensions/config.ini'
+    authorizefile = '.configs/extensions/platform/telegram.ini'
     """
     configfile=os.path.join(os.path.dirname(__file__), 'extensions', 'config.ini')
     adminfile=os.path.join(os.path.dirname(__file__), 'extensions', 'telegram.ini')
@@ -217,7 +217,7 @@ if __name__ == "__main__":
         text = sys.argv[1]
 
         admin = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-        admin.read(adminfile)
+        admin.read(authorizefile)
 
         telegram_layer = TelegramTransmissionLayer()
         # telegram_layer.send_message(token, chat_id=admin['WHITELIST'][number], text=text)
