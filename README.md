@@ -18,7 +18,7 @@ make
 <p>
 Your clusters require a server to communicate with, and you will need to point to this in your configuration files.</p>
 
-- Edit `.config/config.ini` ref:[example.config.ini](.configs/example.config.ini)`
+- Edit `.config/config.ini` ref:[example.config.ini](.configs/example.config.ini)
 ```ini
 [NODE]
 api_id=<insert your server username here (same as an Afkanerd developer Auth ID)
