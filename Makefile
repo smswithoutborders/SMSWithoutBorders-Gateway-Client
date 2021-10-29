@@ -11,10 +11,10 @@ configs:
 	cp .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
 
 install:configs
-	python -m virtualenv $(venv_path)
+	$(python) -m virtualenv $(venv_path)
 	( \
 		. $(venv_path)/bin/activate; \
-		pip install -r requirements.txt \
+		$(pip) install -r requirements.txt \
 	)
 
 reset:configs
