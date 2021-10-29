@@ -13,6 +13,7 @@ pip3 install virtualenv
 git clone https://github.com/smswithoutborders/Deku.git
 cd Deku
 make
+make install
 ```
 #### Configuration
 <p>
