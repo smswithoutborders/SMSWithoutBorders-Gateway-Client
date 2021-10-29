@@ -1,6 +1,12 @@
 ### Cluster - Outgoing SMS messages
-Everything is a file, everything can be configured. \
-Everything is exaggerated to the extent it implies, but there is the option to configure aspects a user will most likely need to customize.
+[insert full description of Clusters and how they work]
+
+##### node
+[insert description]
+##### server
+[insert description]
+
+
 #### Installation
 ```bash
 git clone https://github.com/smswithoutborders/Deku.git
