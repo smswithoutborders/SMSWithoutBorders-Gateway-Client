@@ -11,12 +11,23 @@ make
 <p>
 Your clusters require a server to communicate with, and you will need to point to this in your configuration files.</p>
 
-- Edit (.config/config.ini [.config](example.config.ini))
+- Edit `.config/config.ini` ref:[.config](example.config.ini)`
 ```ini
 [NODE]
 api_id=<insert your server username here (same as an Afkanerd developer Auth ID)
 api_key=<insert your server password here (same as an Afkanerd develper Auth Key)
 ```
+
+##### configure events
+There are 2 types of events (FAILED, SUCCESS). For each event, an array of ACIONS can be listed. \
+Each event can be configured to trigger an event when certain values are met. \
+**Important** Event rules are not ISP specific and would be triggered regardless of modem's ISP\
+
+- Edit `.config/events/rules.ini` ref:[.config/events](example.rules.ini)`
+
+##### configure Deku
+Commands for Deku can be automated. Using the `--label` flag you can trigger commands found in the label config file.
+- Edit `.config/extensions/labels.ini` ref:[.config/extensions](example.labels.ini)
 
 #### Running
 ##### Linux
