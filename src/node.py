@@ -56,7 +56,7 @@ from colorama import init
 
 # from configparser import configparser.ConfigParser, ExtendedInterpolation
 import configparser
-from CustomConfigParser.customconfigparser import CustomConfigParser
+from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 import pika
 

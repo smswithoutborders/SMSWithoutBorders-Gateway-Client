@@ -9,6 +9,7 @@ configs:
 	cp .configs/extensions/example.authorize.ini .configs/extensions/authorize.ini
 	cp .configs/extensions/example.labels.ini .configs/extensions/labels.ini
 	cp .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
+	git submodule update --init --recursive
 
 install:configs
 	$(python) -m virtualenv $(venv_path)

@@ -28,7 +28,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandle
 # import node.Node
 from deku import Deku
 from mmcli_python.modem import Modem
-from CustomConfigParser.customconfigparser import CustomConfigParser 
+from common.CustomConfigParser.customconfigparser import CustomConfigParser 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
