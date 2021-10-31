@@ -27,7 +27,7 @@ api_key=<insert your server password here (same as an Afkanerd develper Auth Key
 ```
 
 ##### configure events
-There are 2 types of events (FAILED, SUCCESS). For each event, an array of ACIONS can be listed. \
+There are 2 types of events (FAILED, SUCCESS). For each event, an array of ACTIONS can be listed. \
 Each event can be configured to trigger an event when certain values are met. \
 **Important** Event rules are not ISP specific and would be triggered regardless of modem's ISP\
 
