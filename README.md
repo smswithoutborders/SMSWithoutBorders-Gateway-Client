@@ -43,6 +43,10 @@ Commands for Deku can be automated. Using the `--label` flag you can trigger com
 . ~/.virtualenvs/deku/bin/activate
 src/node.py
 ```
+<b>To view all running logs</b>
+```bash
+tail -f src/service_files/logs/logs_nodes.txt
+```
 
 
 
