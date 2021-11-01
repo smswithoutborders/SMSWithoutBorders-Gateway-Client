@@ -41,14 +41,12 @@ class TelegramTransmissionLayer(Deku):
     def __init__(self):
         super().__init__()
         self.configs=None
-        self.admins=None
-        self.configfile = ".configs/extensions/config.ini"
-        self.authorizefile = ".configs/extensions/platforms/telegram.ini"
+        self.configfile = ".configs/extensions/platforms/telegram.ini"
 
         self.configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
         try:
             self.configs = self.configreader.read(self.configfile)
-            self.admins = self.configreader.read(self.authorizefile)
+            # self.configs = self.configreader.read(self.authorizefile)
         except CustomConfigParser.NoDefaultFile as error:
             raise(error)
         except CustomConfigParser.ConfigFileNotFound as error:
@@ -59,9 +57,6 @@ class TelegramTransmissionLayer(Deku):
 
         self.configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         self.configs.read(self.configfile)
-
-        self.admins = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-        self.admins.read(self.authorizefile)
 
         try:
             self.token = self.configs['TELEGRAM']['token']
@@ -151,10 +146,10 @@ class TelegramTransmissionLayer(Deku):
         if phonenumber[0] != '+':
             phonenumber = '+' + phonenumber
 
-        if phonenumber in self.admins['WHITELIST']:
-            with open(self.authorizefile, 'w') as fd_admin_list:
-                self.admins['WHITELIST'][phonenumber] = str(chat_id)
-                self.admins.write(fd_admin_list)
+        if phonenumber in self.configs['WHITELIST']:
+            with open(self.configfile, 'w') as fd_admin_list:
+                self.configs['WHITELIST'][phonenumber] = str(chat_id)
+                self.configs.write(fd_admin_list)
 
             return True
         else:
@@ -178,7 +173,7 @@ class TelegramTransmissionLayer(Deku):
 
     def send(self, text):
         ''' read every whitelist chat id '''
-        list_chat_ids = self.admins['WHITELIST']
+        list_chat_ids = self.configs['WHITELIST']
         for phonenumber, chat_id in list_chat_ids.items():
             print(f"* sending text to: {phonenumber}")
             if chat_id is not None or chat_id != '':
@@ -199,7 +194,6 @@ if __name__ == "__main__":
     import sys
 
     configfile = '.configs/extensions/config.ini'
-    authorizefile = '.configs/extensions/platform/telegram.ini'
     """
     configfile=os.path.join(os.path.dirname(__file__), 'extensions', 'config.ini')
     adminfile=os.path.join(os.path.dirname(__file__), 'extensions', 'telegram.ini')
@@ -217,7 +211,7 @@ if __name__ == "__main__":
         text = sys.argv[1]
 
         admin = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-        admin.read(authorizefile)
+        admin.read(configfile)
 
         telegram_layer = TelegramTransmissionLayer()
         # telegram_layer.send_message(token, chat_id=admin['WHITELIST'][number], text=text)

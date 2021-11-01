@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 ''' Telegram '''
+import telegram
 from transmissionLayer_telegram import TelegramTransmissionLayer
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
@@ -24,9 +25,12 @@ class TransmissionLayer:
         except CustomConfigParser.ConfigFileNotInList as error:
             raise(error)
             # print(error)
+        except telegram.error.InvalidToken as error:
+            # print(error)
+            # raise(error)
+            print("* Telegram not activated:", error)
         except Exception as error:
-            print(error)
-
+            raise(error)
 
     # def send(self, data, tranmission_platform='telegram'):
     @classmethod
