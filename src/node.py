@@ -8,80 +8,20 @@ import socket
 import subprocess
 import json
 import time
-# import requests
-
-from transmissionLayer import TransmissionLayer
-''' testing criterias----
-- when modem is present a node should start up
-    - should be able to receive messages from a producer
-'''
-
-''' protocol
-- queues hold messages
-- nodes listen on queues
-- messages are routed to queues from exchanges
-
-- gateway states
-    - online -> messages come directly from server
-    (this is the case we're looking at)
-    - offline -> messages come from sms services like Twilio
-
-- user_id:user_key = exchange
-- nodes id becomes topics to listen to <issues aren't what the nodes want to hear, but what the clients are sending>
-
-## exchange and queue should be static and known only to the host
-exchange_name="DEKU_CLUSTER"
-queue_name="OUTGOING_SMS"
-
-exchange_name = <would depend on the server configuration>
-queue_name = <would depend on the server configuration>
-
-exchange type: topic
-topic methods
--> 12345.1a2b3c.MTN
--> dev_id.node_id.isp
-'''
-
-''' TODO <lookup>:
-- authenticate nodes when connecting
-- make sure messages are not persistent
-- stop nodes from declaring exchange and queues
-'''
-
-from datetime import datetime
-from enum import Enum
+import pika
+import configparser
 
 from colorama import init
-# from termcolor import colored
-
-# from configparser import configparser.ConfigParser, ExtendedInterpolation
-import configparser
-from common.CustomConfigParser.customconfigparser import CustomConfigParser
-
-import pika
+from datetime import datetime
+from enum import Enum
 
 # sys.path.append(os.path.abspath(os.getcwd()))
 from deku import Deku
 from mmcli_python.modem import Modem
+from transmissionLayer import TransmissionLayer
+from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
-
-"""
-config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
-"""
-
-
-''' 
-- monitor for modem comes and goes
-- matching with index, because if index changes, the consumer should restart
-or update adequately... tho not sure if to just restart or update'''
-l_threads={}
-
-'''
-initialize term colors
-'''
 init()
-
 
 class Node:
     m_index = None
@@ -190,17 +130,25 @@ class Node:
         self.m_isp = m_isp
         try:
             self.logger("Attempting connection...")
+
             self.outgoing_connection, self.outgoing_channel = create_channel(
                     connection_url=config['NODE']['connection_url'],
-                    queue_name=config['NODE']['api_id'] + '_' + config['NODE']['outgoing_queue_name'] + '_' + m_isp,
+                    queue_name=(
+                        config['NODE']['api_id'] 
+                        + '_' + config['NODE']['outgoing_queue_name'] 
+                        + '_' + m_isp),
                     username=config['NODE']['api_id'],
                     password=config['NODE']['api_key'],
                     exchange_name=config['NODE']['outgoing_exchange_name'],
                     exchange_type=config['NODE']['outgoing_exchange_type'],
-                    binding_key=config['NODE']['api_id'] + '_' + config['NODE']['outgoing_queue_name'] + '.' + m_isp,
+                    binding_key=(
+                        config['NODE']['api_id'] 
+                        + '_' + config['NODE']['outgoing_queue_name'] 
+                        + '.' + m_isp),
                     callback=self.__sms_outgoing_callback,
                     durable=True,
                     prefetch_count=1)
+
             self.status_file=os.path.join( os.path.dirname(__file__), 'service_files/status', f'{Modem(self.m_index).imei}.ini')
             generate_status_file(self.status_file)
             self.logger("Connected successfully...")
@@ -317,7 +265,6 @@ class Node:
                 print(output)
 
                 ''' check transmission state '''
-
                 while( ('ACTION'+str(i)) in self.config_event_rules[category.value]):
                     # action = self.config_event_rules[category.value]['ACTION'+str(i)]
                     output=event_run(self.config_event_rules[category.value]['ACTION'+str(i)])
@@ -623,13 +570,30 @@ def master_watchdog(config):
 
             time.sleep(int(config['MODEMS']['sleep_time']))
 
-if __name__ == "__main__":
+def initiate_transmissions():
     global transmission_layer
     transmission_layer=None
-    print(os.getcwd())
-    # CustomConfigParser("..")
+
     try:
         transmission_layer = TransmissionLayer()
+    except CustomConfigParser.NoDefaultFile as error:
+        print(traceback.format_exc())
+    except CustomConfigParser.ConfigFileNotFound as error:
+        ''' with this implementation, it stops at the first exception - intended?? '''
+        print(traceback.format_exc())
+    except CustomConfigParser.ConfigFileNotInList as error:
+        print(traceback.format_exc())
+    except Exception as error:
+        # print(vars(error))
+        log_trace(traceback.format_exc())
+
+if __name__ == "__main__":
+    global l_threads
+    l_threads = {}
+
+    initiate_transmissions()
+
+    try:
         config=None
         config=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
         config=config.read(".configs/config.ini")

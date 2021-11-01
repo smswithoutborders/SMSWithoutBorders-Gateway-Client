@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 ''' Telegram '''
-import telegram
 from transmissionLayer_telegram import TelegramTransmissionLayer
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 class TransmissionLayer:
     @classmethod
     def __init__(cls):
+        import telegram
         ''' declare your layers here '''
         try:
             cls.telegram = TelegramTransmissionLayer()
@@ -26,9 +26,7 @@ class TransmissionLayer:
             raise(error)
             # print(error)
         except telegram.error.InvalidToken as error:
-            # print(error)
-            # raise(error)
-            print("* Telegram not activated:", error)
+            raise Exception("Telegram not activated: InvalidToken")
         except Exception as error:
             raise(error)
 
