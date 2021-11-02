@@ -1,4 +1,4 @@
-=### <a name="cluster_outgoing_sms"></a> Cluster - Outgoing SMS messages
+### <a name="cluster_outgoing_sms"></a> Cluster - Outgoing SMS messages
 [insert full description of Clusters and how they work]
 
 ##### node
