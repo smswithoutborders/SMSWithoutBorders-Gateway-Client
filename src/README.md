@@ -19,7 +19,7 @@ make install
 <p>
 Your clusters require a server to communicate with, and you will need to point to this in your configuration files.</p>
 
-- Edit `.config/config.ini` ref:[example.config.ini](.configs/example.config.ini)
+- Edit `.config/config.ini` ref:[link to example config file](.configs/example.config.ini)
 ```ini
 [NODE]
 api_id=<insert your server username here (same as an Afkanerd developer Auth ID)
@@ -29,13 +29,17 @@ api_key=<insert your server password here (same as an Afkanerd develper Auth Key
 ##### configure events
 There are 2 types of events (FAILED, SUCCESS). For each event, an array of ACTIONS can be listed. \
 Each event can be configured to trigger an event when certain values are met. \
-**Important** Event rules are not ISP specific and would be triggered regardless of modem's ISP\
+**Important** Event rules are not ISP specific and would be triggered regardless of modem's ISP \
 
-- Edit `.config/events/rules.ini` ref:[example.rules.ini](.configs/events/example.rules.ini)
+- Edit `.config/events/rules.ini` ref:[link to example rules](.configs/events/example.rules.ini)
 
-##### configure Deku
-Commands for Deku can be automated. Using the `--label` flag you can trigger commands found in the label config file.
-- Edit `.config/extensions/labels.ini` ref:[example.labels.ini](.configs/exensions/example.labels.ini)
+##### configure transmissions for events
+Transmissions provide a means of externally receiving the states/results of triggered events. \
+The means of transmission can be customized to third-party platforms you prefer e.g Telegram (default). \
+\
+To automatically enable transmissions, provide the required authentication details for whichever platforms you intend to use as a means for transmission.
+- Edit `.config/extensions/platforms/telegram.ini` ref:[link Telegram config file](.configs/extensions/platforms/example.telegram.ini) \
+All other supported platforms are placed in `.configs/extensions/platforms/
 
 #### Running
 ##### Linux
