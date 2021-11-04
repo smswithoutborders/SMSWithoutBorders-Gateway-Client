@@ -14,57 +14,11 @@ from deku import Deku
 from mmcli_python.modem import Modem
 from enum import Enum
 
-from CustomConfigParser.customconfigparser import CustomConfigParser
+from common.CustomConfigParser.customconfigparser import CustomConfigParser
+from router import Router
 
 # l_threads = {}
-class Gateway:
-
-    class Router:
-        class Modes(Enum):
-            ONLINE='0'
-            OFFLINE='1'
-            SWITCH='2'
-
-        class MissingComponent(Exception):
-            def __init__(self, component):
-                self.component = component
-
-        def __init__(self, url, priority_offline_isp):
-            self.url = url
-            self.priority_offline_isp = priority_offline_isp
-
-        def route_online(self, data):
-            if not "text" in data:
-                raise self.MissingComponent("text")
-            if not "number" in data:
-                raise self.MissingComponent("number")
-
-            try:
-                print("Preparing to route...")
-                response = requests.post(url=self.url, json=data)
-                print(response)
-            except requests.HTTPError as error:
-                print("* Failed to route request")
-                print("\t* Text:", response.text)
-                print("\t* status code:", response.status_code)
-
-                print(error)
-                log_trace(traceback.format_exc())
-                raise(error)
-            except Exception as error:
-                # print(traceback.format_exc())
-                print(error)
-                log_trace(traceback.format_exc())
-                raise(error)
-            else:
-                print("* Successfully routed request")
-                print("\t* response:", response)
-            
-
-        def route_offline(self, text, number):
-            print("* Routing offline...")
-
-
+class Gateway(Router):
 
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -77,12 +31,12 @@ class Gateway:
             print(color + timestamp + f'\t* [{self.m_isp}|{self.m_index}] {text}')
         print('\x1b[0m')
 
-    def create_channel(self, connection_url, queue_name, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
+    def create_channel(self, connection_url, queue_name, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0, connection_port=5672):
         credentials=None
         try:
             # TODO: port should come from config
             # parameters=pika.ConnectionParameters(connection_url, 5672, '/', credentials)
-            parameters=pika.ConnectionParameters(connection_url, 5672, '/')
+            parameters=pika.ConnectionParameters(connection_url, connection_port, '/')
             connection=pika.BlockingConnection(parameters=parameters)
             channel=connection.channel()
             channel.queue_declare(queue_name, durable=durable)
@@ -116,7 +70,8 @@ class Gateway:
             raise(error)
 
 
-    def __init__(self, m_index, m_isp, config):
+    def __init__(self, m_index, m_isp, config, url, priority_offline_isp, ssl=None):
+        super().__init__(url=url, priority_offline_isp=priority_offline_isp, ssl=ssl)
         self.m_index = m_index
         self.m_isp = m_isp
         self.config = config
@@ -154,12 +109,12 @@ class Gateway:
 
 
             self.logger('watchdog incoming gone into effect...')
-            messages=Modem(self.m_index).SMS.list('received')
+            # messages=Modem(self.m_index).SMS.list('received')
 
             modem = Modem(self.m_index)
             while(Deku.modem_ready(self.m_index)):
                 # self.logger('checking for incoming messages...')
-                # messages=modem.SMS.list('received')
+                messages=modem.SMS.list('received')
                 for msg_index in messages:
                     sms=Modem.SMS(index=msg_index)
 
@@ -182,7 +137,6 @@ class Gateway:
                     # modem.delete(msg_index)
 
                 messages=[]
-
 
                 time.sleep(int(config['MODEMS']['sleep_time']))
 
@@ -289,35 +243,37 @@ class Gateway:
             ''' acks so that the message does not go back to the queue '''
         try:
             results=None
-            router = self.Router(url=self.config['ROUTER']['default'], priority_offline_isp=self.config['ROUTER']['isp'])
-            if self.config['GATEWAY']['route_mode'] == self.Router.Modes.ONLINE.value:
-                results = router.route_online(data={"text":json_body['text'], "number":json_body['number']})
+            json_data = json.dumps({"text":json_body['text'], "number":json_body['number']})
+            # router = self.Router(url=self.config['ROUTER']['default'], priority_offline_isp=self.config['ROUTER']['isp'])
+            if self.config['GATEWAY']['route_mode'] == self.Modes.ONLINE.value:
+                results = self.route_online(data=json_data)
+                self.logger(f"Routing results (ONLINE): {results.text} {results.status_code}")
+
+
+            elif self.config['GATEWAY']['route_mode'] == self.Modes.OFFLINE.value:
+                results = self.route_offline(text=json_body['text'], number=json_body['number'])
                 self.logger(f"Routing results (OFFLINE): {results}")
 
 
-            elif self.config['GATEWAY']['route_mode'] == self.Router.Modes.OFFLINE.value:
-                results = router.route_offline(text=json_body['text'], number=json_body['number'])
-                self.logger(f"Routing results (ONLINE): {results}")
-
-
-            elif self.config['GATEWAY']['route_mode'] == self.Router.Modes.SWITCH.value:
+            elif self.config['GATEWAY']['route_mode'] == self.Modes.SWITCH.value:
                 try:
-                    results = router.route_online(data={"text":json_body['text'], "number":json_body['number']})
+                    results = self.route_online(data=json_data)
                     self.logger(f"Routing results (SWITCH|ONLINE): {results}")
 
                 except Exception as error:
                     try:
-                        results = router.route_offline(text=json_body['text'], number=json_body['number'])
+                        results = self.route_offline(text=json_body['text'], number=json_body['number'])
                         self.logger(f"Routing results (SWITCH|OFFLINE): {results}")
                     except Exception as error:
                         # raise Exception(error)
                         log_trace(traceback.format_exc())
                         raise(error)
-            """
+            else:
+                self.logger(f"Invalid routing protocol", output="stderr")
+
             ''' acks that the message has been received (routed) '''
             self.routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
-            """
-        except self.Router.MissingComponent as error:
+        except self.MissingComponent as error:
             # print(error)
             ''' ack so that the messages don't go continue queueing '''
             self.routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
@@ -409,7 +365,7 @@ def master_watchdog(config):
                         continue
 
                     try:
-                        gateway=Gateway(m_index=m_index, m_isp=m_isp, config=config)
+                        gateway=Gateway(m_index=m_index, m_isp=m_isp, config=config, url=config['ROUTER']['default'], priority_offline_isp=config['ROUTER']['isp'])
                         # print(outgoing_node, outgoing_node.__dict__)
                         gateway_thread=threading.Thread(target=gateway.start_consuming, daemon=True)
 
@@ -464,7 +420,7 @@ if __name__ == "__main__":
     ''' checks for incoming messages and routes them '''
     config=None
     config=CustomConfigParser()
-    config=config.read("configs/config.ini")
+    config=config.read(".configs/config.ini")
 
     master_watchdog(config)
     exit(0)

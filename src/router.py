@@ -2,17 +2,27 @@
 
 '''
 - messages are routed using rabbitmq
-- the receiver holds the routing service
-'''
+- the receiver holds the routing service '''
 
 
+import json
 import requests
+from enum import Enum
 
 class Router:
+    class Modes(Enum):
+        OFFLINE='0'
+        ONLINE='1'
+        SWITCH='2'
+
+    class MissingComponent(Exception):
+        def __init__(self, component):
+            self.component = component
+
     ssl = None
     # def __init__(self, cert, key):
-    def __init__(self, url=router_url, priority_offline_isp, ssl=None)
-        self.ssl = ssl
+    def __init__(self, url, priority_offline_isp, ssl=None):
+        self.ssl = ssl 
         self.url = url
         self.priority_offline_isp = priority_offline_isp
 
@@ -23,6 +33,7 @@ class Router:
 
 
     def route_online(self, data, protocol='GET', url=None):
+        print(f"* routing online {data} {protocol}")
         results=None
         is_json=False
 
@@ -36,27 +47,27 @@ class Router:
             if protocol == 'GET': 
                 if is_json:
                     if self.ssl is not None:
-                        results = requests.get(url, json=data, verify=True, cert=ssl)
+                        results = requests.get(self.url, json=data, verify=True, cert=ssl)
                     else:
-                        results = requests.get(url, json=data)
+                        results = requests.get(self.url, json=data)
                 else:
                     if self.ssl is not None:
-                        results = requests.get(url, data=data, verify=True, cert=ssl)
+                        results = requests.get(self.url, data=data, verify=True, cert=ssl)
                     else:
-                        results = requests.get(url, data=data)
+                        results = requests.get(self.url, data=data)
 
 
             if protocol == 'POST': 
                 if is_json:
                     if self.ssl is not None:
-                        results = requests.post(url, json=data, verify=True, cert=ssl)
+                        results = requests.post(self.url, json=data, verify=True, cert=ssl)
                     else:
-                        results = requests.post(url, json=data)
+                        results = requests.post(self.url, json=data)
                 else:
                     if self.ssl is not None:
-                        results = requests.post(url, data=data, verify=True, cert=ssl)
+                        results = requests.post(self.url, data=data, verify=True, cert=ssl)
                     else:
-                        results = requests.post(url, data=data)
+                        results = requests.post(self.url, data=data)
 
         except ConnectionError as error:
             '''
@@ -80,6 +91,7 @@ class Router:
 
 if __name__ == "__main__":
     data=json.dumps({"text":"Hello world", "number":"0000"})
-    router = Router(url='http://localhost', priority_offline_isp='orange')
-    router.route(data=data)
-    router.route(data=data, protocol='POST')
+    router = Router(url='http://localhost:6969', priority_offline_isp='orange')
+    # router.route_online(data=data)
+    results = router.route_online(data=data, protocol='POST')
+    print(results.text, results.status_code)
