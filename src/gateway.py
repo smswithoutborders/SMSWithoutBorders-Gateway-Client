@@ -134,7 +134,7 @@ class Gateway(Router):
                     ''' delete messages from here '''
                     ''' use mockup so testing can continue '''
                     # self.logger(f"Published...")
-                    # modem.delete(msg_index)
+                    modem.SMS.delete(msg_index)
 
                 messages=[]
 
@@ -280,7 +280,7 @@ class Gateway(Router):
             # print(error)
             ''' ack so that the messages don't go continue queueing '''
             self.routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
-            log_trace(traceback.format_exc(), show=True)
+            log_trace(traceback.format_exc())
         except ConnectionError as error:
             '''
             In the event of a network problem (e.g. DNS failure, refused connection, etc), Requests will raise a ConnectionError exception.
@@ -298,7 +298,7 @@ class Gateway(Router):
             self.routing_consume_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
         except Exception as error:
             self.routing_consume_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
-            log_trace(traceback.format_exc(), show=True)
+            log_trace(traceback.format_exc())
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
