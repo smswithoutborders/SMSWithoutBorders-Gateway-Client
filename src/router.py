@@ -36,7 +36,6 @@ class Router(Deku):
         find modems for matching isp
         send sms and fail if not delivered
         '''
-        """
         try:
             self.send(
                     text=text,
@@ -47,7 +46,6 @@ class Router(Deku):
             raise error
         except Exception as error:
             raise error
-        """
 
 
     def route_online(self, data, protocol='GET', url=None):
