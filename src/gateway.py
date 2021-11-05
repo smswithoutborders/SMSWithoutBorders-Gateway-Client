@@ -261,7 +261,7 @@ class Gateway(Router):
             elif self.config['GATEWAY']['route_mode'] == self.Modes.SWITCH.value:
                 try:
                     results = self.route_online(data=json_data)
-                    self.logger(f"Routing results (SWITCH|ONLINE): {results}")
+                    self.logger(f"Routing results (ONLINE): {results.text} {results.status_code}")
 
                 except Exception as error:
                     try:
