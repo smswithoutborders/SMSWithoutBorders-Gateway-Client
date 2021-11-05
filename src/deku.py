@@ -234,7 +234,7 @@ class Deku(Modem):
 
     @classmethod
     # def send(text, number, timeout=20, q_exception:queue=None, identifier=None, t_lock:threading.Lock=None):
-    def send(cls, text, number, timeout=20, number_isp=True, m_index=None, q_exception:queue=None, identifier=None, lock:threading.Lock=None):
+    def send(cls, text, number, timeout=20, number_isp=True, m_index=None, q_exception:queue=None, identifier=None, isp=None, remove_lock=True):
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -262,15 +262,16 @@ class Deku(Modem):
 
 
         ''' determines if to check the isp of the number - best used without node '''
-        isp=None
         index=[]
         if m_index is None:
-            if number_isp:
+            country = cls.config['ISP']['country']
+            if isp is not None:
+                index= Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
+            elif number_isp:
                 """
                 config = configparser.ConfigParser()
                 config.read(os.path.join(os.path.dirname(__file__), 'configs', 'config.ini'))
                 """
-                country = cls.config['ISP']['country']
                 print(f'number {number}, country {country}')
                 isp=Deku.ISP.determine(number=number, country=country)
 
@@ -278,11 +279,11 @@ class Deku(Modem):
                     '''invalid number, should completely delete this from queueu'''
                     raise Deku.InvalidNumber(number, 'invalid number')
 
-                index= Deku.modems_ready(isp=isp, country=country)
+                index= Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
             else:
                 index=Deku.modems_ready()
         else:
-            index=Deku.modems_ready(m_index=m_index)
+            index=Deku.modems_ready(m_index=m_index, remove_lock=remove_lock)
         print('ready index:', index)
 
         # print('available modem with index at', index)
@@ -290,11 +291,6 @@ class Deku(Modem):
 
         if len(index) < 1:
             msg=f'message[{identifier}] - no available modem for type {isp}'
-
-            ''' release thread lock '''
-            if lock is not None and lock.locked():
-                lock.release()
-                print('\tthread lock released')
 
             if q_exception is not None:
                 q_exception.put(Exception(json.dumps({"msg":msg, "_id":identifier})))
@@ -332,9 +328,6 @@ class Deku(Modem):
                 write_config['LOCKS']['START_TIME'] = str(time.time())
                 write_config.write(lock_file)
                 # print(f'BUSY lock file created - {write_config.sections()}')
-            if lock is not None and lock.locked():
-                lock.release()
-                # print('\tthread lock released')
 
             # if Modem(index).SMS.set(text=text, number=number).send(timeout=timeout):
             modem=modem.SMS.set(text=text, number=number)
@@ -474,7 +467,8 @@ if __name__ == "__main__":
             label_command = sys.argv[i+1]
             # i += 1
         elif arg == '--sms':
-            sms_message = sys.argv[i+1]
+            sms_number = sys.argv[i+1]
+            sms_message = sys.argv[i+2]
 
     if modem_index == None:
         print("usage: --[modem_index] --[option] [value]")
@@ -505,5 +499,11 @@ if __name__ == "__main__":
             exit(1)
         else:
             print(label_output)
+
+    elif sms_message is not None and sms_number is not None:
+        try:
+            sms_output=Deku().send(text=sms_message, number=sms_number, m_index=modem_index)
+        except Exception as error:
+            print(traceback.format_exc())
 
     exit(0)

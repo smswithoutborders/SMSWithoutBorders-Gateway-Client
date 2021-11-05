@@ -8,8 +8,9 @@
 import json
 import requests
 from enum import Enum
+from deku import Deku
 
-class Router:
+class Router(Deku):
     class Modes(Enum):
         OFFLINE='0'
         ONLINE='1'
@@ -22,6 +23,7 @@ class Router:
     ssl = None
     # def __init__(self, cert, key):
     def __init__(self, url, priority_offline_isp, ssl=None):
+        super().__init__()
         self.ssl = ssl 
         self.url = url
         self.priority_offline_isp = priority_offline_isp
@@ -29,7 +31,21 @@ class Router:
 
     def route_offline(self, text, number):
         print('* routing offline mode')
-        print(f'\ttext-: {text}\n\tnumber-: {number}')
+        # print(f'\ttext-: {text}\n\tnumber-: {number}')
+        ''' 
+        find modems for matching isp
+        send sms and fail if not delivered
+        '''
+        try:
+            self.send(
+                    text=text,
+                    number=number,
+                    number_isp=False,
+                    isp=self.priority_offline_isp)
+        except self.NoAvailableModem as error:
+            raise error
+        except Exception as error:
+            raise error
 
 
     def route_online(self, data, protocol='GET', url=None):

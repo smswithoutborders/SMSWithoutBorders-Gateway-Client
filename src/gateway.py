@@ -220,7 +220,8 @@ class Gateway(Router):
             # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
             log_trace(traceback.format_exc())
         finally:
-            del l_threads[self.m_index]
+            if self.m_index in l_threads:
+                del l_threads[self.m_index]
 
         # self.logger('ending consumption....')
 
@@ -243,7 +244,8 @@ class Gateway(Router):
             ''' acks so that the message does not go back to the queue '''
         try:
             results=None
-            json_data = json.dumps({"text":json_body['text'], "number":json_body['number']})
+            json_data = json.dumps(json_body)
+            router_phonenumber=self.config['ROUTER']['router_phonenumber']
             # router = self.Router(url=self.config['ROUTER']['default'], priority_offline_isp=self.config['ROUTER']['isp'])
             if self.config['GATEWAY']['route_mode'] == self.Modes.ONLINE.value:
                 results = self.route_online(data=json_data)
@@ -251,8 +253,9 @@ class Gateway(Router):
 
 
             elif self.config['GATEWAY']['route_mode'] == self.Modes.OFFLINE.value:
-                results = self.route_offline(text=json_body['text'], number=json_body['number'])
-                self.logger(f"Routing results (OFFLINE): {results}")
+                results = self.route_offline(text=json_body['text'], number=router_phonenumber)
+                # self.logger(f"Routing results (OFFLINE): {results}")
+                self.logger("* Routing results (SWITCH|OFFLINE) SMS successfully routed...")
 
 
             elif self.config['GATEWAY']['route_mode'] == self.Modes.SWITCH.value:
@@ -262,8 +265,8 @@ class Gateway(Router):
 
                 except Exception as error:
                     try:
-                        results = self.route_offline(text=json_body['text'], number=json_body['number'])
-                        self.logger(f"Routing results (SWITCH|OFFLINE): {results}")
+                        results = self.route_offline(text=json_body['text'], number=router_phonenumber)
+                        self.logger("* Routing results (SWITCH|OFFLINE) SMS successfully routed...")
                     except Exception as error:
                         # raise Exception(error)
                         log_trace(traceback.format_exc())
