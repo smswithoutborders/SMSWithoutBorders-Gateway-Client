@@ -1,7 +1,8 @@
-# Deku - Modem Management Wrapper 
+# Gateway - Inbound SMS router
 
-[insert full description of deku and how they work]
+[insert full description of gateway and how they work]
 
 #### Features
-##### SMS management
-##### Task automation
+##### Route SMS via Internet
+##### Route SMS via SMS
+##### Route SMS via Internet or SMS
