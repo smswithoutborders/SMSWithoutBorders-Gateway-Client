@@ -19,6 +19,13 @@ from common.CustomConfigParser.customconfigparser import CustomConfigParser
 from router import Router
 
 # l_threads = {}
+routing_consume_connection = None
+routing_consume_channel = None
+"""
+publish_connection = None
+publish_channel= None
+"""
+
 class Gateway(Router):
 
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
@@ -41,11 +48,15 @@ class Gateway(Router):
         self.config = config
 
 
-    def __watchdog_incoming(self):
-        modem = Modem(self.m_index)
+    def watchdog_incoming(self):
         while(Deku.modem_ready(self.m_index)):
             # self.logger('checking for incoming messages...')
-            messages=modem.SMS.list('received')
+            messages=Modem(self.m_index).SMS.list('received')
+            publish_connection, publish_channel = create_channel(
+                    connection_url=config['GATEWAY']['connection_url'],
+                    queue_name=config['GATEWAY']['routing_queue_name'],
+                    blocked_connection_timeout=300,
+                    durable=True)
             for msg_index in messages:
                 sms=Modem.SMS(index=msg_index)
 
@@ -54,9 +65,10 @@ class Gateway(Router):
                 ''' if deleted, then only the same gateway can send it further '''
                 ''' if not deleted, then only the modem can send the message '''
                 ''' given how reabbit works, the modem can't know when messages are sent '''
-                # msg=f"Publishing {msg_index} for routing..."
-                # self.logger(msg)
+                msg=f"Publishing {msg_index}"
+                self.logger(msg)
                 try:
+                    # routing_consume_channel.basic_publish(
                     publish_channel.basic_publish(
                             exchange='',
                             routing_key=config['GATEWAY']['routing_queue_name'],
@@ -70,44 +82,25 @@ class Gateway(Router):
                     log_trace(traceback.format_exc())
                 else:
                     try:
-                        modem.SMS.delete(msg_index)
+                        Modem(self.m_index).SMS.delete(msg_index)
                     except Exception as error:
-                        log_trace(traceback.format_exc())
-                        break
+                        log_trace(traceback.format_exc(), show=True)
 
             messages=[]
 
             time.sleep(int(config['MODEMS']['sleep_time']))
-
-        self.logger("disconnected", output='stderr')
+        self.logger("disconnected", output='stderr') 
         if self.m_index in l_threads:
             del l_threads[self.m_index]
 
+    """
     def start_consuming(self):
-        wd = threading.Thread(target=self.__watchdog_incoming, daemon=True)
+        wd = threading.Thread(target=self.watchdog_incoming, daemon=True)
         wd.start()
         wd.join()
+    """
 
 
-def start_consuming():
-    # wd = threading.Thread(target=self.__watchdog, daemon=True)
-    ''' starts watchdog to check if modem is still plugged in '''
-
-    print('routing: waiting for message...')
-    try:
-        ''' messages to be routed '''
-        print('routing consumption starting...')
-        routing_consume_channel.start_consuming() #blocking
-
-    except pika.exceptions.ConnectionWrongStateError as error:
-        # print(f'Request from Watchdog - \n\t {error}', output='stderr')
-        log_trace(traceback.format_exc())
-    except pika.exceptions.ChannelClosed as error:
-        # print(f'Request from Watchdog - \n\t {error}', output='stderr')
-        log_trace(traceback.format_exc())
-    except Exception as error:
-        # print(f'{self.me} Generic error...\n\t {error}', output='stderr')
-        log_trace(traceback.format_exc())
 
 def log_trace(text, show=False, output='stdout', _type='primary'):
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -142,9 +135,13 @@ def master_watchdog(config):
         raise(error)
     else:
         while True:
-            if routing_consume_connection.is_closed or publish_connection.is_closed:
+            # if routing_consume_connection.is_closed or publish_connection.is_closed:
+            """
+            if routing_consume_connection.is_closed:
                 print("* restarting connections...")
                 rabbitmq_connection(config)
+            """
+
 
             indexes=[]
             try:
@@ -153,7 +150,7 @@ def master_watchdog(config):
                 indexes=Deku.modems_ready(remove_lock=True)
                 # indexes=['1', '2']
             except Exception as error:
-                log_trace(error)
+                log_trace(error) 
                 continue
 
             if len(indexes) < 1:
@@ -183,7 +180,7 @@ def master_watchdog(config):
                     try:
                         gateway=Gateway(m_index=m_index, m_isp=m_isp, config=config, url=config['ROUTER']['default'], priority_offline_isp=config['ROUTER']['isp'])
                         # print(outgoing_node, outgoing_node.__dict__)
-                        gateway_thread=threading.Thread(target=gateway.start_consuming, daemon=True)
+                        gateway_thread=threading.Thread(target=gateway.watchdog_incoming, daemon=True)
 
                         # l_threads[m_index] = [outgoing_thread, routing_thread]
                         l_threads[m_index] = [gateway_thread]
@@ -274,28 +271,28 @@ def sms_routing_callback(ch, method, properties, body):
         # router = self.Router(url=config['ROUTER']['default'], priority_offline_isp=config['ROUTER']['isp'])
         if config['GATEWAY']['route_mode'] == Router.Modes.ONLINE.value:
             route_online(json_data)
-
+            routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
 
         elif config['GATEWAY']['route_mode'] == Router.Modes.OFFLINE.value:
             # results = router.route_offline(text=json_body['text'], number=router_phonenumber)
             route_offline(body, router_phonenumber)
+            routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
 
         elif config['GATEWAY']['route_mode'] == Router.Modes.SWITCH.value:
             try:
                 route_online(json_data)
+                routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
 
             except Exception as error:
                 try:
                     route_offline(body, router_phonenumber)
+                    routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
                 except Exception as error:
                     # raise Exception(error)
                     log_trace(traceback.format_exc())
                     raise(error)
         else:
-            print(f"Invalid routing protocol", output="stderr")
-
-        ''' acks that the message has been received (routed) '''
-        routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
+            print(f"Invalid routing protocol")
     except Router.MissingComponent as error:
         # print(error)
         ''' ack so that the messages don't go continue queueing '''
@@ -319,19 +316,27 @@ def sms_routing_callback(ch, method, properties, body):
     except Exception as error:
         routing_consume_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
         log_trace(traceback.format_exc())
-
+    finally:
+        routing_consume_connection.sleep(3)
 
 def create_channel(connection_url, queue_name, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0, connection_port=5672, heartbeat=600, blocked_connection_timeout=None):
     credentials=None
     try:
         # TODO: port should come from config
         # parameters=pika.ConnectionParameters(connection_url, 5672, '/', credentials)
+        """
         parameters=pika.ConnectionParameters(
                 connection_url, 
                 connection_port, 
                 '/', 
                 heartbeat=heartbeat, 
                 blocked_connection_timeout=blocked_connection_timeout)
+        """
+        parameters=pika.ConnectionParameters(
+                connection_url, 
+                connection_port, 
+                '/', 
+                heartbeat=heartbeat)
 
         connection=pika.BlockingConnection(parameters=parameters)
         channel=connection.channel()
@@ -365,10 +370,12 @@ def create_channel(connection_url, queue_name, exchange_name=None, exchange_type
         # if error == "[Errno -2] Name or service not known":
         raise(error)
 
-        
+
 def rabbitmq_connection(config):
-    global routing_consume_connection, routing_consume_channel
-    global publish_connection, publish_channel
+    # global publish_connection, publish_channel
+    global routing_consume_connection
+    global routing_consume_channel
+
     print("* starting rabbitmq connections... ", end="")
     try:
         routing_consume_connection, routing_consume_channel = create_channel(
@@ -376,13 +383,9 @@ def rabbitmq_connection(config):
                 callback=sms_routing_callback,
                 durable=True,
                 prefetch_count=1,
+                # blocked_connection_timeout=300,
                 queue_name=config['GATEWAY']['routing_queue_name'])
 
-        publish_connection, publish_channel = create_channel(
-                connection_url=config['GATEWAY']['connection_url'],
-                queue_name=config['GATEWAY']['routing_queue_name'],
-                blocked_connection_timeout=300,
-                durable=True)
     except pika.exceptions.ConnectionClosedByBroker:
         log_trace(traceback.format_exc())
     except pika.exceptions.AMQPChannelError as error:
@@ -402,6 +405,24 @@ def rabbitmq_connection(config):
     else:
         print("Done")
 
+def start_consuming():
+    try:
+        ''' messages to be routed '''
+        print('routing consumption starting...')
+        routing_consume_channel.start_consuming() #blocking
+
+    except pika.exceptions.ConnectionWrongStateError as error:
+        # print(f'Request from Watchdog - \n\t {error}', output='stderr')
+        log_trace(traceback.format_exc())
+    except pika.exceptions.ChannelClosed as error:
+        # print(f'Request from Watchdog - \n\t {error}', output='stderr')
+        log_trace(traceback.format_exc())
+    except Exception as error:
+        # print(f'{self.me} Generic error...\n\t {error}', output='stderr')
+        log_trace(traceback.format_exc())
+    finally:
+        print("Stopped consuming...")
+
 
 if __name__ == "__main__":
     global config, router
@@ -414,10 +435,15 @@ if __name__ == "__main__":
     router = Router(url=config['ROUTER']['default'], priority_offline_isp=config['ROUTER']['isp'])
 
     rabbitmq_connection(config)
-    thread_rabbitmq_connection = threading.Thread(target=start_consuming, daemon=True)
-    thread_master_watchdog = threading.Thread(target=master_watchdog, args=(config,), daemon=True)
-
+    thread_rabbitmq_connection = threading.Thread(target=routing_consume_channel.start_consuming, daemon=True)
     thread_rabbitmq_connection.start()
+
+    """
+    thread_master_watchdog = threading.Thread(target=master_watchdog, args=(config,), daemon=True)
     thread_master_watchdog.start()
-    thread_master_watchdog.join()
+    thread_rabbitmq_connection.join()
+    """
+
+    master_watchdog(config)
+    thread_rabbitmq_connection.join()
     exit(0)
