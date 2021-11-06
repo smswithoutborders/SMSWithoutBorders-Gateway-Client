@@ -29,7 +29,7 @@ publish_channel= None
 class Gateway(Router):
 
     def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
-        timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S") 
         color='\033[32m'
         if output == 'stderr':
             color='\033[31m'
