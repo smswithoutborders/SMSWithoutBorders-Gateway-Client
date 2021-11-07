@@ -48,13 +48,14 @@ class Router(Deku):
             raise error
 
 
-    def route_online(self, data, protocol='GET', url=None):
+    def route_online(self, data, protocol='POST', url=None):
         print(f"* routing online {data} {protocol}")
         results=None
         is_json=False
 
+        ''' test if json '''
         try:
-            json.loads(data)
+            data = json.loads(data)
             is_json=True
         except ValueError as error:
             pass
