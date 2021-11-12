@@ -571,6 +571,9 @@ def master_watchdog(config):
             time.sleep(int(config['MODEMS']['sleep_time']))
 
 def initiate_transmissions():
+    global l_threads
+    l_threads = {}
+
     global transmission_layer
     transmission_layer=None
 
@@ -588,9 +591,6 @@ def initiate_transmissions():
         log_trace(traceback.format_exc())
 
 if __name__ == "__main__":
-    global l_threads
-    l_threads = {}
-
     initiate_transmissions()
 
     try:
