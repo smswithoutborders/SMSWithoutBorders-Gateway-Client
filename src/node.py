@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import threading
 import traceback
 import socket
-# import asyncio
 import subprocess
 import json
 import time
@@ -366,7 +366,7 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
         try:
             indexes=Deku.modems_ready(remove_lock=True)
             if len(indexes) < 1:
-                logging.info("No modem available")
+                stdout_logging.info("No modem available")
                 time.sleep(sleep_time)
                 continue
 
@@ -403,6 +403,17 @@ def format_transmissions(category, action, output):
     return msg
 
 def main(config, config_event_rules, config_isp_default, config_isp_operators):
+    global stdout_logging
+    formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    # handler = logging.StreamHandler(stream=sys.stdout)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    stdout_logging=logging.getLogger('stdout_only')
+    stdout_logging.setLevel(logging.INFO)
+    stdout_logging.addHandler(handler)
+    stdout_logging.propagate = False
+
     try:
         initiate_transmissions()
         manage_modems(config=config, 

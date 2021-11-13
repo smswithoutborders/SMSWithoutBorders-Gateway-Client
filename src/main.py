@@ -13,6 +13,7 @@ from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 if __name__ == "__main__":
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
+    """
     logging.basicConfig(
             format='%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s',
             # datefmt='%Y-%m-%d %I:%M:%S %p',
@@ -22,6 +23,19 @@ if __name__ == "__main__":
                 logging.StreamHandler(sys.stdout) ],
             encoding='utf-8', 
             level=logging.DEBUG)
+    """
+    formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+
+    handler = logging.StreamHandler(stream=sys.stdout)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    handler = logging.FileHandler('src/services/logs/service.log')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
     configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
     config=configreader.read(".configs/config.ini")
@@ -39,9 +53,9 @@ if __name__ == "__main__":
                 daemon=True)
         """
 
-        logging.info("starting node thread")
+        logger.info("starting node thread")
         node_thread.start()
-        logging.info("node thread started")
+        logger.info("node thread started")
 
         """
         logging.info("starting gateway thread")
