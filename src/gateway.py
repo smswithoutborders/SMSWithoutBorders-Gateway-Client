@@ -423,27 +423,18 @@ def start_consuming():
     finally:
         print("Stopped consuming...")
 
-
-if __name__ == "__main__":
-    global config, router
-
-    ''' checks for incoming messages and routes them '''
-    config=None
-    config=CustomConfigParser()
-    config=config.read(".configs/config.ini")
-
-    router = Router(url=config['ROUTER']['default'], priority_offline_isp=config['ROUTER']['isp'])
+def main(config):
+    url=config['ROUTER']['default']
+    priority_offline_isp=config['ROUTER']['isp']
+    router = Router(url=url, priority_offline_isp=priority_offline_isp)
 
     rabbitmq_connection(config)
     thread_rabbitmq_connection = threading.Thread(target=routing_consume_channel.start_consuming, daemon=True)
     thread_rabbitmq_connection.start()
 
-    """
-    thread_master_watchdog = threading.Thread(target=master_watchdog, args=(config,), daemon=True)
-    thread_master_watchdog.start()
-    thread_rabbitmq_connection.join()
-    """
-
     master_watchdog(config)
     thread_rabbitmq_connection.join()
-    exit(0)
+
+
+if __name__ == "__main__":
+    main()

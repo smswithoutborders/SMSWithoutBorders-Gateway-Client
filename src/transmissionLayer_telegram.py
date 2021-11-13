@@ -24,22 +24,11 @@ from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove, Bo
 import telegram
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler,Filters
 
-# from node import Node
-# import node.Node
-from deku import Deku
-from mmcli_python.modem import Modem
 from common.CustomConfigParser.customconfigparser import CustomConfigParser 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-
-# class DekuControlBot(Node):
-''' 
-- should be able to inform of events
-'''
-class TelegramTransmissionLayer(Deku):
+class TelegramTransmissionLayer:
     # def __init__(self, token, configfile, adminfile=None):
     def __init__(self):
-        super().__init__()
         self.configs=None
         self.configfile = ".configs/extensions/platforms/telegram.ini"
 
@@ -86,21 +75,8 @@ class TelegramTransmissionLayer(Deku):
 
 
     def start(self, update, context):
-        # print(context)
-        # print(update)
-        ''' get the chat id and store in configs, will be used to continue message '''
         logging.info("start requested....")
         chat_id = update.effective_chat.id
-        """
-        with open(self.configfile, 'w') as w_configfile: #careful, if error here, the whole file is lost
-            if not 'CHAT_ID' in self.configs['TELEGRAM']:
-                self.configs['TELEGRAM']['CHAT_ID'] = ''
-
-            self.configs['TELEGRAM']['CHAT_ID'] = str(chat_id)
-            self.configs.write(w_configfile)
-            # self.logging('log file written....')
-        # self.send_message(chat_id, f'Ready - {chat_id}', context)
-        """
         reply_request_phonenumber = KeyboardButton(text="Share phone number", request_contact=True)
         reply_request_phonenumber = ReplyKeyboardMarkup([[reply_request_phonenumber]])
         request_phonenumber = context.bot.send_message(chat_id, text=self.request_phonenumber_text, reply_markup=reply_request_phonenumber) 
@@ -164,13 +140,6 @@ class TelegramTransmissionLayer(Deku):
             message=''.join(status)
         DekuControlBot.send_message(update.effective_chat.id, message, context)
 
-    """
-    @classmethod
-    def send_message(cls, update, context, text):
-        # logging.info(f'chat id: {update.effective_chat.id}')
-        context.bot.send_message(chat_id=update.effective_chat.id, text=text)
-    """
-
     def send(self, text):
         ''' read every whitelist chat id '''
         list_chat_ids = self.configs['WHITELIST']
@@ -194,12 +163,6 @@ if __name__ == "__main__":
     import sys
 
     configfile = '.configs/extensions/config.ini'
-    """
-    configfile=os.path.join(os.path.dirname(__file__), 'extensions', 'config.ini')
-    adminfile=os.path.join(os.path.dirname(__file__), 'extensions', 'telegram.ini')
-    configs = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-    configs.read(configfile)
-    """
     configreader = CustomConfigParser()
     configs = configreader.read(configfile)
     token=configs['TELEGRAM']['TOKEN']

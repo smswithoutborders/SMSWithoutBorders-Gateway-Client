@@ -10,6 +10,7 @@ import json
 import time
 import pika
 import configparser
+import logging
 
 from colorama import init
 from datetime import datetime
@@ -20,8 +21,6 @@ from deku import Deku
 from mmcli_python.modem import Modem
 from transmissionLayer import TransmissionLayer
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
-
-init()
 
 class Node:
     modem_index = None
@@ -89,7 +88,7 @@ class Node:
     def generate_status_file(self, status_file):
         modem_status_file=configparser.ConfigParser()
         if os.path.isfile(status_file):
-            self.logger('Status file exist...')
+            logging.info('Status file exist...')
             modem_status_file.read(self.status_file)
 
         with open(status_file, 'w') as fd_status_file:
@@ -126,10 +125,13 @@ class Node:
         self.durable=True
         self.prefetch_count=1
 
+        self.sleep_time = int(config['MODEMS']['sleep_time']) if \
+                int(config['MODEMS']['sleep_time']) > 3 else 3
+
 
     def create_connection(self):
         try:
-            logger.info(">> Attempting connection...")
+            logging.info("attempting connection")
             self.create_connection()
 
             self.outgoing_connection, self.outgoing_channel = Node.create_channel(
@@ -194,7 +196,10 @@ class Node:
     def can_transmit(self, modems_status_file):
         next_transmission_timer = float(modems_status_file['TRANSMISSION']['counter'])
         request_transmission_timer = time.time()
-        if transmission_layer is not None and request_transmission_timer > next_transmission_timer:
+
+        return \
+                transmission_layer is not None and \
+                request_transmission_timer > next_transmission_timer
 
     def event_listener(self, category:Category, counter):
         modem_status_file=configparser.ConfigParser()
@@ -302,7 +307,7 @@ class Node:
         wd.start()
 
         try:
-            logger.info("* Connected successfully")
+            logging.info("connected successfully")
             self.outgoing_channel.start_consuming() #blocking
             wd.join()
 
@@ -312,6 +317,8 @@ class Node:
             if self.modem_index in active_nodes:
                 del active_nodes[self.modem_index]
 
+
+'''++ startup routines'''
 def init_nodes(indexes, deku):
     deku=Deku(config=config, 
             isp_defaults_config=config_isp_default, 
@@ -332,7 +339,7 @@ def init_nodes(indexes, deku):
                 active_nodes[modem_index] = [outgoing_thread, node]
 
             except Exception as error:
-                log_trace(error, show=True)
+                raise(error)
 
 def start_nodes():
     for modem_index, thread, node in active_nodes.items():
@@ -344,35 +351,33 @@ def start_nodes():
                     thread[i].start()
 
         except Exception as error:
-            log_trace(traceback.format_exc(), show=True)
+            raise(error)
 
-
-def manage_modems(config, isp_defaults_config, isp_operators_config):
+def manage_modems(config, config_event_rules, config_isp_default, config_isp_operators):
     global active_nodes
     active_nodes = {}
     sleep_time = int(config['MODEMS']['sleep_time']) if \
             int(config['MODEMS']['sleep_time']) > 3 else 3
     isp_country = config['ISP']['country']
 
-    logger.info('* Modem Manager started...')
+    logging.info('modem manager started')
     while True:
         indexes=[]
         try:
             indexes=Deku.modems_ready(remove_lock=True)
             if len(indexes) < 1:
-                logger.info("No modem available")
+                logging.info("No modem available")
                 time.sleep(sleep_time)
                 continue
 
         except Exception as error:
-            log_trace(error)
-            continue
+            raise(error)
         
         try:
             init_nodes(indexes)
             start_nodes()
         except Exception as error:
-            log_trace(error)
+            raise(error)
 
         time.sleep(sleep_time)
 
@@ -390,33 +395,20 @@ def initiate_transmissions():
     except CustomConfigParser.ConfigFileNotInList as error:
         print(traceback.format_exc())
     except Exception as error:
-        # print(vars(error))
-        log_trace(traceback.format_exc())
-
-def format_transmissions(category, action, output, platform):
-    if platform == "telegram":
-        return (f"My *{category}* action was triggered!\n\n"
-        f"=== *Executing action:* _{action}_ =====\n\n"
-        f"*Results:=* {output}")
-    else:
-        return (f"My {category} action was triggered!\n\n"
-        f"=== Executing action: {action} =====\n\n"
-        f"Results:= {output}")
+        raise(error)
 
 
-if __name__ == "__main__":
+def format_transmissions(category, action, output):
+    msg=f"Category: {category}\nAction: {action}\nOutput: {output}" 
+    return msg
+
+def main(config, config_event_rules, config_isp_default, config_isp_operators):
     try:
-        configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
-        config=configreader.read(".configs/config.ini")
-        config_event_rules=configreader.read(".configs/events/rules.ini")
-        config_isp_default = config.read('.configs/isp/default.ini')
-        config_isp_operators = config.read('.configs/isp/operators.ini')
-
         initiate_transmissions()
-
         manage_modems(config=config, 
-                isp_defaults_config=config_isp_default, 
-                isp_operators_config=config_isp_operators)
+                config_event_rules=config_event_rules,
+                config_isp_default=config_isp_default,
+                config_isp_operators=config_isp_operators)
 
     except CustomConfigParser.NoDefaultFile as error:
         print(traceback.format_exc())
@@ -425,3 +417,6 @@ if __name__ == "__main__":
         print(traceback.format_exc())
     except CustomConfigParser.ConfigFileNotInList as error:
         print(traceback.format_exc())
+
+if __name__ == "__main__":
+    main()

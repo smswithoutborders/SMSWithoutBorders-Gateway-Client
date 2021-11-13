@@ -30,7 +30,6 @@ class TransmissionLayer:
         except Exception as error:
             raise(error)
 
-    # def send(self, data, tranmission_platform='telegram'):
     @classmethod
     def send(cls, data):
         for platform in cls.transmission_layers:

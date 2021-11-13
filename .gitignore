@@ -6,3 +6,4 @@ venv/*
 */config.ini
 *.log
 *.logs
+tmp/*
