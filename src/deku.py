@@ -42,7 +42,11 @@ class Deku(Modem):
         '''
         
         @classmethod
-        def __init__(cls):
+        def __init__(cls, isp_defaults_config, isp_operators_config):
+            cls.config_isp_default = isp_defaults_config
+            cls.config_isp_operators = isp_operators_config
+
+            """
             try:
                 cls.config=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
                 cls.config_isp_default = cls.config.read('.configs/isp/default.ini')
@@ -57,6 +61,7 @@ class Deku(Modem):
             except CustomConfigParser.ConfigFileNotInList as error:
                 # print(traceback.format_exc())
                 raise(error)
+            """
 
         @classmethod
         def determine(cls, number, country, parsed_rules=None):
@@ -355,7 +360,7 @@ class Deku(Modem):
         return Modem(modem_index)
 
     @classmethod
-    def __init__(cls):
+    def __init__(cls, config, isp_defaults_config, isp_operators_config):
         ''' test deps for config files '''
         try:
             cls.ISP()

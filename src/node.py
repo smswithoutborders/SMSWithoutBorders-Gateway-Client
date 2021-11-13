@@ -24,8 +24,8 @@ from common.CustomConfigParser.customconfigparser import CustomConfigParser
 init()
 
 class Node:
-    m_index = None
-    m_isp = None
+    modem_index = None
+    modem_isp = None
     config = None
 
     outgoing_connection=None
@@ -41,141 +41,114 @@ class Node:
         TRANSMISSION='TRANSMISSION'
 
 
-    def logger(self, text, _type='secondary', output='stdout', color=None, brightness=None):
-        timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        color='\033[32m'
-        if output == 'stderr':
-            color='\033[31m'
-        if _type=='primary':
-            print(color + timestamp + f'* [{self.m_isp}|{self.m_index}] {text}')
-        else:
-            print(color + timestamp + f'\t* [{self.m_isp}|{self.m_index}] {text}')
-        print('\x1b[0m')
+    @staticmethod
+    def create_channel(connection_url, queue_name, username=None, 
+            password=None, exchange_name=None, exchange_type=None, durable=False, 
+            binding_key=None, callback=None, prefetch_count=0):
 
+        credentials=None
+        if username is not None and password is not None:
+            credentials=pika.credentials.PlainCredentials(
+                    username=username,
+                    password=password)
 
-    # def __init__(self, m_index, m_isp, rules=['STATUS']):
-    # TODO: everything from config files should be externally sent and not read in the class
-    def __init__(self, m_index, m_isp, config, config_event_rules):
-        self.config_event_rules = config_event_rules
-        self.config = config
-        def create_channel(connection_url, queue_name, username=None, password=None, exchange_name=None, exchange_type=None, durable=False, binding_key=None, callback=None, prefetch_count=0):
-            credentials=None
-            if username is not None and password is not None:
-                credentials=pika.credentials.PlainCredentials(
-                        username=username,
-                        password=password)
-
-            try:
-                # TODO: port should come from config
-                parameters=pika.ConnectionParameters(connection_url, 5672, '/', credentials)
-                connection=pika.BlockingConnection(parameters=parameters)
-                channel=connection.channel()
-                channel.queue_declare(queue_name, durable=durable)
-                channel.basic_qos(prefetch_count=prefetch_count)
-
-                if binding_key is not None:
-                    channel.queue_bind(
-                            exchange=exchange_name, 
-                            queue=queue_name, 
-                            routing_key=binding_key)
-
-                if callback is not None:
-                    channel.basic_consume(
-                            queue=queue_name, 
-                            on_message_callback=callback)
-
-                return connection, channel
-            except pika.exceptions.ConnectionClosedByBroker as error:
-                raise(error)
-            except pika.exceptions.AMQPChannelError as error:
-                # self.logger("Caught a chanel error: {}, stopping...".format(error))
-                raise(error)
-            except pika.exceptions.AMQPConnectionError as error:
-                # self.logger("Connection was closed, should retry...")
-                raise(error)
-            except socket.gaierror as error:
-                # print(error.__doc__)
-                # print(type(error))
-                # print(error)
-                # if error == "[Errno -2] Name or service not known":
-                raise(error)
-
-        def generate_status_file(status_file):
-            modem_status_file=configparser.ConfigParser()
-            if os.path.isfile(status_file):
-                self.logger('Status file exist...')
-                modem_status_file.read(self.status_file)
-
-            with open(status_file, 'w') as fd_status_file:
-                for name, member in Node.Category.__members__.items():
-                    cat = member.value
-                    if not cat in modem_status_file:
-                        modem_status_file[cat]= {'COUNTER': '0'}
-
-                modem_status_file.write(fd_status_file)
-
-        """
         try:
-            self.configreader=CustomConfigParser()
-            self.config_event_rules=self.configreader.read("config/events/rules.ini")
-        except CustomConfigParser.NoDefaultFile as error:
-            raise(error)
-        except CustomConfigParser.ConfigFileNotFound as error:
-            ''' with this implementation, it stops at the first exception - intended?? '''
-            raise(error)
-        except CustomConfigParser.ConfigFileNotInList as error:
-            raise(error)
-        """
-        self.m_index = m_index
-        self.m_isp = m_isp
-        try:
-            self.logger("Attempting connection...")
+            # TODO: port should come from config
+            parameters=pika.ConnectionParameters(
+                    connection_url, 
+                    5672, 
+                    '/', 
+                    credentials)
 
-            self.outgoing_connection, self.outgoing_channel = create_channel(
-                    connection_url=config['NODE']['connection_url'],
-                    queue_name=(
-                        config['NODE']['api_id'] 
-                        + '_' + config['NODE']['outgoing_queue_name'] 
-                        + '_' + m_isp),
-                    username=config['NODE']['api_id'],
-                    password=config['NODE']['api_key'],
-                    exchange_name=config['NODE']['outgoing_exchange_name'],
-                    exchange_type=config['NODE']['outgoing_exchange_type'],
-                    binding_key=(
-                        config['NODE']['api_id'] 
-                        + '_' + config['NODE']['outgoing_queue_name'] 
-                        + '.' + m_isp),
-                    callback=self.__sms_outgoing_callback,
-                    durable=True,
-                    prefetch_count=1)
+            connection=pika.BlockingConnection(parameters=parameters)
+            channel=connection.channel()
+            channel.queue_declare(queue_name, durable=durable)
+            channel.basic_qos(prefetch_count=prefetch_count)
 
-            self.status_file=os.path.join( os.path.dirname(__file__), 'service_files/status', f'{Modem(self.m_index).imei}.ini')
-            generate_status_file(self.status_file)
-            self.logger("Connected successfully...")
-        except pika.exceptions.ConnectionClosedByBroker:
+            if binding_key is not None:
+                channel.queue_bind(
+                        exchange=exchange_name, 
+                        queue=queue_name, 
+                        routing_key=binding_key)
+
+            if callback is not None:
+                channel.basic_consume(
+                        queue=queue_name, 
+                        on_message_callback=callback)
+
+            return connection, channel
+        except pika.exceptions.ConnectionClosedByBroker as error:
             raise(error)
         except pika.exceptions.AMQPChannelError as error:
-            # self.logger("Caught a chanel error: {}, stopping...".format(error))
             raise(error)
         except pika.exceptions.AMQPConnectionError as error:
-            # self.logger("Connection was closed, should retry...")
             raise(error)
         except socket.gaierror as error:
-            # print(error.__doc__)
-            # print(type(error))
-            # print(error)
-            # if error == "[Errno -2] Name or service not known":
             raise(error)
+
+    def generate_status_file(self, status_file):
+        modem_status_file=configparser.ConfigParser()
+        if os.path.isfile(status_file):
+            self.logger('Status file exist...')
+            modem_status_file.read(self.status_file)
+
+        with open(status_file, 'w') as fd_status_file:
+            for name, member in Node.Category.__members__.items():
+                cat = member.value
+                if not cat in modem_status_file:
+                    modem_status_file[cat]= {'COUNTER': '0'}
+
+            modem_status_file.write(fd_status_file)
+
+    def __init__(self, modem_index, modem_isp, config, config_event_rules, deku):
+        self.deku = deku
+        self.config_event_rules = config_event_rules
+        self.config = config
+        self.modem_index = modem_index
+        self.modem_isp = modem_isp
+
+        self.modem = Modem(self.modem_index)
+
+        self.connection_url=config['NODE']['connection_url']
+        self.queue_name=(
+            config['NODE']['api_id'] 
+            + '_' + config['NODE']['outgoing_queue_name'] 
+            + '_' + modem_isp)
+        self.username=config['NODE']['api_id']
+        self.password=config['NODE']['api_key']
+        self.exchange_name=config['NODE']['outgoing_exchange_name']
+        self.exchange_type=config['NODE']['outgoing_exchange_type']
+        self.binding_key=(
+            config['NODE']['api_id'] 
+            + '_' + config['NODE']['outgoing_queue_name'] 
+            + '.' + modem_isp)
+        self.callback=self.__callback
+        self.durable=True
+        self.prefetch_count=1
+
+
+    def create_connection(self):
+        try:
+            logger.info(">> Attempting connection...")
+            self.create_connection()
+
+            self.outgoing_connection, self.outgoing_channel = Node.create_channel(
+                    connection_url=self.connection_url,
+                    queue_name=self.queue_name,
+                    username=self.username,
+                    password=self.password,
+                    exchange_name=self.exchange_name,
+                    exchange_type=self.exchange_type,
+                    binding_key=self.binding_key,
+                    callback=self.callback,
+                    durable=self.durable,
+                    prefetch_count=self.prefetch_count)
+        except Exception as error:
+            raise(error)
+        # TODO add exception for when authentication fails
+
         
-    def __del__(self):
-        # self.logger("calling destructor", output="stderr")
-        # print("calling destructor")
-        pass
-
-
-    def __update_status(self, category:Category): # status file gets updated here
-        self.logger(f'updating status.... {self.status_file}')
-        ''' should update status file of the modem '''
+    def update_status(self, category:Category): # status file gets updated here
         modems_status_file=configparser.ConfigParser()
         modems_status_file.read(self.status_file)
 
@@ -192,30 +165,38 @@ class Node:
 
             modems_status_file.write(fd_status_file)
 
-        self.__event_listener(category, counter)
+        self.event_listener(category, counter)
+
+    def event_run(self, action):
+        try:
+            command = action.split(' ') + [self.modem_index]
+            output = subprocess.check_output(command, stderr=subprocess.STDOUT).decode('unicode_escape')
+
+            return output
+        except subprocess.CalledProcessError as error:
+            raise subprocess.CalledProcessError(cmd=error.cmd, output=error.output, returncode=error.returncode)
 
 
-    def __event_listener(self, category:Category, counter):
-        ''' how to test event listener without all the dep '''
-        def event_run(action):
-            self.logger(f'event listener taking action: {action}')
+    def next_transmission(self):
+        modems_status_file=configparser.ConfigParser()
+        modems_status_file.read(self.status_file)
 
-            ''' this are all external commands '''
-            try:
-                command = action.split(' ') + [self.m_index]
-                output = subprocess.check_output(command, stderr=subprocess.STDOUT).decode('unicode_escape')
-                # self.logger(output)
+        time_now = float(time.time())
+        transmission_duration_secs = float(self.config['TRANSMISSION']['duration'])*60
 
-                return output
-            except subprocess.CalledProcessError as error:
-                raise subprocess.CalledProcessError(cmd=error.cmd, output=error.output, returncode=error.returncode)
+        with open(self.status_file, 'w') as fd_modems_status_file:
+            modems_status_file['TRANSMISSION']['counter'] = str(
+                    time_now + transmission_duration_secs)
 
-        """
-        event_rules=configparser.ConfigParser()
-        event_rules.read(os.path.join(os.path.dirname(__file__), '.configs/events', f'rules.ini'))
-        """
-        # event_rules.read(os.path.join(os.path.dirname(__file__), 'configs/events', f'rules.ini'))
+            modems_status_file.write(fd_modems_status_file)
+        logging.info("updated duration for transmissions")
 
+    def can_transmit(self, modems_status_file):
+        next_transmission_timer = float(modems_status_file['TRANSMISSION']['counter'])
+        request_transmission_timer = time.time()
+        if transmission_layer is not None and request_transmission_timer > next_transmission_timer:
+
+    def event_listener(self, category:Category, counter):
         modem_status_file=configparser.ConfigParser()
         modem_status_file.read(self.status_file)
 
@@ -223,357 +204,179 @@ class Node:
         status_count=int(modem_status_file[category.value]['COUNTER'])
         event_rule_count=int(self.config_event_rules[category.value]['COUNTER'])
 
-        # print(f'status_count {status_count}')
-        # print(f'event_rule_count {event_rule_count}')
-
-        ''' -1 means do not perform this rule '''
-        def format_transmissions(category, action, output):
-            """
-                reason_for_transmission=f"My {category.value} action was triggered!\n\n\
-                        === Executing action: {category.value} =====\n
-                        Results:= {output}"
-            """
-            return (f"My *{category}* action was triggered!\n\n"
-            f"=== *Executing action:* _{action}_ =====\n\n"
-            f"*Results:=* {output}")
-
-        def next_transmission():
-            self.logger('updating next transmission...')
-            modems_status_file=configparser.ConfigParser()
-            modems_status_file.read(self.status_file)
-
-            with open(self.status_file, 'w') as fd_modems_status_file:
-                modems_status_file['TRANSMISSION']['counter'] = str(
-                        float(time.time() + (float(self.config['TRANSMISSION']['duration'])*60)))
-                modems_status_file.write(fd_modems_status_file)
-
         if event_rule_count > -1 and status_count >= event_rule_count:
             try:
                 modems_status_file=configparser.ConfigParser()
                 modems_status_file.read(self.status_file)
 
-                next_transmission_timer = float(modems_status_file['TRANSMISSION']['counter'])
-                request_transmission_timer = time.time()
-                ''' add some layer which transmits the feedback of the event listener to something else '''
-                ''' some DekuFeedbackLayer, can then be abstracted for Telegram or other platforms '''
-                ''' #TODO: increment throught he various actions based on trailing # '''
-                i=1
                 action = self.config_event_rules[category.value]['ACTION']
                 output=event_run(action)
-                if transmission_layer is not None and request_transmission_timer > next_transmission_timer:
+                logging.info(output)
+
+                if self.can_transmit(modems_status_file):
                     transmission_layer.send(format_transmissions(category.value, action, output))
-                print(output)
 
-                ''' check transmission state '''
-                while( ('ACTION'+str(i)) in self.config_event_rules[category.value]):
-                    # action = self.config_event_rules[category.value]['ACTION'+str(i)]
+                i=1
+                while ('ACTION'+str(i)) in self.config_event_rules[category.value]:
                     output=event_run(self.config_event_rules[category.value]['ACTION'+str(i)])
-
-                    ''' choose from a list of numbers to receive the notifications '''
-                    ''' choose from a list of protocols which ones receive the notifications '''
-                    print(output)
-                    if transmission_layer is not None and request_transmission_timer > next_transmission_timer:
+                    logging.info(output)
+                    if transmission_layer is not None and \
+                            request_transmission_timer > next_transmission_timer:
                         transmission_layer.send(format_transmissions(category.value, action, output))
 
                     i+=1
 
                 if request_transmission_timer > next_transmission_timer:
-                    next_transmission()
+                    self.next_transmission()
             except subprocess.CalledProcessError as error:
-                # print(error)
-                ''' in this case don't reset the counter - so it tries again '''
-                # log_trace(f"Event listener output: {error.output.decode('utf-8')}")
-                print(error.output)
+                raise(error)
             except Exception as error:
-                log_trace(traceback.format_exc())
-            """
-            else:
-                ''' in this case, reset the counter '''
-            """
+                raise(error)
 
-    def __sms_outgoing_callback(self, ch, method, properties, body):
+
+    def __callback(self, ch, method, properties, body):
         # TODO: verify data coming in is actually a json
         json_body = json.loads(body.decode('unicode_escape'))
-        self.logger(f'message: {json_body}')
+        logging.info(json_body)
 
-        '''
-        text - message to send
-        number - receipient number
-        '''
-        ''' raising exceptions here crashes the consumer loop, just output it for now '''
         if not "text" in json_body:
-            # raise KeyError
-            log_trace('poorly formed message - text missing')
+            logging.warning('poorly formed message - text missing')
             return 
         
         if not "number" in json_body:
-            log_trace('poorly formed message - number missing')
+            logging.warning('poorly formed message - number missing')
             return 
-        '''
-        - When messages are rejected they are returned back immediately
-        - So rejection without further consumers to consume means a loop
-        is created
-        '''
 
         text=json_body['text']
         number=json_body['number']
-        status=1
 
         try:
-            self.logger('sending sms...')
-            # number_isp False says do not base on the number's isp
-            Deku.send(text=text, number=number, m_index=self.m_index, number_isp=False)
+            logging.info('sending sms...')
+            Deku.send( text=text, number=number, modem_index=self.modem_index, 
+                    number_isp=False)
 
         except Deku.InvalidNumber as error:
-            ''' wrong number: message does not comes back '''
-            self.logger(f'{error.message} - {error.number}')
-            log_trace(error.message)
+            logging.warning("invalid number, dumping message")
             self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-            self.logger('sending sms failed...', output='stderr')
         except Deku.NoAvailableModem as error:
-            ''' no available modem: message comes back '''
-            if self.previousError != error.message:
-                log_trace(error.message)
-                self.logger(error.message)
-
-            self.previousError = error.message
-            ''' block this and before rejecting to avoid the loop '''
-
-            self.logger('sending sms failed...', output='stderr')
-            ''' blocks the connection '''
-            # TODO: add from configs
-
+            logging.warning("no available modem while trying to send")
             ch.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
-            self.outgoing_connection.sleep(5)
-
+            self.outgoing_connection.sleep(self.sleep_time)
         except subprocess.CalledProcessError as error:
-            ''' generic system error: message comes back '''
-            ''' requires further processing '''
-            self.logger('sending sms failed...', output='stderr')
-            # self.logger(error.output, ot)
-            # self.logger(error.stdout)
-            if self.previousError != error.output:
-                log_trace(error.output.decode('utf-8'))
-                self.logger(error.output.decode('utf-8'))
-
-            self.previousError = error.output.decode('utf-8')
             ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
-            '''node keeps track of this failures, and send message to 
-            server after a benchmark failed limit
-            '''
-            '''
-            options here---
-            -> open up connection and remotely send USSD request - manual intervention
-            -> 
-            # with open(os.path.join(os.path.dirname(__file__), 'locks', f'{Modem(m_index).imei}.ini'), 'w') as log_file:
-            '''
-            self.__update_status(Node.Category.FAILED)
-            # self.__event_watch(category)
-
-
+            self.update_status(Node.Category.FAILED)
         except Exception as error:
-            ''' code crashed here '''
-            self.logger('sending sms failed...', output='stderr')
-            log_trace(traceback.format_exc())
+            logging.warning("some internal error happened")
             ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
         else:
-            ''' message ack happens here '''
-            ''' after successful delivery, pause for a bit before continuing '''
-            # self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+            logging.info("sms sent successfully")
             ch.basic_ack(delivery_tag=method.delivery_tag)
-            self.logger('message sent successfully')
+            self.update_status(Node.Category.SUCCESS)
 
-            ''' 0 = success '''
-            self.__update_status(Node.Category.SUCCESS)
-            # self.__event_watch(category)
-
-    def __watchdog_monitor(self):
-        '''
-        - monitors state of modem, kills consumer if modem disconnects
-        - checks for incoming messages and request
-        '''
-
+    def __modem_monitor(self):
         try:
-            self.logger('watchdog monitor gone into effect...')
-            messages=Modem(self.m_index).SMS.list('received')
-            while(Deku.modem_ready(self.m_index)):
-                time.sleep(int(config['MODEMS']['sleep_time']))
-
+            messages = self.modem.SMS.list('received')
+            while Deku.modem_ready(self.modem_index):
+                time.sleep(self.sleep_time)
+            logging.warning("disconnected")
         except Exception as error:
-            # raise Exception(error)
-            # self.logger(error)
-            log_trace(traceback.format_exc())
+            raise(error)
         finally:
-            # modem is no longer available
             try:
-                self.logger("watchdog monitor: Closing node...", output='stderr')
-
-                # self.outgoing_channel.stop_consuming()
                 self.outgoing_connection.close(reply_code=1, reply_text='modem no longer available')
             except Exception as error:
-                # raise Exception(error)
-                # self.logger(error)
-                log_trace(traceback.format_exc())
+                raise(error)
             finally:
-                ''' this finally because when connection is closed
-                an exception is thrown '''
-                if self.m_index in l_threads:
-                    del l_threads[self.m_index]
-
-            ''' do whatever is required to cleanly end this node '''
+                if self.modem_index in active_nodes:
+                    del active_nodes[self.modem_index]
 
     def start_consuming(self):
-        # wd = threading.Thread(target=self.__watchdog, daemon=True)
-        ''' starts watchdog to check if modem is still plugged in '''
-        wd = threading.Thread(target=self.__watchdog_monitor, daemon=True)
+        self.status_file=os.path.join( 
+                os.path.dirname(__file__), 
+                'service_files/status', f'{self.modem.imei}.ini')
+
+        self.generate_status_file(self.status_file)
+        wd = threading.Thread(target=self.__modem_monitor, daemon=True)
         wd.start()
 
-        self.logger('outgoing: waiting for message...')
         try:
-            ''' messages to be sent via SMS '''
-            self.logger('outgoing consumption starting...')
+            logger.info("* Connected successfully")
             self.outgoing_channel.start_consuming() #blocking
             wd.join()
-        except pika.exceptions.AMQPHeartbeatTimeout as error:
-            ''' internet issues and might have disconnected '''
 
-        except pika.exceptions.ConnectionWrongStateError as error:
-            # self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
-            log_trace(traceback.format_exc())
-        except pika.exceptions.ChannelClosed as error:
-            # self.logger(f'Request from Watchdog - \n\t {error}', output='stderr')
-            log_trace(traceback.format_exc())
         except Exception as error:
-            # self.logger(f'{self.me} Generic error...\n\t {error}', output='stderr')
-            log_trace(traceback.format_exc())
+            raise(error)
         finally:
-            if self.m_index in l_threads:
-                del l_threads[self.m_index]
-        # self.logger('ending consumption....')
+            if self.modem_index in active_nodes:
+                del active_nodes[self.modem_index]
 
-def log_trace(text, show=False, output='stdout', _type='primary'):
-    timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    with open(os.path.join(os.path.dirname(__file__), 'service_files/logs', 'logs_node.txt'), 'a') as log_file:
-        log_file.write(timestamp + " " +text + "\n\n")
-
-    if show:
-        color='\033[32m'
-        if output == 'stderr':
-            color='\033[31m'
-        if _type=='primary':
-            print(color + timestamp + f'* {text}')
-        else:
-            print(color + timestamp + f'\t* {text}')
-        print('\x1b[0m')
-
-
-def master_watchdog(config):
-    shown=False
-
-    ''' instantiate configuration for all of Deku '''
-    try:
-        Deku()
-        configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
-        config_event_rules=configreader.read(".configs/events/rules.ini")
-    except CustomConfigParser.NoDefaultFile as error:
-        raise(error)
-    except CustomConfigParser.ConfigFileNotFound as error:
-        raise(error)
-    except CustomConfigParser.ConfigFileNotInList as error:
-        raise(error)
-    else:
-        while( True ):
-            indexes=[]
-            try:
-                # indexes=Deku.modems_ready(ignore_lock=True)
-                # indexes=Deku.modems_ready(remove_lock=True, ignore_lock=True)
-                indexes=Deku.modems_ready(remove_lock=True)
-                # indexes=['1', '2']
-            except Exception as error:
-                log_trace(error)
+def init_nodes(indexes, deku):
+    deku=Deku(config=config, 
+            isp_defaults_config=config_isp_default, 
+            isp_operators_config=config_isp_operators)
+    for modem_index in indexes:
+        if modem_index not in active_nodes:
+            if not deku.modem_ready(modem_index):
                 continue
+            try:
+                modem_isp = deku.ISP.modems(
+                        operator_code=Modem(modem_index).operator_code, 
+                        country=isp_country)
 
+                node=Node(modem_index, modem_isp, config, config_event_rules, deku=deku)
+                outgoing_thread=threading.Thread(
+                        target=node.start_consuming, daemon=True)
+
+                active_nodes[modem_index] = [outgoing_thread, node]
+
+            except Exception as error:
+                log_trace(error, show=True)
+
+def start_nodes():
+    for modem_index, thread, node in active_nodes.items():
+        try:
+            # if not thread in threading.enumerate():
+            for i in range(len(thread)):
+                if thread[i].native_id is None:
+                    node.create_connection()
+                    thread[i].start()
+
+        except Exception as error:
+            log_trace(traceback.format_exc(), show=True)
+
+
+def manage_modems(config, isp_defaults_config, isp_operators_config):
+    global active_nodes
+    active_nodes = {}
+    sleep_time = int(config['MODEMS']['sleep_time']) if \
+            int(config['MODEMS']['sleep_time']) > 3 else 3
+    isp_country = config['ISP']['country']
+
+    logger.info('* Modem Manager started...')
+    while True:
+        indexes=[]
+        try:
+            indexes=Deku.modems_ready(remove_lock=True)
             if len(indexes) < 1:
-                # print(colored('* waiting for modems...', 'green'))
-                if not shown:
-                    print('* No Available Modem...')
-                    shown=True
-                time.sleep(int(config['MODEMS']['sleep_time']))
+                logger.info("No modem available")
+                time.sleep(sleep_time)
                 continue
 
-            shown=False
-            # print('[x] starting consumer for modems with indexes:', indexes)
-            for m_index in indexes:
-                '''starting consumers for modems not already running,
-                should be a more reliable way of doing it'''
-                if m_index not in l_threads:
-                    country=config['ISP']['country']
-                    if not Deku.modem_ready(m_index):
-                        continue
-                    try:
-                        m_isp = Deku.ISP.modems(operator_code=Modem(m_index).operator_code, country=country)
-                    except Exception as error:
-                        # print(error)
-                        log_trace(error, show=True)
-                        continue
+        except Exception as error:
+            log_trace(error)
+            continue
+        
+        try:
+            init_nodes(indexes)
+            start_nodes()
+        except Exception as error:
+            log_trace(error)
 
-                    try:
-                        outgoing_node=Node(m_index, m_isp, config, config_event_rules)
-                        # print(outgoing_node, outgoing_node.__dict__)
-                        outgoing_thread=threading.Thread(target=outgoing_node.start_consuming, daemon=True)
-
-                        # l_threads[m_index] = [outgoing_thread, routing_thread]
-                        l_threads[m_index] = [outgoing_thread]
-                        # print('\t* Node created')
-                    except pika.exceptions.ConnectionClosedByBroker:
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except pika.exceptions.AMQPChannelError as error:
-                        # self.logger("Caught a chanel error: {}, stopping...".format(error))
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except pika.exceptions.AMQPConnectionError as error:
-                        # self.logger("Connection was closed, should retry...")
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except socket.gaierror as error:
-                        # print(error.__doc__)
-                        # print(type(error))
-                        # print(error)
-                        # if error == "[Errno -2] Name or service not known":
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except CustomConfigParser.NoDefaultFile as error:
-                        # print(traceback.format_exc())
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except CustomConfigParser.ConfigFileNotFound as error:
-                        ''' with this implementation, it stops at the first exception - intended?? '''
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except CustomConfigParser.ConfigFileNotInList as error:
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-                    except Exception as error:
-                        log_trace(traceback.format_exc(), output='stderr', show=True)
-
-                    shown=False
-
-            try:
-                for m_index, thread in l_threads.items():
-                    try:
-                        # if not thread in threading.enumerate():
-                        for i in range(len(thread)):
-                            if thread[i].native_id is None:
-                                print('\t* starting thread...')
-                                thread[i].start()
-
-                    except Exception as error:
-                        log_trace(traceback.format_exc(), show=True)
-            except Exception as error:
-                log_trace(error)
-
-            time.sleep(int(config['MODEMS']['sleep_time']))
+        time.sleep(sleep_time)
 
 def initiate_transmissions():
-    global l_threads
-    l_threads = {}
-
     global transmission_layer
     transmission_layer=None
 
@@ -590,16 +393,31 @@ def initiate_transmissions():
         # print(vars(error))
         log_trace(traceback.format_exc())
 
+def format_transmissions(category, action, output, platform):
+    if platform == "telegram":
+        return (f"My *{category}* action was triggered!\n\n"
+        f"=== *Executing action:* _{action}_ =====\n\n"
+        f"*Results:=* {output}")
+    else:
+        return (f"My {category} action was triggered!\n\n"
+        f"=== Executing action: {action} =====\n\n"
+        f"Results:= {output}")
+
+
 if __name__ == "__main__":
-    initiate_transmissions()
-
     try:
-        config=None
-        config=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
-        config=config.read(".configs/config.ini")
+        configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
+        config=configreader.read(".configs/config.ini")
+        config_event_rules=configreader.read(".configs/events/rules.ini")
+        config_isp_default = config.read('.configs/isp/default.ini')
+        config_isp_operators = config.read('.configs/isp/operators.ini')
 
-        print('* master watchdog booting up')
-        master_watchdog(config)
+        initiate_transmissions()
+
+        manage_modems(config=config, 
+                isp_defaults_config=config_isp_default, 
+                isp_operators_config=config_isp_operators)
+
     except CustomConfigParser.NoDefaultFile as error:
         print(traceback.format_exc())
     except CustomConfigParser.ConfigFileNotFound as error:
