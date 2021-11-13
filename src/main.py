@@ -36,26 +36,27 @@ if __name__ == "__main__":
         logger.critical(error)
 
     try:
+        """
         node_thread = threading.Thread(target=node.main, 
+                args=(config, config_event_rules, config_isp_default, config_isp_operators,),
+                daemon=True)
+        """
+
+        gateway_thread = threading.Thread(target=gateway.main, 
                 args=(config, config_event_rules, config_isp_default, config_isp_operators,),
                 daemon=True)
 
         """
-        gateway_thread = threading.Thread(target=gateway.main, args=(config,),
-                daemon=True)
-        """
-
         logger.info("starting node thread")
         node_thread.start()
         logger.info("node thread started")
-
         """
+
         logging.info("starting gateway thread")
         gateway_thread.start()
         logging.info("gateway thread started")
-        """
 
-        node_thread.join()
-        # gateway_thread.join()
+        # node_thread.join()
+        gateway_thread.join()
     except Exception as error:
         logging.error(error)

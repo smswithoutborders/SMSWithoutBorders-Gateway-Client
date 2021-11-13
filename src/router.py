@@ -22,8 +22,8 @@ class Router(Deku):
 
     ssl = None
     # def __init__(self, cert, key):
-    def __init__(self, url, priority_offline_isp, ssl=None):
-        super().__init__()
+    def __init__(self, url, priority_offline_isp, config, config_isp_default, config_isp_operators, ssl=None):
+        super().__init__(config, config_isp_default, config_isp_operators)
         self.ssl = ssl 
         self.url = url
         self.priority_offline_isp = priority_offline_isp
