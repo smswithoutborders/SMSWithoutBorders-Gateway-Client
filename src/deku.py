@@ -34,7 +34,7 @@ class Deku(Modem):
             self.message=message
             super().__init__(self.message)
 
-    class ISP():
+    class ISP:
         '''
         purpose: helps get the service provider for a number
         - checks the isp_configs for matching rules
@@ -42,9 +42,9 @@ class Deku(Modem):
         '''
         
         @classmethod
-        def __init__(cls, isp_defaults_config, isp_operators_config):
-            cls.config_isp_default = isp_defaults_config
-            cls.config_isp_operators = isp_operators_config
+        def __init__(cls, config_isp_default, config_isp_operators):
+            cls.config_isp_default = config_isp_default
+            cls.config_isp_operators = config_isp_operators
 
             """
             try:
@@ -80,7 +80,6 @@ class Deku(Modem):
 
         @classmethod
         def modems(cls, country, operator_code):
-            # print(f"determining modem's isp {country} {operator_code}")
             for isp in cls.config_isp_operators[country]:
                 if cls.config_isp_operators[country][isp].lower() == operator_code.lower():
                     # print('modems isp found: ', isp)
@@ -104,7 +103,7 @@ class Deku(Modem):
             ''' convert to imei '''
             identifier= Modem(identifier).imei
 
-        lock_dir = os.path.join(os.path.dirname(__file__), 'service_files/locks', f'{identifier}.lock')
+        lock_dir = os.path.join(os.path.dirname(__file__), 'services/locks', f'{identifier}.lock')
         lock_type=None
         start_time=None
         if os.path.isfile(lock_dir):
@@ -190,27 +189,27 @@ class Deku(Modem):
         return messages
 
     @staticmethod
-    def modems_ready(isp=None, country=None, m_index=None, remove_lock=False, ignore_lock=False):
+    def modems_ready(isp=None, country=None, modem_index=None, remove_lock=False, ignore_lock=False):
         available_indexes=[]
         # print('fetching available modems')
 
         indexes=[]
-        if m_index is not None:
-            indexes.append(m_index)
+        if modem_index is not None:
+            indexes.append(modem_index)
         else:
             indexes= Modem.list()
 
-        for _m_index in indexes:
+        for _modem_index in indexes:
             # filter for same isp
             '''
             checking operator_name is wrong... the name changes very frequently
             use operator code instead
             '''
-            # print(f'Modem operator code {Modem(m_index).operator_code}')
+            # print(f'Modem operator code {Modem(modem_index).operator_code}')
             # print(Deku.ISP.__dict__)
             # print(country)
 
-            locked_state, lock_type, lock_file = Deku.modem_locked(Modem(_m_index).imei, remove_lock=remove_lock)
+            locked_state, lock_type, lock_file = Deku.modem_locked(Modem(_modem_index).imei, remove_lock=remove_lock)
 
             if not ignore_lock and locked_state:
                 # return available_indexes
@@ -224,22 +223,22 @@ class Deku(Modem):
                     # print('modem is not locked')
                     available_indexes.append(index)
                 '''
-                if Deku.modem_ready(_m_index):
-                    available_indexes.append(_m_index)
+                if Deku.modem_ready(_modem_index):
+                    available_indexes.append(_modem_index)
 
             else:
                 if country is None:
                     raise Exception('country cannot be None')
-                modem_isp = Deku.ISP.modems(operator_code=Modem(_m_index).operator_code, country=country)
-                if isp == modem_isp and Deku.modem_ready(_m_index):
-                    available_indexes.append(_m_index)
+                modem_isp = Deku.ISP.modems(operator_code=Modem(_modem_index).operator_code, country=country)
+                if isp == modem_isp and Deku.modem_ready(_modem_index):
+                    available_indexes.append(_modem_index)
 
         return available_indexes
 
 
     @classmethod
     # def send(text, number, timeout=20, q_exception:queue=None, identifier=None, t_lock:threading.Lock=None):
-    def send(cls, text, number, timeout=20, number_isp=True, m_index=None, q_exception:queue=None, identifier=None, isp=None, remove_lock=True):
+    def send(cls, text, number, timeout=20, number_isp=True, modem_index=None, q_exception:queue=None, identifier=None, isp=None, remove_lock=True):
         '''
         options to help with load balancing:
         - based on the frequency of single messages coming in, can choose to create locks modem
@@ -268,7 +267,7 @@ class Deku(Modem):
 
         ''' determines if to check the isp of the number - best used without node '''
         index=[]
-        if m_index is None:
+        if modem_index is None:
             country = cls.config['ISP']['country']
             if isp is not None:
                 index= Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
@@ -288,7 +287,7 @@ class Deku(Modem):
             else:
                 index=Deku.modems_ready()
         else:
-            index=Deku.modems_ready(m_index=m_index, remove_lock=remove_lock)
+            index=Deku.modems_ready(modem_index=modem_index, remove_lock=remove_lock)
         print('ready index:', index)
 
         # print('available modem with index at', index)
@@ -310,7 +309,7 @@ class Deku(Modem):
         lock_dir = None
         ''' use paths from config '''
         ''' user may not change the default value so relative paths should be used in configs '''
-        lock_dir = os.path.join(os.path.dirname(__file__), 'service_files/locks', f'{modem.imei}.lock')
+        lock_dir = os.path.join(os.path.dirname(__file__), 'services/locks', f'{modem.imei}.lock')
         def create_benchmark_file():
             with open(lock_dir, 'w') as lock_file:
                 write_config = configparser.ConfigParser()
@@ -360,10 +359,11 @@ class Deku(Modem):
         return Modem(modem_index)
 
     @classmethod
-    def __init__(cls, config, isp_defaults_config, isp_operators_config):
+    def __init__(cls, config, config_isp_default, config_isp_operators):
         ''' test deps for config files '''
         try:
-            cls.ISP()
+            cls.ISP(config_isp_default=config_isp_default, 
+                    config_isp_operators=config_isp_operators)
 
             cls.configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
             cls.config=cls.configreader.read('.configs/config.ini')
@@ -508,7 +508,7 @@ if __name__ == "__main__":
 
     elif sms_message is not None and sms_number is not None:
         try:
-            sms_output=Deku().send(text=sms_message, number=sms_number, m_index=modem_index)
+            sms_output=Deku().send(text=sms_message, number=sms_number, modem_index=modem_index)
         except Exception as error:
             print(traceback.format_exc())
 
