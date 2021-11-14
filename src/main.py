@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 import threading
+import argparse
 
 import node
 import gateway
@@ -12,11 +13,19 @@ from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 
 if __name__ == "__main__":
-    getattr(logging, loglevel.upper())
-    numeric_level = getattr(logging, loglevel.upper(), None)
-    if not isinstance(numeric_level, int):
-        # raise ValueError('Invalid log level: %s' % loglevel)
-        number_level = logging.INFO
+    parser = argparse.ArgumentParser(description='Process some integers.')
+
+    parser.add_argument(
+            '-l', '--log', 
+            default='INFO', 
+            help='--log=[DEBUG, INFO, WARNING, ERROR, CRITICAL]')
+
+    parser.add_argument("-m", "--module", 
+            nargs='?',
+            default="all",
+            help="node, gateway, all")
+
+    args = parser.parse_args()
 
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
     logging.basicConfig(
@@ -27,7 +36,7 @@ if __name__ == "__main__":
                 logging.FileHandler('src/services/logs/service.log'),
                 logging.StreamHandler(sys.stdout) ],
             encoding='utf-8',
-            level=numeric_level)
+            level=args.log.upper())
 
     formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -41,7 +50,7 @@ if __name__ == "__main__":
         logging.critical(error)
 
     try:
-        if sys.argv[1] == "--node":
+        if args.module == "node" or args.module == "all":
             node_thread = threading.Thread(target=node.main, 
                     args=(config, config_event_rules, config_isp_default, config_isp_operators,),
                     daemon=True)
@@ -50,9 +59,8 @@ if __name__ == "__main__":
             logging.info("starting node thread")
             node_thread.start()
             logging.info("node thread started")
-            node_thread.join()
 
-        elif sys.argv[1] == "--gateway":
+        if args.module == "gateway" or args.module == "all":
             gateway_thread = threading.Thread(target=gateway.main, 
                     args=(config, config_event_rules, config_isp_default, config_isp_operators,),
                     daemon=True)
@@ -60,6 +68,12 @@ if __name__ == "__main__":
             logging.info("starting gateway thread")
             gateway_thread.start()
             logging.info("gateway thread started")
+
+
+        if args.module == "node" or args.module == "all":
+            node_thread.join()
+        if args.module == "gateway" or args.module == "all":
             gateway_thread.join()
+
     except Exception as error:
         logging.error(error)
