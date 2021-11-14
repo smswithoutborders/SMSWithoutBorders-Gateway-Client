@@ -128,7 +128,7 @@ class Node:
         self.sleep_time = int(config['MODEMS']['sleep_time']) if \
                 int(config['MODEMS']['sleep_time']) > 3 else 3
 
-        formatter = logging.Formatter('%(asctime)s|[%(levelname)s] [%(name)s] %(message)s', 
+        formatter = logging.Formatter('%(asctime)s|[%(levelname)s][%(module)s] [%(name)s] %(message)s', 
                 datefmt='%Y-%m-%d %H:%M:%S')
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)

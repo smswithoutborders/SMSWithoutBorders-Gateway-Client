@@ -76,4 +76,4 @@ if __name__ == "__main__":
             gateway_thread.join()
 
     except Exception as error:
-        logging.error(error)
+        logging.critical(error)

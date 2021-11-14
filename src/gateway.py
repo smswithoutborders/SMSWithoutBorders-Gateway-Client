@@ -28,7 +28,7 @@ class Gateway:
         self.modem_isp = modem_isp
         self.config = config
 
-        formatter = logging.Formatter('%(asctime)s|[%(levelname)s] [%(name)s] %(message)s', 
+        formatter = logging.Formatter('%(asctime)s|[%(levelname)s][%(module)s] [%(name)s] %(message)s', 
                 datefmt='%Y-%m-%d %H:%M:%S')
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
@@ -188,7 +188,7 @@ def sms_routing_callback(ch, method, properties, body):
         json_data = json.dumps(json_body)
         body = str(b64encode(body), 'unicode_escape')
 
-        logger.debug("routing mode %s", router_mode)
+        logging.debug("routing mode %s", router_mode)
         if router_mode == Router.Modes.ONLINE.value:
             route_online(json_data)
             routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
@@ -226,8 +226,7 @@ def create_channel(connection_url, queue_name, exchange_name=None,
         parameters=pika.ConnectionParameters(
                 connection_url, 
                 connection_port, 
-                '/', 
-                heartbeat=heartbeat)
+                '/')
 
         connection=pika.BlockingConnection(parameters=parameters)
         channel=connection.channel()
@@ -257,6 +256,7 @@ def rabbitmq_connection(config):
     connection_url=config['GATEWAY']['connection_url']
     queue_name=config['GATEWAY']['routing_queue_name']
 
+    logging.info("attempting connection for %s (%s)", connection_url, queue_name)
     try:
         routing_consume_connection, routing_consume_channel = create_channel(
                 connection_url=connection_url,
@@ -302,6 +302,7 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
 
     try:
         rabbitmq_connection(config)
+        logging.info("main incoming channel created")
         thread_rabbitmq_connection = threading.Thread(
                 target=routing_consume_channel.start_consuming, daemon=True)
         thread_rabbitmq_connection.start()
