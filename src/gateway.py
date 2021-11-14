@@ -50,7 +50,7 @@ class Gateway:
         connection_url=self.config['GATEWAY']['connection_url']
         queue_name=self.config['GATEWAY']['routing_queue_name']
 
-        publish_connection, publish_channel = create_channel(
+        self.publish_connection, self.publish_channel = create_channel(
                 connection_url=connection_url,
                 queue_name=queue_name,
                 blocked_connection_timeout=300,
@@ -86,6 +86,12 @@ class Gateway:
             del active_threads[self.modem_index]
 
 
+    def __del__(self):
+        if self.publish_connection.is_open:
+            self.publish_connection.close()
+        self.logging.debug("cleaned up gateway instance")
+
+
 
 def init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules):
     isp_country = config['ISP']['country']
@@ -96,7 +102,7 @@ def init_nodes(indexes, config, config_isp_default, config_isp_operators, config
             config_isp_operators=config_isp_operators)
 
     for modem_index in indexes:
-        if modem_index not in active_nodes:
+        if modem_index not in active_threads:
             if not deku.modem_ready(modem_index):
                 continue
             try:
@@ -110,13 +116,13 @@ def init_nodes(indexes, config, config_isp_default, config_isp_operators, config
                 gateway_thread=threading.Thread(
                         target=gateway.monitor_incoming, daemon=True)
 
-                active_nodes[modem_index] = [gateway_thread, gateway]
+                active_threads[modem_index] = [gateway_thread, gateway]
 
             except Exception as error:
                 raise(error)
 
 def start_nodes():
-    for modem_index, thread_n_node in active_nodes.items():
+    for modem_index, thread_n_node in active_threads.items():
         thread = thread_n_node[0]
         try:
             if thread.native_id is None:
@@ -126,13 +132,13 @@ def start_nodes():
             raise(error)
 
 def manage_modems(config, config_event_rules, config_isp_default, config_isp_operators):
-    global active_nodes
+    global active_threads
     global sleep_time
 
     sleep_time = int(config['MODEMS']['sleep_time']) if \
             int(config['MODEMS']['sleep_time']) > 3 else 3
 
-    active_nodes = {}
+    active_threads = {}
 
     logging.info('modem manager started')
     while True:
@@ -251,11 +257,6 @@ def create_channel(connection_url, queue_name, exchange_name=None,
 
 
 def rabbitmq_connection(config):
-    """
-    global routing_consume_connection
-    global routing_consume_channel
-    """
-
     connection_url=config['GATEWAY']['connection_url']
     queue_name=config['GATEWAY']['routing_queue_name']
 
@@ -305,19 +306,20 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
     router = Router(url=url, priority_offline_isp=priority_offline_isp, 
             config=config, config_isp_default=config_isp_default, 
             config_isp_operators=config_isp_operators)
+
+    # global routing_consume_connection, routing_consume_channel
+    global routing_thread
     try:
         routing_consume_connection, routing_consume_channel = rabbitmq_connection(config)
-
-        logging.info("main incoming channel created")
         manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
-        routing_consume_channel.start_consuming()
+
+        routing_thread = threading.Thread(target=routing_consume_channel.start_consuming)
+        logging.info("listening for incoming messages")
+        routing_thread.start()
+        # routing_thread.join()
+
     except Exception as error:
         logging.critical(traceback.format_exc())
-    else:
-        try:
-            thread_rabbitmq_connection.join()
-        except Exception as error:
-            logging.error(traceback.format_exc())
 
 if __name__ == "__main__":
     main()

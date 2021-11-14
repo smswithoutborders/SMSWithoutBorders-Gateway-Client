@@ -205,20 +205,20 @@ class Deku(Modem):
         try:
             lock_file = os.path.join(os.path.dirname(__file__), 
                     'services/locks', f'{modem.imei}.lock')
-            write_lock_file(lock_file, 'BUSY')
+            Deku.write_lock_file(lock_file, 'BUSY')
 
             modem=modem.SMS.set(text=text, number=number)
             modem.send(timeout=timeout)
         except subprocess.CalledProcessError as error:
-            write_lock_file(lock_dir, 'FAILED')
+            Deku.write_lock_file(lock_file, 'FAILED')
             raise subprocess.CalledProcessError(cmd=error.cmd, 
                     output=error.output, returncode=error.returncode)
         except Exception as error:
-            write_lock_file(lock_dir, 'FAILED')
+            Deku.write_lock_file(lock_file, 'FAILED')
             raise(error)
         finally:
             status, lock_type, lock_file = Deku.modem_locked(modem_index)
-            logger.debug("status %s, lock_type %s, lock_file %s", 
+            logging.debug("status %s, lock_type %s, lock_file %s", 
                     status, lock_type, lock_file)
 
             if status and lock_type == 'BUSY':
