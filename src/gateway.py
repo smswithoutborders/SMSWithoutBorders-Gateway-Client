@@ -35,7 +35,7 @@ class Gateway:
 
         logger_name=f"{self.modem_isp}:{self.modem_index}"
         self.logging=logging.getLogger(logger_name)
-        self.logging.setLevel(logging.INFO)
+        self.logging.setLevel(logging.NOTSET)
         self.logging.addHandler(handler)
 
         handler = logging.FileHandler('src/services/logs/service.log')
@@ -53,7 +53,6 @@ class Gateway:
         self.publish_connection, self.publish_channel = create_channel(
                 connection_url=connection_url,
                 queue_name=queue_name,
-                blocked_connection_timeout=300,
                 durable=True)
 
         while(Deku.modem_ready(self.modem_index)):
@@ -62,7 +61,7 @@ class Gateway:
                 sms=Modem.SMS(index=msg_index)
 
                 try:
-                    publish_channel.basic_publish(
+                    self.publish_channel.basic_publish(
                             exchange='',
                             routing_key=queue_name,
                             body=json.dumps({"text":sms.text, "phonenumber":sms.number}),
@@ -70,7 +69,8 @@ class Gateway:
                                 delivery_mode=2))
                 except Exception as error:
                     # self.logging.error(traceback.format_exc())
-                    raise(error)
+                    # raise(error)
+                    self.logging.exception(error)
                 else:
                     try:
                         Modem(self.modem_index).SMS.delete(msg_index)
@@ -144,9 +144,11 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
     while True:
         indexes=[]
         try:
-            indexes=Deku.modems_ready(remove_lock=True)
+            indexes, locked_indexes = deku.modems_ready(remove_lock=True)
+            stdout_logging.info("available modems %d %s, locked modems %d %s", 
+                    len(indexes), indexes, len(locked_indexes), locked_indexes)
+
             if len(indexes) < 1:
-                stdout_logging.info("No modem available")
                 time.sleep(sleep_time)
                 continue
 
@@ -286,6 +288,7 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
     global router_phonenumber
     global router
     global stdout_logging
+    global deku
 
     formatter = logging.Formatter('%(asctime)s|[%(levelname)s] [%(filename)s] %(message)s', 
             datefmt='%Y-%m-%d %H:%M:%S')
@@ -297,6 +300,10 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
     stdout_logging.setLevel(logging.INFO)
     stdout_logging.addHandler(handler)
     stdout_logging.propagate = False
+
+    deku=Deku(config=config, 
+            config_isp_default=config_isp_default, 
+            config_isp_operators=config_isp_operators)
 
     router_mode = config['GATEWAY']['route_mode']
     router_phonenumber = config['ROUTER']['router_phonenumber']
