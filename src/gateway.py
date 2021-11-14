@@ -50,15 +50,14 @@ class Gateway:
         connection_url=self.config['GATEWAY']['connection_url']
         queue_name=self.config['GATEWAY']['routing_queue_name']
 
+        publish_connection, publish_channel = create_channel(
+                connection_url=connection_url,
+                queue_name=queue_name,
+                blocked_connection_timeout=300,
+                durable=True)
+
         while(Deku.modem_ready(self.modem_index)):
             messages=Modem(self.modem_index).SMS.list('received')
-
-            publish_connection, publish_channel = create_channel(
-                    connection_url=connection_url,
-                    queue_name=queue_name,
-                    blocked_connection_timeout=300,
-                    durable=True)
-
             for msg_index in messages:
                 sms=Modem.SMS(index=msg_index)
 
@@ -219,14 +218,16 @@ def sms_routing_callback(ch, method, properties, body):
 def create_channel(connection_url, queue_name, exchange_name=None, 
         exchange_type=None, durable=False, binding_key=None, callback=None, 
         prefetch_count=0, connection_port=5672, heartbeat=600, 
-        blocked_connection_timeout=None):
+        blocked_connection_timeout=None, username='guest', password='guest', retry_delay=10):
 
-    credentials=None
+    credentials=pika.PlainCredentials(username, password)
     try:
         parameters=pika.ConnectionParameters(
                 connection_url, 
                 connection_port, 
-                '/')
+                '/',
+                credentials,
+                retry_delay=retry_delay)
 
         connection=pika.BlockingConnection(parameters=parameters)
         channel=connection.channel()
@@ -250,8 +251,10 @@ def create_channel(connection_url, queue_name, exchange_name=None,
 
 
 def rabbitmq_connection(config):
+    """
     global routing_consume_connection
     global routing_consume_channel
+    """
 
     connection_url=config['GATEWAY']['connection_url']
     queue_name=config['GATEWAY']['routing_queue_name']
@@ -264,6 +267,9 @@ def rabbitmq_connection(config):
                 durable=True,
                 prefetch_count=1,
                 queue_name=queue_name)
+
+        # logging.info("connected to localhost")
+        return routing_consume_connection, routing_consume_channel
 
     except Exception as error:
         raise(error)
@@ -299,18 +305,16 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
     router = Router(url=url, priority_offline_isp=priority_offline_isp, 
             config=config, config_isp_default=config_isp_default, 
             config_isp_operators=config_isp_operators)
-
     try:
-        rabbitmq_connection(config)
+        routing_consume_connection, routing_consume_channel = rabbitmq_connection(config)
+
         logging.info("main incoming channel created")
-        thread_rabbitmq_connection = threading.Thread(
-                target=routing_consume_channel.start_consuming, daemon=True)
-        thread_rabbitmq_connection.start()
+        manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
+        routing_consume_channel.start_consuming()
     except Exception as error:
         logging.critical(traceback.format_exc())
     else:
         try:
-            manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
             thread_rabbitmq_connection.join()
         except Exception as error:
             logging.error(traceback.format_exc())

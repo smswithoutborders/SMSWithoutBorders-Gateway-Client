@@ -43,7 +43,7 @@ class Node:
     @staticmethod
     def create_channel(connection_url, queue_name, username=None, 
             password=None, exchange_name=None, exchange_type=None, durable=False, 
-            binding_key=None, callback=None, prefetch_count=0):
+            binding_key=None, callback=None, prefetch_count=0, retry_delay=10):
 
         credentials=None
         if username is not None and password is not None:
@@ -57,7 +57,8 @@ class Node:
                     connection_url, 
                     5672, 
                     '/', 
-                    credentials)
+                    credentials,
+                    retry_delay=retry_delay)
 
             connection=pika.BlockingConnection(parameters=parameters)
             channel=connection.channel()

@@ -60,10 +60,10 @@ if __name__ == "__main__":
             node_thread.start()
             logging.info("node thread started")
 
+        gateway_thread=None
         if args.module == "gateway" or args.module == "all":
             gateway_thread = threading.Thread(target=gateway.main, 
-                    args=(config, config_event_rules, config_isp_default, config_isp_operators,),
-                    daemon=True)
+                    args=(config, config_event_rules, config_isp_default, config_isp_operators,))
 
             logging.info("starting gateway thread")
             gateway_thread.start()
@@ -73,7 +73,9 @@ if __name__ == "__main__":
         if args.module == "node" or args.module == "all":
             node_thread.join()
         if args.module == "gateway" or args.module == "all":
-            gateway_thread.join()
+            gateway_thread.join(0)
+
+        print("ending...")
 
     except Exception as error:
         logging.critical(error)
