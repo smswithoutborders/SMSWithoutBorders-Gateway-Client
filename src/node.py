@@ -414,7 +414,7 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
         try:
             indexes, locked_indexes = deku.modems_ready(remove_lock=True)
 
-            stdout_logging.info("available modems %d [%s], locked modems %d [%s]", 
+            stdout_logging.info("available modems %d %s, locked modems %d %s", 
                     len(indexes), indexes, len(locked_indexes), locked_indexes)
 
             if len(indexes) < 1:
