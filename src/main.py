@@ -56,19 +56,14 @@ if __name__ == "__main__":
                     daemon=True)
 
 
-            logging.info("starting node thread")
             node_thread.start()
-            logging.info("node thread started")
 
         if args.module == "gateway" or args.module == "all":
             gateway_thread = threading.Thread(target=gateway.main, 
                     args=(config, config_event_rules, config_isp_default, config_isp_operators,),
                     daemon=True)
 
-            logging.info("starting gateway thread")
             gateway_thread.start()
-            logging.info("gateway thread started")
-
 
         if args.module == "node" or args.module == "all":
             node_thread.join()

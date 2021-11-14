@@ -22,6 +22,11 @@ from mmcli_python.modem import Modem
 from transmissionLayer import TransmissionLayer
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
+'''
+resources:
+    - https://pika.readthedocs.io/en/stable/modules/adapters/blocking.html?highlight=BlockingChannel#pika.adapters.blocking_connection.BlockingChannel
+'''
+
 class Node:
     modem_index = None
     modem_isp = None
@@ -77,6 +82,9 @@ class Node:
                         on_message_callback=callback)
 
             return connection, channel
+        except Exception as error:
+            raise(error)
+        '''
         except pika.exceptions.ConnectionClosedByBroker as error:
             raise(error)
         except pika.exceptions.AMQPChannelError as error:
@@ -85,6 +93,7 @@ class Node:
             raise(error)
         except socket.gaierror as error:
             raise(error)
+        '''
 
     def generate_status_file(self, status_file):
         modem_status_file=configparser.ConfigParser()
@@ -136,7 +145,7 @@ class Node:
 
         logger_name=f"{self.modem_isp}:{self.modem_index}"
         self.logging=logging.getLogger(logger_name)
-        self.logging.setLevel(logging.INFO)
+        self.logging.setLevel(logging.NOTSET)
         self.logging.addHandler(handler)
 
         handler = logging.FileHandler('src/services/logs/service.log')
@@ -145,10 +154,13 @@ class Node:
 
         self.logging.propagate = False
 
+    def status(self):
+        waiting_message_count = self.outgoing_channel.get_waiting_message_count()
+        return waiting_message_count
 
     def create_connection(self):
+        self.logging.info("starting connection")
         try:
-            self.logging.info("attempting connection")
             self.outgoing_connection, self.outgoing_channel = Node.create_channel(
                     connection_url=self.connection_url,
                     queue_name=self.queue_name,
@@ -161,10 +173,7 @@ class Node:
                     durable=self.durable,
                     prefetch_count=self.prefetch_count)
         except Exception as error:
-            print(traceback.format_exc())
-            # raise(error)
-        # TODO add exception for when authentication fails
-
+            raise(error)
         
     def update_status(self, category:Category): # status file gets updated here
         modems_status_file=configparser.ConfigParser()
@@ -231,7 +240,7 @@ class Node:
                 modems_status_file.read(self.status_file)
 
                 action = self.config_event_rules[category.value]['ACTION']
-                output=event_run(action)
+                output = self.event_run(action)
                 self.logging.info(output)
 
                 if self.can_transmit(modems_status_file):
@@ -239,7 +248,7 @@ class Node:
 
                 i=1
                 while ('ACTION'+str(i)) in self.config_event_rules[category.value]:
-                    output=event_run(self.config_event_rules[category.value]['ACTION'+str(i)])
+                    output= self.event_run(self.config_event_rules[category.value]['ACTION'+str(i)])
                     self.logging.info(output)
                     if transmission_layer is not None and \
                             request_transmission_timer > next_transmission_timer:
@@ -258,7 +267,7 @@ class Node:
     def __callback(self, ch, method, properties, body):
         # TODO: verify data coming in is actually a json
         json_body = json.loads(body.decode('unicode_escape'))
-        self.logging.info(json_body)
+        self.logging.debug(json_body)
 
         if not "text" in json_body:
             self.logging.warning('poorly formed message - text missing')
@@ -272,10 +281,10 @@ class Node:
         number=json_body['number']
 
         try:
-            self.logging.info('sending sms...')
-            Deku.send( text=text, number=number, modem_index=self.modem_index, 
+            self.logging.info('sending sms')
+            deku.send( text=text, number=number, modem_index=self.modem_index, 
                     number_isp=False)
-
+            self.logging.info('sms sent')
         except Deku.InvalidNumber as error:
             self.logging.warning("invalid number, dumping message")
             self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
@@ -285,22 +294,36 @@ class Node:
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
             self.outgoing_connection.sleep(self.sleep_time)
+
         except subprocess.CalledProcessError as error:
-            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
-            self.update_status(Node.Category.FAILED)
+            if ch.is_open:
+                ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            try:
+                self.update_status(Node.Category.FAILED)
+            except Exception as error:
+                self.logging.error(traceback.format_exc())
+
         except Exception as error:
-            # self.logging.warning("some internal error happened")
-            self.logging.critical(traceback.format_exc())
-            ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            if ch.is_open:
+                ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+            self.logging.exception(error)
         else:
+            if ch.is_open:
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+            try:
+                self.update_status(Node.Category.SUCCESS)
+            except Exception as error:
+                self.logging.exception(traceback.format_exc())
             self.logging.info("sms sent successfully")
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-            self.update_status(Node.Category.SUCCESS)
+        finally:
+            if ch.is_closed:
+                return
 
     def __modem_monitor(self):
+        self.logging.debug("monitoring state of modem")
         try:
             messages = self.modem.SMS.list('received')
-            while Deku.modem_ready(self.modem_index):
+            while deku.modem_ready(self.modem_index):
                 time.sleep(self.sleep_time)
             self.logging.warning("disconnected")
         except Exception as error:
@@ -309,12 +332,17 @@ class Node:
             try:
                 self.outgoing_connection.close(reply_code=1, reply_text='modem no longer available')
             except Exception as error:
-                raise(error)
+                # raise(error)
+                ''' seems like will always raise and exception '''
+                pass
             finally:
                 if self.modem_index in active_nodes:
                     del active_nodes[self.modem_index]
 
     def start_consuming(self):
+        self.logging.debug("incoming consumer started")
+        self.logging.info("# waiting messages %d", self.status())
+
         self.status_file=os.path.join( 
                 os.path.dirname(__file__), 
                 'services/status', f'{self.modem.imei}.ini')
@@ -324,7 +352,6 @@ class Node:
         wd.start()
 
         try:
-            self.logging.info("connected successfully")
             self.outgoing_channel.start_consuming() #blocking
             wd.join()
 
@@ -337,13 +364,12 @@ class Node:
 
 '''++ startup routines'''
 def init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules):
+    logging.debug("initializing nodes")
     isp_country = config['ISP']['country']
-    deku=Deku(config=config, 
-            config_isp_default=config_isp_default, 
-            config_isp_operators=config_isp_operators)
     for modem_index in indexes:
         if modem_index not in active_nodes:
             if not deku.modem_ready(modem_index):
+                logging.debug("modem(%s) not ready", mdoem_index)
                 continue
             try:
                 modem_isp = deku.ISP.modems(
@@ -365,9 +391,14 @@ def start_nodes():
         node = thread_n_node[1]
         try:
             if thread.native_id is None:
+                logging.debug("starting nodes")
                 node.create_connection()
                 thread.start()
 
+        except socket.gaierror as error:
+            logging.warning("unable to resolve server location (check internet connection)")
+        except pika.exceptions.AMQPConnectionError as error:
+            logging.warning("unable to talk to server location (check internet connection)")
         except Exception as error:
             raise(error)
 
@@ -381,9 +412,12 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
     while True:
         indexes=[]
         try:
-            indexes=Deku.modems_ready(remove_lock=True)
+            indexes, locked_indexes = deku.modems_ready(remove_lock=True)
+
+            stdout_logging.info("available modems %d [%s], locked modems %d [%s]", 
+                    len(indexes), indexes, len(locked_indexes), locked_indexes)
+
             if len(indexes) < 1:
-                stdout_logging.info("No modem available")
                 time.sleep(sleep_time)
                 continue
 
@@ -398,6 +432,7 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
         time.sleep(sleep_time)
 
 def initiate_transmissions():
+    logging.debug("instantiating transmissions")
     global transmission_layer
     transmission_layer=None
 
@@ -417,7 +452,9 @@ def format_transmissions(category, action, output):
     return msg
 
 def main(config, config_event_rules, config_isp_default, config_isp_operators):
+    logging.debug("node main started")
     global stdout_logging
+    global deku
 
     formatter = logging.Formatter('%(asctime)s|[%(levelname)s] [%(filename)s] %(message)s', 
             datefmt='%Y-%m-%d %H:%M:%S')
@@ -430,6 +467,10 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
     stdout_logging.addHandler(handler)
     stdout_logging.propagate = False
 
+    deku=Deku(config=config, 
+            config_isp_default=config_isp_default, 
+            config_isp_operators=config_isp_operators)
+
     try:
         initiate_transmissions()
         manage_modems(config=config, 
@@ -437,13 +478,17 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
                 config_isp_default=config_isp_default,
                 config_isp_operators=config_isp_operators)
 
+    except Exception as error:
+        logging.exception(error)
+    """
     except CustomConfigParser.NoDefaultFile as error:
-        logger.error(traceback.format_exc())
+        logging.error(traceback.format_exc())
     except CustomConfigParser.ConfigFileNotFound as error:
         ''' with this implementation, it stops at the first exception - intended?? '''
-        logger.error(traceback.format_exc())
+        logging.error(traceback.format_exc())
     except CustomConfigParser.ConfigFileNotInList as error:
-        logger.error(traceback.format_exc())
+        logging.error(traceback.format_exc())
+    """
 
 if __name__ == "__main__":
     main()

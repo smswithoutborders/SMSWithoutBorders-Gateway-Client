@@ -125,6 +125,8 @@ class Deku(Modem):
     def modems_ready(isp=None, country=None, modem_index=None, remove_lock=False, ignore_lock=False):
         available_indexes=[]
         indexes=[]
+        locked_indexes=[]
+
         if modem_index is not None:
             indexes.append(modem_index)
         else:
@@ -135,6 +137,7 @@ class Deku(Modem):
                     _modem_index, remove_lock=remove_lock)
 
             if not ignore_lock and locked_state:
+                locked_indexes.append(_modem_index)
                 continue
 
             if isp is None:
@@ -148,7 +151,7 @@ class Deku(Modem):
                 if isp == modem_isp and Deku.modem_ready(_modem_index):
                     available_indexes.append(_modem_index)
 
-        return available_indexes
+        return available_indexes, locked_indexes
 
 
     @classmethod
@@ -157,7 +160,9 @@ class Deku(Modem):
             country = cls.config['ISP']['country']
 
             if isp is not None: # check if modem for required isp is available
-                return Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
+                available_indexes, locked_indexes = \
+                        Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
+                return available_indexes
 
             elif number_isp: # check if modem for number's isp is available
                 isp=Deku.ISP.determine(number=number, country=country)
@@ -165,11 +170,17 @@ class Deku(Modem):
                 if isp is None:
                     raise Deku.InvalidNumber(number, 'invalid number')
 
-                return Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
+                available_indexes, locked_indexes = \
+                        Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
+                return available_indexes
             else:
-                return Deku.modems_ready()
+                available_indexes, locked_indexes = Deku.modems_ready()
+                return available_indexes
         else:
-            return Deku.modems_ready(modem_index=modem_index, remove_lock=remove_lock)
+            available_indexes, locked_indexes = \
+                    Deku.modems_ready(modem_index=modem_index, remove_lock=remove_lock)
+            return available_indexes
+            
         return None
 
 
