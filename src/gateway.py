@@ -70,7 +70,8 @@ class Gateway:
                             properties=pika.BasicProperties(
                                 delivery_mode=2))
                 except Exception as error:
-                    self.logging.error(traceback.format_exc())
+                    # self.logging.error(traceback.format_exc())
+                    raise(error)
                 else:
                     try:
                         Modem(self.modem_index).SMS.delete(msg_index)
@@ -255,9 +256,7 @@ def rabbitmq_connection(config):
                 queue_name=queue_name)
 
     except Exception as error:
-        logging.error(traceback.format_exc())
-    else:
-        print("Done")
+        raise(error)
 
 def start_consuming():
     try:
@@ -266,6 +265,8 @@ def start_consuming():
         logging.error(traceback.format_exc())
 
 def main(config, config_event_rules, config_isp_default, config_isp_operators):
+    logging.info("starting gateway")
+
     global router_mode
     global router_phonenumber
     global router
@@ -280,12 +281,19 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
             config=config, config_isp_default=config_isp_default, 
             config_isp_operators=config_isp_operators)
 
-    rabbitmq_connection(config)
-    thread_rabbitmq_connection = threading.Thread(target=routing_consume_channel.start_consuming, daemon=True)
-    thread_rabbitmq_connection.start()
-
-    manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
-    thread_rabbitmq_connection.join()
+    try:
+        rabbitmq_connection(config)
+        thread_rabbitmq_connection = threading.Thread(
+                target=routing_consume_channel.start_consuming, daemon=True)
+        thread_rabbitmq_connection.start()
+    except Exception as error:
+        logging.critical(traceback.format_exc())
+    else:
+        try:
+            manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
+            thread_rabbitmq_connection.join()
+        except Exception as error:
+            logging.error(traceback.format_exc())
 
 if __name__ == "__main__":
     main()
