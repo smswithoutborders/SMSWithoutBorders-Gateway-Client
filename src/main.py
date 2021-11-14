@@ -12,6 +12,12 @@ from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 
 if __name__ == "__main__":
+    getattr(logging, loglevel.upper())
+    numeric_level = getattr(logging, loglevel.upper(), None)
+    if not isinstance(numeric_level, int):
+        # raise ValueError('Invalid log level: %s' % loglevel)
+        number_level = logging.INFO
+
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
     logging.basicConfig(
             format='%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s',
@@ -21,7 +27,7 @@ if __name__ == "__main__":
                 logging.FileHandler('src/services/logs/service.log'),
                 logging.StreamHandler(sys.stdout) ],
             encoding='utf-8',
-            level=logging.INFO)
+            level=numeric_level)
 
     formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -35,27 +41,25 @@ if __name__ == "__main__":
         logging.critical(error)
 
     try:
-        node_thread = threading.Thread(target=node.main, 
-                args=(config, config_event_rules, config_isp_default, config_isp_operators,),
-                daemon=True)
+        if sys.argv[1] == "--node":
+            node_thread = threading.Thread(target=node.main, 
+                    args=(config, config_event_rules, config_isp_default, config_isp_operators,),
+                    daemon=True)
 
-        """
-        gateway_thread = threading.Thread(target=gateway.main, 
-                args=(config, config_event_rules, config_isp_default, config_isp_operators,),
-                daemon=True)
 
-        """
-        logging.info("starting node thread")
-        node_thread.start()
-        logging.info("node thread started")
+            logging.info("starting node thread")
+            node_thread.start()
+            logging.info("node thread started")
+            node_thread.join()
 
-        """
-        logging.info("starting gateway thread")
-        gateway_thread.start()
-        logging.info("gateway thread started")
-        """
+        elif sys.argv[1] == "--gateway":
+            gateway_thread = threading.Thread(target=gateway.main, 
+                    args=(config, config_event_rules, config_isp_default, config_isp_operators,),
+                    daemon=True)
 
-        node_thread.join()
-        # gateway_thread.join()
+            logging.info("starting gateway thread")
+            gateway_thread.start()
+            logging.info("gateway thread started")
+            gateway_thread.join()
     except Exception as error:
         logging.error(error)

@@ -86,6 +86,8 @@ class Gateway:
         if self.modem_index in active_threads:
             del active_threads[self.modem_index]
 
+
+
 def init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules):
     isp_country = config['ISP']['country']
     priority_offline_isp=config['ROUTER']['isp']
@@ -155,16 +157,23 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
 
 
 def route_online(data):
-    results = router.route_online(data=data)
-    print(f"Routing results (ONLINE): {results.text} {results.status_code}")
+    try:
+        results = router.route_online(data=data)
+        logging.info("routing results (online) %s %d", 
+                results.text, results.status_code)
+    except Exception as error:
+        raise(error)
 
 def route_offline(text, number):
-    results = router.route_offline(text=text, number=number)
-    print("* Routing results (OFFLINE) SMS successfully routed...")
+    try:
+        results = router.route_offline(text=text, number=number)
+        logging.info("routing results (offline) successful")
+    except Exception as error:
+        raise(error)
 
 def sms_routing_callback(ch, method, properties, body):
     json_body = json.loads(body.decode('unicode_escape'))
-    print(f'routing: {json_body}')
+    logging.debug("routing %s", json_body)
 
     if not "text" in json_body:
         logging.error('poorly formed message - text missing')
@@ -179,6 +188,7 @@ def sms_routing_callback(ch, method, properties, body):
         json_data = json.dumps(json_body)
         body = str(b64encode(body), 'unicode_escape')
 
+        logger.debug("routing mode %s", router_mode)
         if router_mode == Router.Modes.ONLINE.value:
             route_online(json_data)
             routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
@@ -265,12 +275,21 @@ def start_consuming():
         logging.error(traceback.format_exc())
 
 def main(config, config_event_rules, config_isp_default, config_isp_operators):
-    logging.info("starting gateway")
-
     global router_mode
     global router_phonenumber
     global router
+    global stdout_logging
 
+    formatter = logging.Formatter('%(asctime)s|[%(levelname)s] [%(filename)s] %(message)s', 
+            datefmt='%Y-%m-%d %H:%M:%S')
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    stdout_logging=logging.getLogger('stdout_only')
+    stdout_logging.setLevel(logging.INFO)
+    stdout_logging.addHandler(handler)
+    stdout_logging.propagate = False
 
     router_mode = config['GATEWAY']['route_mode']
     router_phonenumber = config['ROUTER']['router_phonenumber']

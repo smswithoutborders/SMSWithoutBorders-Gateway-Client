@@ -417,7 +417,10 @@ def format_transmissions(category, action, output):
 
 def main(config, config_event_rules, config_isp_default, config_isp_operators):
     global stdout_logging
-    formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+    formatter = logging.Formatter('%(asctime)s|[%(levelname)s] [%(filename)s] %(message)s', 
+            datefmt='%Y-%m-%d %H:%M:%S')
+
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
 
