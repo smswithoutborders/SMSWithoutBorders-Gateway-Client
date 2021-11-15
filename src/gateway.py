@@ -50,12 +50,17 @@ class Gateway:
         connection_url=self.config['GATEWAY']['connection_url']
         queue_name=self.config['GATEWAY']['routing_queue_name']
 
-        self.publish_connection, self.publish_channel = create_channel(
-                connection_url=connection_url,
-                queue_name=queue_name,
-                durable=True)
 
-        while(Deku.modem_ready(self.modem_index)):
+        while Deku.modem_ready(self.modem_index):
+            if not hasattr(self, 'publish_connection') or \
+                    self.publish_connection.is_closed:
+                self.publish_connection, self.publish_channel = create_channel(
+                        connection_url=connection_url,
+                        queue_name=queue_name,
+                        heartbeat=600,
+                        blocked_connection_timeout=60,
+                        durable=True)
+
             messages=Modem(self.modem_index).SMS.list('received')
             for msg_index in messages:
                 sms=Modem.SMS(index=msg_index)
@@ -67,6 +72,7 @@ class Gateway:
                             body=json.dumps({"text":sms.text, "phonenumber":sms.number}),
                             properties=pika.BasicProperties(
                                 delivery_mode=2))
+                    self.logging.info("published %s",{"text":sms.text, "phonenumber":sms.number})
                 except Exception as error:
                     # self.logging.error(traceback.format_exc())
                     # raise(error)
@@ -142,6 +148,7 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
 
     logging.info('modem manager started')
     while True:
+        logging.debug("routing thread alive %s", routing_thread)
         indexes=[]
         try:
             indexes, locked_indexes = deku.modems_ready(remove_lock=True)
@@ -156,7 +163,8 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
             raise(error)
         
         try:
-            init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules)
+            init_nodes(indexes, config, config_isp_default, 
+                    config_isp_operators, config_event_rules)
             start_nodes()
         except Exception as error:
             raise(error)
@@ -180,7 +188,7 @@ def route_offline(text, number):
 
 def sms_routing_callback(ch, method, properties, body):
     json_body = json.loads(body.decode('unicode_escape'))
-    logging.debug("routing %s", json_body)
+    logging.info("routing %s", json_body)
 
     if not "text" in json_body:
         logging.error('poorly formed message - text missing')
@@ -314,16 +322,15 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
             config=config, config_isp_default=config_isp_default, 
             config_isp_operators=config_isp_operators)
 
-    # global routing_consume_connection, routing_consume_channel
     global routing_thread
+    global routing_consume_connection, routing_consume_channel
     try:
         routing_consume_connection, routing_consume_channel = rabbitmq_connection(config)
-        manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
-
         routing_thread = threading.Thread(target=routing_consume_channel.start_consuming)
-        logging.info("listening for incoming messages")
         routing_thread.start()
-        # routing_thread.join()
+
+        manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
+        logging.info("listening for incoming messages")
 
     except Exception as error:
         logging.critical(traceback.format_exc())

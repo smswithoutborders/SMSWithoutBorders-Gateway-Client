@@ -29,7 +29,8 @@ if __name__ == "__main__":
 
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
     logging.basicConfig(
-            format='%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s',
+            # format='%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s',
+            format='%(asctime)s|[%(levelname)s] %(message)s',
             # datefmt='%Y-%m-%d %I:%M:%S %p',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[
