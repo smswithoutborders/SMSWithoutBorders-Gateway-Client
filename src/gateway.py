@@ -101,7 +101,6 @@ class Gateway:
 
 def init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules):
     isp_country = config['ISP']['country']
-    priority_offline_isp=config['ROUTER']['isp']
 
     deku=Deku(config=config, 
             config_isp_default=config_isp_default, 
@@ -125,7 +124,7 @@ def init_nodes(indexes, config, config_isp_default, config_isp_operators, config
                 active_threads[modem_index] = [gateway_thread, gateway]
 
             except Exception as error:
-                raise(error)
+                raise error
 
 def start_nodes():
     for modem_index, thread_n_node in active_threads.items():
@@ -135,7 +134,7 @@ def start_nodes():
                 thread.start()
 
         except Exception as error:
-            raise(error)
+            raise error
 
 def manage_modems(config, config_event_rules, config_isp_default, config_isp_operators):
     global active_threads
@@ -160,14 +159,14 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
                 continue
 
         except Exception as error:
-            raise(error)
+            raise error
         
         try:
             init_nodes(indexes, config, config_isp_default, 
                     config_isp_operators, config_event_rules)
             start_nodes()
         except Exception as error:
-            raise(error)
+            raise error
         time.sleep(sleep_time)
 
 
@@ -177,14 +176,14 @@ def route_online(data):
         logging.info("routing results (online) %s %d", 
                 results.text, results.status_code)
     except Exception as error:
-        raise(error)
+        raise error
 
 def route_offline(text, number):
     try:
         results = router.route_offline(text=text, number=number)
         logging.info("routing results (offline) successful")
     except Exception as error:
-        raise(error)
+        raise error
 
 def sms_routing_callback(ch, method, properties, body):
     json_body = json.loads(body.decode('unicode_escape'))
@@ -222,11 +221,11 @@ def sms_routing_callback(ch, method, properties, body):
                     route_offline(body, router_phonenumber)
                     routing_consume_channel.basic_ack(delivery_tag=method.delivery_tag)
                 except Exception as error:
-                    raise(error)
+                    raise error
         else:
             logging.error("invalid routing protocol")
     except Exception as error:
-        logging.error(traceback.format_exc())
+        logging.exception(traceback.format_exc())
         routing_consume_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
     finally:
         routing_consume_connection.sleep(sleep_time)
@@ -263,7 +262,7 @@ def create_channel(connection_url, queue_name, exchange_name=None,
 
         return connection, channel
     except Exception as error:
-        raise(error)
+        raise error
 
 
 def rabbitmq_connection(config):
@@ -283,7 +282,7 @@ def rabbitmq_connection(config):
         return routing_consume_connection, routing_consume_channel
 
     except Exception as error:
-        raise(error)
+        raise error
 
 def start_consuming():
     try:
@@ -314,10 +313,10 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
             config_isp_operators=config_isp_operators)
 
     router_mode = config['GATEWAY']['route_mode']
-    router_phonenumber = config['ROUTER']['router_phonenumber']
+    router_phonenumber = config['GATEWAY']['router_phonenumber']
 
-    url = config['ROUTER']['default']
-    priority_offline_isp = config['ROUTER']['isp']
+    url = config['GATEWAY']['route_url']
+    priority_offline_isp = config['GATEWAY']['route_isp']
     router = Router(url=url, priority_offline_isp=priority_offline_isp, 
             config=config, config_isp_default=config_isp_default, 
             config_isp_operators=config_isp_operators)

@@ -209,7 +209,7 @@ class Node:
         modems_status_file.read(self.status_file)
 
         time_now = float(time.time())
-        transmission_duration_secs = float(self.config['TRANSMISSION']['duration'])*60
+        transmission_duration_secs = float(self.config['TRANSMISSION']['duration'])
 
         with open(self.status_file, 'w') as fd_modems_status_file:
             modems_status_file['TRANSMISSION']['counter'] = str(

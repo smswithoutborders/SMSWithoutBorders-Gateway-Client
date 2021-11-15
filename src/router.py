@@ -30,12 +30,6 @@ class Router(Deku):
 
 
     def route_offline(self, text, number):
-        print('* routing offline mode N/A')
-        # print(f'\ttext-: {text}\n\tnumber-: {number}')
-        ''' 
-        find modems for matching isp
-        send sms and fail if not delivered
-        '''
         try:
             self.send(
                     text=text,
