@@ -98,7 +98,7 @@ class Node:
     def generate_status_file(self, status_file):
         modem_status_file=configparser.ConfigParser()
         if os.path.isfile(status_file):
-            logging.info('Status file exist...')
+            logging.debug('Status file exist...')
             modem_status_file.read(self.status_file)
 
         with open(status_file, 'w') as fd_status_file:

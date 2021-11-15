@@ -284,12 +284,6 @@ def rabbitmq_connection(config):
     except Exception as error:
         raise error
 
-def start_consuming():
-    try:
-        routing_consume_channel.start_consuming() #blocking
-    except Exception as error:
-        logging.error(traceback.format_exc())
-
 def main(config, config_event_rules, config_isp_default, config_isp_operators):
     global router_mode
     global router_phonenumber
@@ -331,6 +325,10 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
         manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
         logging.info("listening for incoming messages")
 
+    except pika.exceptions.ConnectionClosedByBroker as error:
+        logging.critical(error)
+        logging.info("Shutting down")
+        exit(0)
     except Exception as error:
         logging.critical(traceback.format_exc())
 

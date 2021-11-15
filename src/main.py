@@ -6,6 +6,7 @@ import sys
 import logging
 import threading
 import argparse
+import traceback
 
 import node
 import gateway
@@ -47,6 +48,7 @@ if __name__ == "__main__":
         config_event_rules=configreader.read(".configs/events/rules.ini")
         config_isp_default = configreader.read('.configs/isp/default.ini')
         config_isp_operators = configreader.read('.configs/isp/operators.ini')
+        third_party_paths = config.reader('.third_party/.configs/paths.ini')
     except Exception as error:
         logging.critical(error)
 
@@ -55,7 +57,6 @@ if __name__ == "__main__":
             node_thread = threading.Thread(target=node.main, 
                     args=(config, config_event_rules, config_isp_default, config_isp_operators,),
                     daemon=True)
-
 
             node_thread.start()
 
@@ -71,4 +72,4 @@ if __name__ == "__main__":
         if args.module == "gateway" or args.module == "all":
             gateway_thread.join()
     except Exception as error:
-        logging.critical(error)
+        logging.critical(traceback.format_exc())
