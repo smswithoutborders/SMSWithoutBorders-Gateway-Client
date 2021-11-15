@@ -284,7 +284,6 @@ class Node:
             self.logging.info('sending sms')
             deku.send( text=text, number=number, modem_index=self.modem_index, 
                     number_isp=False)
-            self.logging.info('sms sent')
         except Deku.InvalidNumber as error:
             self.logging.warning("invalid number, dumping message")
             self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
@@ -314,7 +313,7 @@ class Node:
                 self.update_status(Node.Category.SUCCESS)
             except Exception as error:
                 self.logging.exception(traceback.format_exc())
-            self.logging.info("sms sent successfully")
+            self.logging.info('sms sent')
         finally:
             if ch.is_closed:
                 return
