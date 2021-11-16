@@ -52,8 +52,9 @@ restart:
 	@sudo systemctl restart deku_cluster.service
 	@systemctl is-active deku_cluster.service
 
+clean:
+	@rm -rf $(venv_path)
 remove:
-	@#rm -rf $(venv_path)
 	@echo "Stopping services..."
 	@if [ "$(gateway_state)" = "active" ]; then \
 		echo "- gateway"; \
