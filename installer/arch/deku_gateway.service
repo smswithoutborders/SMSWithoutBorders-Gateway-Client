@@ -1,0 +1,11 @@
+[Unit]
+Description=SMSWithoutBorders Gateway
+After=network.target NetworkManager.service ModemManager.service
+Wants=ModemManager.service
+
+[Service]
+Type=simple
+ExecStart=python3 /usr/bin/somethin
+
+[Install]
+WantedBy=multi-user.target

@@ -10,13 +10,14 @@ distro := $(shell cat /etc/*-release | grep ID_LIKE )
 sys_service:install
 	@if [ "$(distro)" == "ID_LIKE=debian" ] && ! [ -L "$(systemd_path)/deku.service" ]; then \
 		echo "Creating services for Debian based distro..."; \
-		sudo ln -s "$(pwd)"/install/system/debian/deku.service $(systemd_path)/deku.service; \
+		sudo ln -s "$(pwd)"/install/debian/deku.service $(systemd_path)/deku.service; \
 	fi
 	@if [ "$(distro)" == "ID_LIKE=arch" ] && ! [ -L "$(systemd_path)/deku.service" ]; then \
 		echo "Creating services for Arch based distro..."; \
-		sudo ln -s "$(pwd)"/install/system/arch/deku.service $(systemd_path)/deku.service; \
+		sudo ln -s "$(pwd)"/install/arch/deku.service $(systemd_path)/deku.service; \
 	fi
 	@# sudo systemctl daemon-reload
+	@echo "complete"
 
 install:requirements.txt copy_configs
 	@$(python) -m virtualenv $(venv_path)
@@ -25,7 +26,6 @@ install:requirements.txt copy_configs
 		$(pip) install -r requirements.txt \
 	)
 	@git submodule update --init --recursive
-	@echo "complete"
 
 copy_configs:
 	@cp -nv .configs/example.config.ini .configs/config.ini

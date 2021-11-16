@@ -340,7 +340,7 @@ class Node:
 
     def start_consuming(self):
         self.logging.debug("incoming consumer started")
-        self.logging.info("# waiting messages %d", self.status())
+        self.logging.debug("# waiting messages %d", self.status())
 
         self.status_file=os.path.join( 
                 os.path.dirname(__file__), 

@@ -29,13 +29,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
+    log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
     logging.basicConfig(
             # format='%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s',
             format='%(asctime)s|[%(levelname)s] %(message)s',
             # datefmt='%Y-%m-%d %I:%M:%S %p',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[
-                logging.FileHandler('src/services/logs/service.log'),
+                logging.FileHandler(log_file_path),
                 logging.StreamHandler(sys.stdout) ],
             encoding='utf-8',
             level=args.log.upper())
@@ -73,3 +74,7 @@ if __name__ == "__main__":
             gateway_thread.join()
     except Exception as error:
         logging.critical(traceback.format_exc())
+
+        exit(1)
+    else:
+        exit(0)
