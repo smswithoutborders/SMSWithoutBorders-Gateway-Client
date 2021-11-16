@@ -75,10 +75,13 @@ def write_schema(schema, systemd_filepath):
 
 def populate_config(schema):
     _cp = configparser.ConfigParser()
+    _cp.optionxform = lambda option: option
     _cp.read_dict(schema)
     return _cp
 
 # generates only for required distro
+systemd_filepath = os.path.join(
+        os.path.dirname(__file__), 'system', 'deku.service')
 dist = distro.like()
 print("Current dist", dist)
 if dist in SUPPORTED_DISTROS_GATEWAY:
@@ -86,6 +89,12 @@ if dist in SUPPORTED_DISTROS_GATEWAY:
     for section in schema:
         print(f"Gateway[{section}]:")
         print([values for values in schema[section]])
+    try:
+        write_schema(populate_config(schema), systemd_filepath)
+    except Exception as error:
+        print(error)
+        exit(1)
+    exit(0)
 
 print("")
 
@@ -94,14 +103,14 @@ if dist in SUPPORTED_DISTROS_CLUSTER:
     for section in schema:
         print(f"Cluster[{section}]:")
         print([values for values in schema[section]])
-    """
+
     try:
-        write_schema(schema, systemd_filepath):
+        write_schema(populate_config(schema), systemd_filepath)
     except Exception as error:
         print(error)
         exit(1)
-    """
     exit(0)
+
 else:
     print("Not supported distro:", distro)
 

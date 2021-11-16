@@ -1,0 +1,17 @@
+[Unit]
+Description = [Maintained by Afkanerd] SMSWithoutBorders Gateway serviceSMSWithoutBorders Gateway service
+After = ModemManager.service
+Wants = ModemManager.service
+StartLimitIntervalSec = 60
+StartLimitBurst = 5
+StartLimitAction = systemctl reboot
+
+[Service]
+Type = simple
+ExecStart = +
+Restart = on-failure
+RestartSec = 5s
+
+[Install]
+WantedBy = multi-user.target
+
