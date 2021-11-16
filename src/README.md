@@ -44,15 +44,13 @@ All other supported platforms are placed in `.configs/extensions/platforms/
 #### Running
 ##### Linux
 ```bash
-. ~/.virtualenvs/deku/bin/activate
-src/node.py
+make start
 ```
+
 <b>To view all running logs</b>
 ```bash
-tail -f src/service_files/logs/logs_nodes.txt
+tail -f src/services/logs/service.log
 ```
-
-
 
 <h3>Setting up on Raspberry pi (tested on 4B)</h3>
 <h4>Ubuntu Server</h4>

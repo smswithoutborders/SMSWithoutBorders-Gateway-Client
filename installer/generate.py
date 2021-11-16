@@ -12,7 +12,6 @@ import configparser
     - https://www.freedesktop.org/software/systemd/man/systemd.unit.html#
 '''
 
-
 SUPPORTED_DISTROS_CLUSTER = ['arch', 'debian']
 SUPPORTED_DISTROS_GATEWAY = ['arch', 'debian']
 
@@ -73,11 +72,8 @@ def generate_systemd():
         distro_systemd_schemas_cluster[dist]['Service']['ExecStart'] += " --log=INFO --module=cluster"
 
     def write_schema(schema, systemd_filepath):
-        try:
-            with open(systemd_filepath, 'w') as fd_schema:
-                schema.write(fd_schema)
-        except Exception as error:
-            raise error
+        fd_schema = open(systemd_filepath, 'w')
+        schema.write(fd_schema)
 
     def populate_config(schema):
         _cp = configparser.ConfigParser(strict=False)
@@ -93,7 +89,7 @@ def generate_systemd():
             os.path.dirname(__file__), 'files', 'deku_cluster.service')
 
     dist = distro.like()
-    print(f"Current dist [{dist}]")
+    print(f"configuring for distro: [{dist}]")
 
     if dist in SUPPORTED_DISTROS_GATEWAY:
         schema = distro_systemd_schemas_gateway[dist]
@@ -107,8 +103,6 @@ def generate_systemd():
         except Exception as error:
             print(error)
             exit(1)
-
-    print("")
 
     if dist in SUPPORTED_DISTROS_CLUSTER:
         schema = distro_systemd_schemas_cluster[dist]
@@ -124,7 +118,6 @@ def generate_systemd():
     else:
         print("Not supported distro:", distro)
 
-
 def generate_deps():
     def write_scripts(data, script_path):
         fd_script_path = open(script_path, 'w')
@@ -136,38 +129,63 @@ def generate_deps():
         os.chmod(file, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
-    path_rabbitmq =os.path.join(
-            os.path.dirname(__file__), '../third_party/rabbitmq', '')
-    path_rabbitmq_versions_lock =os.path.join(
-            os.path.dirname(__file__), '../third_party/rabbitmq', 'version.lock')
-    path_rabbitmq_init_script =os.path.join(
-            os.path.dirname(__file__), '../third_party/rabbitmq', 'init.sh')
-    path_rabbitmq_start_script =os.path.join(
-            os.path.dirname(__file__), '../third_party/rabbitmq', 'start.sh')
+    def rabbitmq():
+        path_rabbitmq_versions_lock =os.path.join(
+                os.path.dirname(__file__), '../third_party/rabbitmq', 'version.lock')
+        path_rabbitmq_init_script =os.path.join(
+                os.path.dirname(__file__), '../third_party/rabbitmq', 'init.sh')
 
-    versioning_info=None
-    with open(path_rabbitmq_versions_lock, 'r') as fd_rabbitmq:
-        versioning_info= fd_rabbitmq.read()
+        versioning_info=None
+        with open(path_rabbitmq_versions_lock, 'r') as fd_rabbitmq:
+            versioning_info= fd_rabbitmq.read()
 
-    versioning_info = versioning_info.split('\n')
-    version = versioning_info[0]
-    version_fullpath = versioning_info[1]
+        versioning_info = versioning_info.split('\n')
+        version = versioning_info[0]
+        version_fullpath = versioning_info[1]
 
-    # write init script
-    data = "#!/usr/bin/bash\n"
-    data += f'tar -xf {path_rabbitmq}{version_fullpath} -C {path_rabbitmq}'
-    ''' rabbitmq_server-3.9.9'''
-    write_scripts(data, path_rabbitmq_init_script)
-    chmodx_scripts(path_rabbitmq_init_script)
+        path_rabbitmq_instance = f'{path_rabbitmq}{version_fullpath}'
+        # write init script
+        data = "#!/usr/bin/bash\n"
+        data += f'tar -xf {path_rabbitmq_instance} -C {path_rabbitmq}'
+        ''' rabbitmq_server-3.9.9'''
+        write_scripts(data, path_rabbitmq_init_script)
+        chmodx_scripts(path_rabbitmq_init_script)
 
-    # write start script
-    '''rabbitmq_server-3.9.9'''
-    data = "#!/usr/bin/bash\n"
-    data += f'{path_rabbitmq}rabbitmq_server-{version}/sbin/rabbitmq-server'
-    write_scripts(data, path_rabbitmq_start_script)
-    chmodx_scripts(path_rabbitmq_start_script)
+        return path_rabbitmq_instance
+
+    return rabbitmq()
+
+def customize_rabbitmq(path_rabbitmq_instance):
+    path_rabbitmq_template =os.path.join(
+            os.path.dirname(__file__), 'templates', 'rabbitmq.service')
+
+    rmq_template = configparser.ConfigParser(strict=False)
+    rmq_template.optionxform = lambda option : option
+    rmq_template.read(path_rabbitmq_template)
+
+    path_rabbitmq_service =os.path.join(
+            os.path.dirname(__file__), 'files', 'rabbitmq.service')
+
+    rmq_template['Service']['EnvironmentFile'] = path_rabbitmq_instance + \
+            rmq_template['Service']['EnvironmentFile']
+    rmq_template['Service']['WorkingDirectory'] = path_rabbitmq_instance 
+    rmq_template['Service']['ExecStart'] = path_rabbitmq_instance + \
+            "/sbin/rabbitmq-server"
+    rmq_template['Service']['ExecStop'] = path_rabbitmq_instance + \
+            "/sbin/rabbitmqctl stop"
+
+    def write_service(template, new_service_path):
+        fd_service = open(new_service_path, 'w')
+        template.write(fd_service)
+
+    write_service(rmq_template, path_rabbitmq_service)
 
 if __name__ == "__main__":
-    generate_systemd()
+    global path_rabbitmq 
 
-    generate_deps()
+    path_rabbitmq=os.path.join(
+            os.path.dirname(__file__), '../third_party/rabbitmq', '')
+
+    generate_systemd()
+    path_rabbitmq_instance = generate_deps()
+    customize_rabbitmq(path_rabbitmq_instance)
