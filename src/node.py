@@ -18,8 +18,8 @@ from enum import Enum
 
 # sys.path.append(os.path.abspath(os.getcwd()))
 from deku import Deku
-from mmcli_python.modem import Modem
 from transmissionLayer import TransmissionLayer
+from common.mmcli_python.modem import Modem
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 '''
@@ -148,7 +148,8 @@ class Node:
         self.logging.setLevel(logging.NOTSET)
         self.logging.addHandler(handler)
 
-        handler = logging.FileHandler('src/services/logs/service.log')
+        log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
+        handler = logging.FileHandler(log_file_path)
         handler.setFormatter(formatter)
         self.logging.addHandler(handler)
 
@@ -472,6 +473,10 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
 
     try:
         initiate_transmissions()
+    except Exception as error:
+        logging.exception(error)
+
+    try:
         manage_modems(config=config, 
                 config_event_rules=config_event_rules,
                 config_isp_default=config_isp_default,

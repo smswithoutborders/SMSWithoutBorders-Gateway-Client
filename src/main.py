@@ -8,6 +8,8 @@ import threading
 import argparse
 import traceback
 
+# print(os.path.abspath(__file__))
+
 import node
 import gateway
 from common.CustomConfigParser.customconfigparser import CustomConfigParser

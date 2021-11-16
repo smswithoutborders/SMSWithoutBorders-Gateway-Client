@@ -13,9 +13,9 @@ from datetime import datetime
 from base64 import b64encode
 
 from deku import Deku
-from mmcli_python.modem import Modem
 from enum import Enum
 
+from common.mmcli_python.modem import Modem
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 from router import Router
 
@@ -38,7 +38,8 @@ class Gateway:
         self.logging.setLevel(logging.NOTSET)
         self.logging.addHandler(handler)
 
-        handler = logging.FileHandler('src/services/logs/service.log')
+        log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
+        handler = logging.FileHandler(log_file_path)
         handler.setFormatter(formatter)
         self.logging.addHandler(handler)
 

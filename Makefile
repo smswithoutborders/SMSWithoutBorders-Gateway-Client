@@ -1,16 +1,23 @@
+pwd := $(shell pwd)
 python=python3
 pip=pip3
-venv_path := $$HOME/.virtualenvs/deku
 
+venv_path=venv
+build_path=$(pwd)/installer/files
 systemd_path=/usr/lib/systemd/system
-pwd := $(shell pwd)
-
-distro := $(shell cat /etc/*-release | grep ID_LIKE )
 
 sys_service:install
-	@mkdir -p installer/system
+	@mkdir -p $(build_path)
 	@$(python) installer/generate.py
-	@echo "complete"
+	@if ! [ -L $(systemd_path)/deku_gateway.service ]; then \
+		echo "+ Creating Gateway service..."; \
+		sudo ln -s $(build_path)/deku_gateway.service $(systemd_path)/deku_gateway.service; \
+	fi
+	@if ! [ -L $(systemd_path)/deku_cluster.service ]; then \
+		echo "+ Creating Cluster service..."; \
+		sudo ln -s $(build_path)/deku_cluster.service $(systemd_path)/deku_cluster.service; \
+	fi
+	@echo "completed successfully"
 
 install:requirements.txt copy_configs
 	@$(python) -m virtualenv $(venv_path)
@@ -31,7 +38,7 @@ copy_configs:
 
 remove:
 	@rm -rf $(venv_path)
-	@sudo rm -v $(systemd_path)/deku.service
+	@sudo rm -v $(systemd_path)/deku*.service
 	@sudo systemctl daemon-reload
 	@sudo systemctl kill deku.service
 	@sudo systemctl disable deku.service

@@ -18,8 +18,8 @@ import configparser, threading
 from datetime import datetime
 import subprocess
 
-sys.path.append(os.path.abspath(os.getcwd()))
-from mmcli_python.modem import Modem
+# sys.path.append(os.path.abspath(os.getcwd()))
+from common.mmcli_python.modem import Modem
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 class Deku(Modem):
