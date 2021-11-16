@@ -7,3 +7,4 @@ venv/*
 *.log
 *.logs
 tmp/*
+installer/system/*.service
