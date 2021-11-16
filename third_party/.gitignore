@@ -1,0 +1,2 @@
+rabbitmq_server/var/lib/rabbitmq/mnesia/*
+rabbitmq_server/var/log/rabbitmq/*
