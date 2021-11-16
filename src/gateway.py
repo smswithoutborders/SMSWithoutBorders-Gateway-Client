@@ -13,9 +13,15 @@ from datetime import datetime
 from base64 import b64encode
 
 from deku import Deku
+<<<<<<< HEAD
 from enum import Enum
 
 from common.mmcli_python.modem import Modem
+=======
+from mmcli_python.modem import Modem
+from enum import Enum
+
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 from router import Router
 
@@ -38,8 +44,12 @@ class Gateway:
         self.logging.setLevel(logging.NOTSET)
         self.logging.addHandler(handler)
 
+<<<<<<< HEAD
         log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
         handler = logging.FileHandler(log_file_path)
+=======
+        handler = logging.FileHandler('src/services/logs/service.log')
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
         handler.setFormatter(formatter)
         self.logging.addHandler(handler)
 
@@ -285,6 +295,15 @@ def rabbitmq_connection(config):
     except Exception as error:
         raise error
 
+<<<<<<< HEAD
+=======
+def start_consuming():
+    try:
+        routing_consume_channel.start_consuming() #blocking
+    except Exception as error:
+        logging.error(traceback.format_exc())
+
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
 def main(config, config_event_rules, config_isp_default, config_isp_operators):
     global router_mode
     global router_phonenumber
@@ -326,10 +345,13 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
         manage_modems(config, config_event_rules, config_isp_default, config_isp_operators)
         logging.info("listening for incoming messages")
 
+<<<<<<< HEAD
     except pika.exceptions.ConnectionClosedByBroker as error:
         logging.critical(error)
         logging.info("Shutting down")
         exit(0)
+=======
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
     except Exception as error:
         logging.critical(traceback.format_exc())
 

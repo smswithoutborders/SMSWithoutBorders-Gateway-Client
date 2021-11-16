@@ -18,8 +18,13 @@ from enum import Enum
 
 # sys.path.append(os.path.abspath(os.getcwd()))
 from deku import Deku
+<<<<<<< HEAD
 from transmissionLayer import TransmissionLayer
 from common.mmcli_python.modem import Modem
+=======
+from mmcli_python.modem import Modem
+from transmissionLayer import TransmissionLayer
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 '''
@@ -98,7 +103,11 @@ class Node:
     def generate_status_file(self, status_file):
         modem_status_file=configparser.ConfigParser()
         if os.path.isfile(status_file):
+<<<<<<< HEAD
             logging.debug('Status file exist...')
+=======
+            logging.info('Status file exist...')
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
             modem_status_file.read(self.status_file)
 
         with open(status_file, 'w') as fd_status_file:
@@ -148,8 +157,12 @@ class Node:
         self.logging.setLevel(logging.NOTSET)
         self.logging.addHandler(handler)
 
+<<<<<<< HEAD
         log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
         handler = logging.FileHandler(log_file_path)
+=======
+        handler = logging.FileHandler('src/services/logs/service.log')
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
         handler.setFormatter(formatter)
         self.logging.addHandler(handler)
 
@@ -341,7 +354,11 @@ class Node:
 
     def start_consuming(self):
         self.logging.debug("incoming consumer started")
+<<<<<<< HEAD
         self.logging.debug("# waiting messages %d", self.status())
+=======
+        self.logging.info("# waiting messages %d", self.status())
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
 
         self.status_file=os.path.join( 
                 os.path.dirname(__file__), 
@@ -473,10 +490,13 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
 
     try:
         initiate_transmissions()
+<<<<<<< HEAD
     except Exception as error:
         logging.exception(error)
 
     try:
+=======
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
         manage_modems(config=config, 
                 config_event_rules=config_event_rules,
                 config_isp_default=config_isp_default,

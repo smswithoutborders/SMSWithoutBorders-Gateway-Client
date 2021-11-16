@@ -1,6 +1,13 @@
 [submodule "services/mmcli_python"]
+<<<<<<< HEAD
 	path = src/common/mmcli_python
 	url = https://github.com/sherlockwisdom/mmcli_python.git
 [submodule "services/CustomConfigParser"]
 	path = src/common/CustomConfigParser
+=======
+	path = src/mmcli_python
+	url = https://github.com/sherlockwisdom/mmcli_python.git
+[submodule "services/CustomConfigParser"]
+	path = common/CustomConfigParser
+>>>>>>> 937720fb7196bcd9e726c8d5324197eec83adfae
 	url = https://github.com/sherlockwisdom/CustomConfigParser.git
