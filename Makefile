@@ -6,6 +6,16 @@ venv_path=venv
 build_path=$(pwd)/installer/files
 systemd_path=/usr/lib/systemd/system
 
+gateway_state=$(shell systemctl is-active deku_gateway.service)
+cluster_state=$(shell systemctl is-active deku_cluster.service)
+
+start:sys_service
+	@sudo systemctl start deku_gateway.service
+	@echo "Starting gateway service: " $(systemctl is-active deku_gateway.service)
+	@sudo systemctl start deku_cluster.service
+	@echo "Starting cluster service: " $(systemctl is-active deku_cluster.service)
+	@echo "completed successfully"
+
 sys_service:install
 	@mkdir -p $(build_path)
 	@$(python) installer/generate.py
@@ -17,7 +27,7 @@ sys_service:install
 		echo "+ Creating Cluster service..."; \
 		sudo ln -s $(build_path)/deku_cluster.service $(systemd_path)/deku_cluster.service; \
 	fi
-	@echo "completed successfully"
+	@sudo systemctl daemon-reload
 
 install:requirements.txt copy_configs
 	@$(python) -m virtualenv $(venv_path)
@@ -36,10 +46,35 @@ copy_configs:
 	@cp -nv .configs/extensions/example.labels.ini .configs/extensions/labels.ini
 	@cp -nv .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
 
+restart:
+	@sudo systemctl restart deku_gateway.service
+	@systemctl is-active deku_gateway.service
+	@sudo systemctl restart deku_cluster.service
+	@systemctl is-active deku_cluster.service
+
 remove:
-	@rm -rf $(venv_path)
-	@sudo rm -v $(systemd_path)/deku*.service
+	@#rm -rf $(venv_path)
+	@echo "Stopping services..."
+	@if [ "$(gateway_state)" = "active" ]; then \
+		echo "- gateway"; \
+		sudo systemctl kill deku_gateway.service; \
+	fi
+	@if [ "$(cluster_state)" = "active" ]; then \
+		echo "- cluster"; \
+		sudo systemctl kill deku_cluster.service; \
+	fi
+	@echo "Disabling services..."
+	@if [ "$(systemctl is-enabled deku_gateway.service)" = "enabled" ]; then \
+		sudo systemctl disable deku_gateway.service; \
+	fi
+	@if [ "$(systemctl is-enabled deku_cluster.service)" = "enabled" ]; then \
+		sudo systemctl disable deku_cluster.service; \
+	fi
+	@if [ -L $(systemd_path)/deku_gateway.service ]; then \
+		sudo rm -v $(systemd_path)/deku_gateway.service; \
+	fi
+	@if [ -L $(systemd_path)/deku_cluster.service ]; then \
+		sudo rm -v $(systemd_path)/deku_cluster.service; \
+	fi
 	@sudo systemctl daemon-reload
-	@sudo systemctl kill deku.service
-	@sudo systemctl disable deku.service
 	@echo "complete"

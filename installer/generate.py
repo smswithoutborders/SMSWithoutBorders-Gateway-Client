@@ -40,8 +40,7 @@ distro_systemd_schemas = {
         }
 }
 
-print(distro_systemd_schemas)
-
+# print(distro_systemd_schemas)
 
 # Distro init
 distro_systemd_schemas_gateway = copy.deepcopy(distro_systemd_schemas)
@@ -63,10 +62,12 @@ for dist in SUPPORTED_DISTROS_CLUSTER:
 # cluster bindings
 for dist in distro_systemd_schemas_gateway:
     distro_systemd_schemas_gateway[dist]['Unit']['Description'] += "SMSWithoutBorders Gateway service"
+    distro_systemd_schemas_gateway[dist]['Service']['ExecStart'] += " --log=INFO --module=gateway"
 
 for dist in distro_systemd_schemas_cluster:
     distro_systemd_schemas_cluster[dist]['Unit']['Description'] += "Deku Cluster service"
     distro_systemd_schemas_cluster[dist]['Unit']['BindsTo'] = "ModemManager.service"
+    distro_systemd_schemas_cluster[dist]['Service']['ExecStart'] += " --log=INFO --module=cluster"
 
 def write_schema(schema, systemd_filepath):
     try:
@@ -103,7 +104,6 @@ if dist in SUPPORTED_DISTROS_GATEWAY:
     except Exception as error:
         print(error)
         exit(1)
-    exit(0)
 
 print("")
 
@@ -123,5 +123,3 @@ if dist in SUPPORTED_DISTROS_CLUSTER:
 
 else:
     print("Not supported distro:", distro)
-
-    exit(1)

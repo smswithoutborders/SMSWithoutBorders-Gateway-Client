@@ -24,7 +24,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--module", 
             nargs='?',
             default="all",
-            help="node, gateway, all")
+            help="cluster, gateway, all")
 
     args = parser.parse_args()
 
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         logging.critical(error)
 
     try:
-        if args.module == "node" or args.module == "all":
+        if args.module == "cluster" or args.module == "all":
             node_thread = threading.Thread(target=node.main, 
                     args=(config, config_event_rules, config_isp_default, config_isp_operators,),
                     daemon=True)
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
             gateway_thread.start()
 
-        if args.module == "node" or args.module == "all":
+        if args.module == "cluster" or args.module == "all":
             node_thread.join()
         if args.module == "gateway" or args.module == "all":
             gateway_thread.join()
