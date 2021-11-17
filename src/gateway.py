@@ -187,7 +187,8 @@ def route_offline(text, number):
         raise error
 
 def sms_routing_callback(ch, method, properties, body):
-    json_body = json.loads(body.decode('unicode_escape'))
+    logging.debug(body)
+    json_body = json.loads(body.decode('unicode_escape'), strict=False)
     logging.info("routing %s", json_body)
 
     if not "text" in json_body:

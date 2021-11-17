@@ -7,6 +7,7 @@
 
 import json
 import requests
+import logging
 from enum import Enum
 from deku import Deku
 
@@ -30,6 +31,7 @@ class Router(Deku):
 
 
     def route_offline(self, text, number):
+        logging.debug(text)
         try:
             self.send(
                     text=text,
