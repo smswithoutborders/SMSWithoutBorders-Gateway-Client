@@ -14,6 +14,7 @@ import queue
 import json
 import traceback 
 import logging
+import argparse
 import configparser, threading
 from datetime import datetime
 import subprocess
@@ -310,51 +311,71 @@ class Deku(Modem):
 
 if __name__ == "__main__":
     ''' should use command line arg parser here '''
+    parser = argparse.ArgumentParser(description='Process some integers.')
+
+    parser.add_argument(
+            '-m', '--modem', 
+            nargs = 1)
+
+    parser.add_argument("-u", "--ussd", 
+            nargs = 1,
+            help = '"*155#|1|1"')
+
+    parser.add_argument("-uc", "--ussd-cancel", 
+            help='')
+
+    parser.add_argument("-l", "--label", 
+            nargs = 1,
+            help='"*155#|1|1"')
+
+    parser.add_argument("-s", "--sms", 
+            nargs = 2,
+            help='-s [phone number] [text]')
+
+    args = parser.parse_args()
+
+    try:
+        configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
+        config=configreader.read(".configs/config.ini")
+        config_isp_default = configreader.read('.configs/isp/default.ini')
+        config_isp_operators = configreader.read('.configs/isp/operators.ini')
+
+    except Exception as error:
+        logging.critical(traceback.format_exc())
+
     modem_index=None
-    ussd_command=None
-    label_command=None
-    for i in range(1, len(sys.argv)):
-        arg = sys.argv[i]
-        if arg == '--modem' or arg == '-m':
-            modem_index = sys.argv[i+1]
-        elif arg == '--ussd':
-            ussd_command = sys.argv[i+1]
-        elif arg == '--ussd-cancel':
-            ussd_command = arg
-        elif arg == '--label':
-            label_command = sys.argv[i+1]
-        elif arg == '--sms':
-            sms_number = sys.argv[i+1]
-            sms_message = sys.argv[i+2]
+    if args.modem == None:
+        print(parser.print_help())
+    else:
+        modem_index = args.modem[0]
+        Deku(config, config_isp_default, config_isp_operators)
 
-    if modem_index == None:
-        print("usage: --[modem_index] --[option] [value]")
-        exit(1)
+        if args.ussd is not None:
+            ussd = args.ussd[0]
+            ussd_output=Deku.cli_parse_ussd(modem_index, ussd)
+            print(ussd_output)
 
-
-    if ussd_command is not None:
-        if ussd_command == '--ussd-cancel':
+        elif args.ussd_cancel is not None:
             try:
                 Modem(modem_index).USSD.cancel()
             except Deku.USSD.UnknownError as error:
                 exit(1)
-        else:
-            ussd_output=Deku.cli_parse_ussd(modem_index, ussd_command)
-            print(ussd_output)
 
-    elif label_command is not None:
-        try:
-            label_output=Deku().cli_parse_labels(modem_index, label_command)
-        except Deku.USSD.CannotInitiateUSSD as error:
-            print("USSD error:", str(error.output))
-            exit(1)
-        else:
-            print(label_output)
+        elif args.label is not None:
+            label = args.label[0]
+            try:
+                label_output=Deku().cli_parse_labels(modem_index, label)
+                print(label_output)
+            except Deku.USSD.CannotInitiateUSSD as error:
+                print("USSD error:", str(error.output))
+                exit(1)
 
-    elif sms_message is not None and sms_number is not None:
-        try:
-            sms_output=Deku().send(text=sms_message, number=sms_number, modem_index=modem_index)
-        except Exception as error:
-            print(traceback.format_exc())
-
-    exit(0)
+        elif args.sms is not None:
+            sms_number = args.sms[0]
+            sms_text = args.sms[1]
+            # print(args.sms)
+            try:
+                sms_output=Deku.send(text=sms_text, number=sms_number, modem_index=modem_index)
+            except Exception as error:
+                print(traceback.format_exc())
+                exit(1)
