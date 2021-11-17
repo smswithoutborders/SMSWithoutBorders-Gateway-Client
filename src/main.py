@@ -49,9 +49,9 @@ if __name__ == "__main__":
         config_event_rules=configreader.read(".configs/events/rules.ini")
         config_isp_default = configreader.read('.configs/isp/default.ini')
         config_isp_operators = configreader.read('.configs/isp/operators.ini')
-        third_party_paths = config.reader('.third_party/.configs/paths.ini')
+        third_party_paths = config.read('.third_party/.configs/paths.ini')
     except Exception as error:
-        logging.critical(error)
+        logging.critical(traceback.format_exc())
 
     try:
         if args.module == "cluster" or args.module == "all":

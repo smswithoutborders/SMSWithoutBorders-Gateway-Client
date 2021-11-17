@@ -162,22 +162,26 @@ class TelegramTransmissionLayer:
 if __name__ == "__main__":
     import sys
 
-    configfile = '.configs/extensions/config.ini'
+    logging.basicConfig(
+            format='%(asctime)s|[%(levelname)s] %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            encoding='utf-8',
+            level=logging.DEBUG)
+
+    # configfile = '.configs/extensions/config.ini'
+    configfile = '.configs/extensions/platforms/telegram.ini'
     configreader = CustomConfigParser()
     configs = configreader.read(configfile)
     token=configs['TELEGRAM']['TOKEN']
 
     if len(sys.argv) > 1:
         ''' this can be made better as a cli '''
-        # number=sys.argv[1]
-        # text = sys.argv[2]
         text = sys.argv[1]
 
         admin = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         admin.read(configfile)
 
         telegram_layer = TelegramTransmissionLayer()
-        # telegram_layer.send_message(token, chat_id=admin['WHITELIST'][number], text=text)
         telegram_layer.send(text)
     else:
         telegram_layer = TelegramTransmissionLayer()

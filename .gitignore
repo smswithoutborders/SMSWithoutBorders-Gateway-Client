@@ -8,3 +8,4 @@ venv/*
 *.logs
 tmp/*
 installer/files/*
+*.dump
