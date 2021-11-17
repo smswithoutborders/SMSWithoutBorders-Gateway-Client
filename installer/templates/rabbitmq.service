@@ -4,13 +4,14 @@ After=network.target epmd@0.0.0.0.socket
 Wants=network.target epmd@0.0.0.0.socket
 
 [Service]
-Type=notify
-User=rabbitmq
-Group=rabbitmq
+# Type=notify
+Type=simple
+# User=rabbitmq
+# Group=rabbitmq
 SyslogIdentifier=rabbitmq
 EnvironmentFile=/etc/rabbitmq/rabbitmq-env.conf
 UMask=0027
-NotifyAccess=all
+# NotifyAccess=all
 TimeoutStartSec=3600
 # Un-comment this setting if you need to increase RabbitMQ's
 # open files limit
@@ -27,7 +28,7 @@ RestartSec=10
 WorkingDirectory=/var/lib/rabbitmq
 ExecStart=/usr/lib/rabbitmq/bin/rabbitmq-server
 ExecStop=/usr/lib/rabbitmq/bin/rabbitmqctl stop
-ExecStop=/bin/sh -c "while ps -p $MAINPID >/dev/null 2>&1; do sleep 1; done"
+# ExecStop=/bin/sh -c "while ps -p $MAINPID >/dev/null 2>&1; do sleep 1; done"
 # rabbitmq/rabbitmq-server-release#51
 # SuccessExitStatus=69
 

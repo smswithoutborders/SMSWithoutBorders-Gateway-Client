@@ -6,6 +6,7 @@ import sys
 import copy
 import distro
 import stat
+import pathlib
 import configparser
 
 '''resources:
@@ -18,6 +19,9 @@ SUPPORTED_DISTROS_GATEWAY = ['arch', 'debian']
 path_main =os.path.join(os.path.dirname(__file__), '../src', 'main.py')
 path_venv =os.path.join(os.path.dirname(__file__), '../venv', '')
 
+path_main = str(pathlib.Path(path_main).resolve())
+path_venv = str(pathlib.Path(path_venv).resolve())
+
 def generate_systemd():
     distro_systemd_schemas = {
 
@@ -25,16 +29,16 @@ def generate_systemd():
                 "Unit": {
                     "Description" : "",
                     "After" : "ModemManager.service",
-                    "Wants" : "ModemManager.service",
-                    "StartLimitIntervalSec" : "60",
-                    "StartLimitBurst" : "5"
+                    "TimeoutStartSec" : "3600",
+                    # "StartLimitIntervalSec" : "60",
+                    # "StartLimitBurst" : "5"
                     # "StartLimitAction" : "systemctl reboot"
                     },
                 "Service": {
                     "Type" : "simple",
-                    "ExecStart": f"+{path_venv}bin/python3 {path_main}",
+                    "ExecStart": f"+{path_venv}/bin/python3 {path_main}",
                     "Restart" : "on-failure",
-                    "RestartSec" : "5s"
+                    "RestartSec" : "10s"
                     },
                 "Install": {
                     "WantedBy" : "multi-user.target"
@@ -64,6 +68,8 @@ def generate_systemd():
     # cluster bindings
     for dist in distro_systemd_schemas_gateway:
         distro_systemd_schemas_gateway[dist]['Unit']['Description'] += "SMSWithoutBorders Gateway service"
+        # distro_systemd_schemas_gateway[dist]['Unit']['BindsTo'] = "deku_rabbitmq.service"
+        distro_systemd_schemas_gateway[dist]['Unit']['Wants'] = "ModemManager.service"
         distro_systemd_schemas_gateway[dist]['Service']['ExecStart'] += " --log=INFO --module=gateway"
 
     for dist in distro_systemd_schemas_cluster:
@@ -143,19 +149,22 @@ def generate_deps():
         version = versioning_info[0]
         version_fullpath = versioning_info[1]
 
-        path_rabbitmq_instance = f'{path_rabbitmq}{version_fullpath}'
+        ''' rabbitmq_server-3.9.9'''
+        path_rabbitmq_instance = f'{path_rabbitmq}rabbitmq_server-{version}'
+
         # write init script
         data = "#!/usr/bin/bash\n"
-        data += f'tar -xf {path_rabbitmq_instance} -C {path_rabbitmq}'
-        ''' rabbitmq_server-3.9.9'''
+        data += f'tar -xf {path_rabbitmq}{version_fullpath} -C {path_rabbitmq}\n'
         write_scripts(data, path_rabbitmq_init_script)
         chmodx_scripts(path_rabbitmq_init_script)
 
-        return path_rabbitmq_instance
+        return str(
+                pathlib.Path(path_rabbitmq_instance).resolve()), str(
+                        pathlib.Path(path_rabbitmq_init_script).resolve())
 
     return rabbitmq()
 
-def customize_rabbitmq(path_rabbitmq_instance):
+def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
     path_rabbitmq_template =os.path.join(
             os.path.dirname(__file__), 'templates', 'rabbitmq.service')
 
@@ -164,21 +173,39 @@ def customize_rabbitmq(path_rabbitmq_instance):
     rmq_template.read(path_rabbitmq_template)
 
     path_rabbitmq_service =os.path.join(
-            os.path.dirname(__file__), 'files', 'rabbitmq.service')
+            os.path.dirname(__file__), 'files', 'deku_rabbitmq.service')
 
-    rmq_template['Service']['EnvironmentFile'] = path_rabbitmq_instance + \
-            rmq_template['Service']['EnvironmentFile']
-    rmq_template['Service']['WorkingDirectory'] = path_rabbitmq_instance 
-    rmq_template['Service']['ExecStart'] = path_rabbitmq_instance + \
-            "/sbin/rabbitmq-server"
-    rmq_template['Service']['ExecStop'] = path_rabbitmq_instance + \
-            "/sbin/rabbitmqctl stop"
+    rmq_template['Service']['EnvironmentFile'] = str(pathlib.Path(
+            path_rabbitmq_instance + rmq_template['Service']['EnvironmentFile']).resolve())
+
+    rmq_template['Service']['WorkingDirectory'] = str(pathlib.Path(
+            path_rabbitmq_instance).resolve())
+
+    rmq_template['Service']['ExecStart'] = str(pathlib.Path(
+            path_rabbitmq_instance + "/sbin/rabbitmq-server").resolve())
+
+    rmq_template['Service']['ExecStop'] = str(pathlib.Path(
+            path_rabbitmq_instance + "/sbin/rabbitmqctl stop").resolve())
 
     def write_service(template, new_service_path):
         fd_service = open(new_service_path, 'w')
         template.write(fd_service)
+    
+    def write_file(data, filepath, mode='w'):
+        fd_file = open(filepath, mode)
+        fd_file.write(data)
+        fd_file.close()
 
     write_service(rmq_template, path_rabbitmq_service)
+    env_data = "NODENAME=rabbit\n" + \
+            f"NODE_IP_ADDRESS=127.0.0.1\n" + \
+            f"NODE_PORT=5672\n\n" + \
+            f"HOME={path_rabbitmq_instance}/var/lib/rabbitmq\n" + \
+            f"LOG_BASE={path_rabbitmq_instance}/var/log/rabbitmq\n" + \
+            f"MNESIA_BASE={path_rabbitmq_instance}/var/lib/rabbitmq/mnesia"
+
+    path_rabbitmq_env = rmq_template['Service']['EnvironmentFile']
+    write_file(env_data, path_rabbitmq_env)
 
 if __name__ == "__main__":
     global path_rabbitmq 
@@ -187,5 +214,5 @@ if __name__ == "__main__":
             os.path.dirname(__file__), '../third_party/rabbitmq', '')
 
     generate_systemd()
-    path_rabbitmq_instance = generate_deps()
-    customize_rabbitmq(path_rabbitmq_instance)
+    path_rabbitmq_instance, path_rabbitmq_init_script = generate_deps()
+    customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script)
