@@ -52,7 +52,8 @@ class TelegramTransmissionLayer:
             self.bot = Bot(self.token)
 
         except telegram.error.InvalidToken as error:
-            raise(error)
+            # raise(error)
+            raise Exception("Telegram token not set")
 
         self.updater = Updater(token=self.token, use_context=True)
         self.dispatcher = self.updater.dispatcher
@@ -181,8 +182,11 @@ if __name__ == "__main__":
         admin = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         admin.read(configfile)
 
-        telegram_layer = TelegramTransmissionLayer()
-        telegram_layer.send(text)
+        try:
+            telegram_layer = TelegramTransmissionLayer()
+            telegram_layer.send(text)
+        except Exception as error:
+            print( traceback.format_exc())
     else:
         telegram_layer = TelegramTransmissionLayer()
         telegram_layer.start_polling()
