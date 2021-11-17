@@ -14,6 +14,7 @@ git clone https://github.com/smswithoutborders/Deku.git
 cd Deku
 make
 make install
+make enable
 ```
 #### Configuration
 <p>

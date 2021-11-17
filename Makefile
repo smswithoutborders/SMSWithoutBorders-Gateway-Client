@@ -32,6 +32,16 @@ start_rabbitmq:init_rabbitmq
 	@echo "+ Starting rabbitmq service"
 	@sudo systemctl start deku_rabbitmq.service
 
+enable_rabbitmq:
+	@sudo systemctl enable deku_rabbitmq.service
+	@echo "+ Enabling rabbitmq service"
+
+enable:enable_rabbitmq
+	@sudo systemctl enable deku_gateway.service
+	@echo "+ Starting gateway service..."
+	@sudo systemctl enable deku_cluster.service
+	@echo "+ Starting cluster service..."
+
 start:
 	@sudo systemctl start deku_gateway.service
 	@echo "+ Starting gateway service..."
