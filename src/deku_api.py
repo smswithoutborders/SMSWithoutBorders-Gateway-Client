@@ -7,14 +7,36 @@ import os
 import traceback
 
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
-from common.mmcli_python.modem import Modem
+from common.mmcli_python.modem import Modem as Modems
 
 app = Flask(__name__)
 
 def modem_sms_state():
     pass
 
-@app.route('/modem/<modem_index>/sms', methods=['POST'])
+@app.route('/modems', methods=['GET'])
+def modems_list():
+    try:
+        modems = Modems.list()
+        lst_modems = []
+        for m_index in modems:
+            modem = Modems(m_index)
+
+            lst_modems.append({
+                "imei":modem.imei,
+                "modem":modem.model,
+                "index":modem.index,
+                "state":modem.state,
+                "power_state":modem.power_state,
+                "operator_code":modem.operator_code,
+                "operator_name":modem.operator_name})
+        return jsonify(lst_modems), 200
+    except Exception as error:
+        return "some error occured", 500
+
+    return "", 400
+
+@app.route('/modems/<modem_index>/sms', methods=['POST'])
 def modem_send_sms(modem_index):
     data = None
     try:
@@ -41,14 +63,14 @@ def modem_send_sms(modem_index):
     
     return 'failed to send sms', 400
 
-@app.route('/modem/<modem_index>/sms', methods=['GET'])
+@app.route('/modems/<modem_index>/sms', methods=['GET'])
 def modem_read_sms(modem_index):
     try:
-        messages = Modem(modem_index).SMS.list('received')
+        messages = Modems(modem_index).SMS.list('received')
 
         lst_sms = []
         for msg_index in messages:
-            sms=Modem.SMS(index=msg_index)
+            sms=Modems.SMS(index=msg_index)
 
             lst_sms.append({
                 "text":sms.text, 
@@ -64,11 +86,11 @@ def modem_read_sms(modem_index):
 
     return "read sms", 400
 
-@app.route('/modem/<modem_index>/sms/<sms_index>', methods=['DELETE'])
+@app.route('/modems/<modem_index>/sms/<sms_index>', methods=['DELETE'])
 def modem_delete_sms(modem_index, sms_index):
     app.logger.info("request to delete from %s with %s", modem_index, sms_index)
     try:
-        Modem(modem_index).SMS.delete(sms_index)
+        Modems(modem_index).SMS.delete(sms_index)
     except Exception as error:
         app.logger.exception(error)
         return "some error occured", 500
