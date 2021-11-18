@@ -1,5 +1,13 @@
 # Deku API
 
+#### Running API
+To have Deku API running (assuming entire project has been cloned already)
+```bash
+. venv/bin/activate
+pip3 install -r requirements.txt
+python3 src/deku_api.py
+```
+
 #### Endpoints
 
 ##### Fetch modems
