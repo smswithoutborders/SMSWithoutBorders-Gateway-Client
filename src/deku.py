@@ -195,7 +195,8 @@ class Deku(Modem):
 
 
     @classmethod
-    def send(cls, text, number, timeout=20, number_isp=True, modem_index=None, q_exception:queue=None, identifier=None, isp=None, remove_lock=True):
+    def send(cls, text, number, timeout=20, number_isp=True, 
+            modem_index=None, remove_lock=True, ignore_lock=False, isp=None):
         logging.debug("+ text: %s\n+ number: %s", text, number)
 
         if text is None:
@@ -207,7 +208,7 @@ class Deku(Modem):
         logging.debug('ready indexes %s', index)
 
         if len(index) < 1:
-            msg=f'message[{identifier}] - no available modem for type {isp}'
+            msg = "No available modem for type {isp}"
             raise Deku.NoAvailableModem(msg)
 
         modem_index=index[0] #TODO use better criteria for filtering, maybe signal strength
