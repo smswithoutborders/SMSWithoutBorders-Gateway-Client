@@ -4,7 +4,7 @@
 
 ##### Fetch modems
 > Protocol: GET \
-> Url: /modems
+> Url: /modems \
 > Returns: -
 ```json
 [
@@ -17,7 +17,7 @@ error 5xx
 ```
 *Example*
 ```bash
-curl localhost:5000/modems/0/sms
+curl localhost:5000/modems
 ```
 
 ##### Send SMS
