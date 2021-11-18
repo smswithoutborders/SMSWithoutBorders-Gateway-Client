@@ -53,19 +53,27 @@ def modem_read_sms(modem_index):
             lst_sms.append({
                 "text":sms.text, 
                 "number":sms.number,
-                "timestamp":sms.timestamp })
+                "timestamp":sms.timestamp,
+                "index":msg_index})
 
         return jsonify(lst_sms), 200
 
     except Exception as error:
         app.logger.exception(error)
-        return f"some error occured", 500
+        return "some error occured", 500
 
     return "read sms", 400
 
 @app.route('/modem/<modem_index>/sms/<sms_index>', methods=['DELETE'])
 def modem_delete_sms(modem_index, sms_index):
-    return "delete sms", 200
+    app.logger.info("request to delete from %s with %s", modem_index, sms_index)
+    try:
+        Modem(modem_index).SMS.delete(sms_index)
+    except Exception as error:
+        app.logger.exception(error)
+        return "some error occured", 500
+
+    return "sms deleted", 200
 
 
 if __name__ == "__main__":

@@ -75,8 +75,6 @@ class Gateway:
                                 delivery_mode=2))
                     self.logging.info("published %s",{"text":sms.text, "phonenumber":sms.number})
                 except Exception as error:
-                    # self.logging.error(traceback.format_exc())
-                    # raise(error)
                     self.logging.exception(error)
                 else:
                     try:
