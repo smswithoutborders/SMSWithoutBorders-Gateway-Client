@@ -37,6 +37,7 @@ def modems_list():
                 "manufacturer":modem.manufacturer})
         return jsonify(lst_modems), 200
     except Exception as error:
+        app.logger.exception(error)
         return "some error occured", 500
 
     return "", 400
