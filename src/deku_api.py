@@ -32,7 +32,9 @@ def modems_list():
                 "state":modem.state,
                 "power_state":modem.power_state,
                 "operator_code":modem.operator_code,
-                "operator_name":modem.operator_name})
+                "operator_name":modem.operator_name,
+                "model":modem.model,
+                "manufacturer":modem.manufacturer})
         return jsonify(lst_modems), 200
     except Exception as error:
         return "some error occured", 500
