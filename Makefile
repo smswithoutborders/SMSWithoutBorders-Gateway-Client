@@ -101,6 +101,8 @@ remove:
 	@rm -rf rabbitmq_server*
 	@sudo systemctl daemon-reload
 	@echo "complete"
+update:
+	@git submodule update --recursive --remote
 
 fuckit:remove clean
 	@echo "Alright developer, have a go at it!"
