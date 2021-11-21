@@ -38,7 +38,7 @@ if __name__ == "__main__":
             handlers=[
                 logging.FileHandler(log_file_path),
                 logging.StreamHandler(sys.stdout) ],
-            encoding='utf-8',
+            # encoding='utf-8',
             level=args.log.upper())
 
     formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
