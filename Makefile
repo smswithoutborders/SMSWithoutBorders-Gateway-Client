@@ -6,6 +6,7 @@ venv_path=venv
 build_path=$(pwd)/installer/files
 systemd_path=/usr/lib/systemd/system
 path_rabbitmq=third_party/rabbitmq
+path_rabbitmq_builds=third_party/rabbitmq/builds
 
 gateway_state=$(shell systemctl is-active deku_gateway.service)
 cluster_state=$(shell systemctl is-active deku_cluster.service)
@@ -20,6 +21,7 @@ gen_configs:
 	@cp -nv .configs/extensions/example.labels.ini .configs/extensions/labels.ini
 	@cp -nv .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
 	@mkdir -p $(build_path)
+	@mkdir -p $(path_rabbitmq_builds)
 	@$(python) installer/generate.py
 
 rabbitmq_checks:third_party/rabbitmq/version.lock third_party/rabbitmq/init.sh
@@ -95,8 +97,9 @@ remove:
 	@if [ "$(systemctl is-enabled deku_rabbitmq.service)" = "enabled" ]; then \
 		sudo systemctl disable deku_rabbitmq.service; \
 	fi
-	@sudo rm -v $(systemd_path)/deku_*.service
-	@sudo rm -rv $(build_path)
+	@sudo rm -rfv $(systemd_path)/deku_*.service
+	@sudo rm -rfv $(build_path)
+	@sudo rm -rfv $(path_rabbitmq_builds)
 	@rm -f $(path_rabbitmq)/*.sh
 	@rm -rf rabbitmq_server*
 	@sudo systemctl daemon-reload

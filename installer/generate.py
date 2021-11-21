@@ -150,11 +150,11 @@ def generate_deps():
         version_fullpath = versioning_info[1]
 
         ''' rabbitmq_server-3.9.9'''
-        path_rabbitmq_instance = f'{path_rabbitmq}rabbitmq_server-{version}'
+        path_rabbitmq_instance = f'{path_rabbitmq_builds}rabbitmq_server-{version}'
 
         # write init script
         data = "#!/usr/bin/bash\n"
-        data += f'tar -xf {path_rabbitmq}{version_fullpath} -C {path_rabbitmq}\n'
+        data += f'tar -xf {path_rabbitmq}{version_fullpath} -C {path_rabbitmq_builds}\n'
         write_scripts(data, path_rabbitmq_init_script)
         chmodx_scripts(path_rabbitmq_init_script)
 
@@ -196,6 +196,11 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
         fd_file.write(data)
         fd_file.close()
 
+    def update_init_file(data, filepath):
+        fd_file = open(filepath, 'a+')
+        fd_file.write(data)
+        fd_file.close()
+
     write_service(rmq_template, path_rabbitmq_service)
     env_data = "NODENAME=rabbit\n" + \
             f"NODE_IP_ADDRESS=127.0.0.1\n" + \
@@ -205,13 +210,26 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
             f"MNESIA_BASE={path_rabbitmq_instance}/var/lib/rabbitmq/mnesia"
 
     path_rabbitmq_env = rmq_template['Service']['EnvironmentFile']
-    write_file(env_data, path_rabbitmq_env)
+
+    path_rmq_env_conf = os.path.join(
+        os.path.dirname(__file__), 'files', 'rabbitmq-env.conf')
+
+    write_file(env_data, path_rmq_env_conf)
+
+    path_rabbitmq_init_script =os.path.join(
+            os.path.dirname(__file__), '../third_party/rabbitmq', 'init.sh')
+
+    cp_file_data = f'\ncp {path_rmq_env_conf} {rmq_template["Service"]["EnvironmentFile"]}'
+    update_init_file(cp_file_data, path_rabbitmq_init_script)
 
 if __name__ == "__main__":
-    global path_rabbitmq 
+    global path_rabbitmq, path_rabbitmq_builds
 
     path_rabbitmq=os.path.join(
             os.path.dirname(__file__), '../third_party/rabbitmq', '')
+
+    path_rabbitmq_builds=os.path.join(
+            os.path.dirname(__file__), '../third_party/rabbitmq/builds', '')
 
     generate_systemd()
     path_rabbitmq_instance, path_rabbitmq_init_script = generate_deps()
