@@ -208,7 +208,7 @@ class Deku(Modem):
         logging.debug('ready indexes %s', index)
 
         if len(index) < 1:
-            msg = "No available modem for type {isp}"
+            msg = f"No available modem for type {isp}"
             raise Deku.NoAvailableModem(msg)
 
         modem_index=index[0] #TODO use better criteria for filtering, maybe signal strength
