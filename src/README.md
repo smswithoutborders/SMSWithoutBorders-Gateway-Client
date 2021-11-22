@@ -7,15 +7,37 @@
 [insert description]
 
 
-#### Installation
+### Installation
+#### Installing required Dependencies
+- Erlang (minimum 23)
+##### Arch
+```bash
+sudo pacman -S erlang
+```
+
+##### Ubuntu 20.04
+```bash
+sudo apt install wget
+wget -O- https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
+echo "deb https://packages.erlang-solutions.com/ubuntu focal contrib" | sudo tee /etc/apt/sources.list.d/erlang-solution.list
+sudo apt update
+sudo apt-get install -y erlang-base \
+                        erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
+                        erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
+                        erlang-runtime-tools erlang-snmp erlang-ssl \
+                        erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
+
+```
+
+#### Build and install
 ```bash
 pip3 install virtualenv
 git clone https://github.com/smswithoutborders/Deku.git
 cd Deku
 make
 make install
-make enable
 ```
+
 #### Configuration
 <p>
 Your clusters require a server to communicate with, and you will need to point to this in your configuration files.</p>
@@ -46,6 +68,10 @@ All other supported platforms are placed in `.configs/extensions/platforms/
 ##### Linux
 ```bash
 make start
+```
+- To auto start on bootup
+```bash
+make enable
 ```
 
 <b>To view all running logs</b>
