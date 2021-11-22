@@ -2,6 +2,7 @@
 
 
 import os
+import getpass
 import sys
 import copy
 import distro
@@ -175,6 +176,9 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
     path_rabbitmq_service =os.path.join(
             os.path.dirname(__file__), 'files', 'deku_rabbitmq.service')
 
+    rmq_template['Service']['User'] = getpass.getuser()
+    rmq_template['Service']['Group'] = str(os.getegid())
+
     rmq_template['Service']['EnvironmentFile'] = str(pathlib.Path(
             path_rabbitmq_instance + rmq_template['Service']['EnvironmentFile']).resolve())
 
@@ -205,9 +209,9 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
     env_data = "NODENAME=rabbit\n" + \
             f"NODE_IP_ADDRESS=127.0.0.1\n" + \
             f"NODE_PORT=5672\n\n" + \
-            f"HOME={path_rabbitmq_instance}/var/lib/rabbitmq\n" + \
             f"LOG_BASE={path_rabbitmq_instance}/var/log/rabbitmq\n" + \
             f"MNESIA_BASE={path_rabbitmq_instance}/var/lib/rabbitmq/mnesia"
+    # f"HOME={path_rabbitmq_instance}/var/lib/rabbitmq\n" + \
 
     path_rabbitmq_env = rmq_template['Service']['EnvironmentFile']
 

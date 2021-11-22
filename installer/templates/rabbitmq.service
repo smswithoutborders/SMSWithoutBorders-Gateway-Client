@@ -6,8 +6,8 @@ Wants=network.target epmd@0.0.0.0.socket
 [Service]
 # Type=notify
 Type=simple
-# User=rabbitmq
-# Group=rabbitmq
+User=rabbitmq
+Group=rabbitmq
 SyslogIdentifier=rabbitmq
 EnvironmentFile=/etc/rabbitmq/rabbitmq-env.conf
 UMask=0027

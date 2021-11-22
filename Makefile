@@ -98,8 +98,8 @@ remove:
 		sudo systemctl disable deku_rabbitmq.service; \
 	fi
 	@sudo rm -rfv $(systemd_path)/deku_*.service
-	@sudo rm -rfv $(build_path)
-	@sudo rm -rfv $(path_rabbitmq_builds)
+	@rm -rfv $(build_path)
+	@rm -rfv $(path_rabbitmq_builds)
 	@rm -f $(path_rabbitmq)/*.sh
 	@rm -rf rabbitmq_server*
 	@sudo systemctl daemon-reload
