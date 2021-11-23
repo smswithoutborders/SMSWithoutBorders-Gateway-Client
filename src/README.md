@@ -32,7 +32,7 @@ sudo apt-get install -y erlang-base \
 #### Build and install
 ```bash
 pip3 install virtualenv
-git clone https://github.com/smswithoutborders/Deku.git
+git clone https://github.com/smswithoutborders/SMSWithoutBorders-Gateway-Client.git
 cd Deku
 make
 make install
