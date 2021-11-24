@@ -17,6 +17,14 @@ CORS(app)
 def modem_sms_state():
     pass
 
+@app.route('/system/state', methods=['GET'])
+def system_state():
+    try:
+        state = Deku.state()
+        return state, 200
+    except Exception as error:
+        return 'server based error occured', 500
+
 @app.route('/modems', methods=['GET'])
 def modems_list():
     try:

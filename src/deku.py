@@ -103,6 +103,17 @@ class Deku(Modem):
             raise(error)
 
         return modem_index in Modem.list() and operator_code != '--'
+    
+    @staticmethod
+    def state():
+        try:
+            command = ['systemctl', 'is-active', 'deku_cluster.service']
+            systemd_output = subprocess.check_output(
+                    command, stderr=subprocess.STDOUT).decode('unicode_escape')
+            return systemd_output
+        except Exception as error:
+            raise error
+
 
     @classmethod
     def status(cls):
