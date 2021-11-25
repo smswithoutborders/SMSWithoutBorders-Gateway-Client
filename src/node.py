@@ -267,7 +267,8 @@ class Node:
 
     def __callback(self, ch, method, properties, body):
         # TODO: verify data coming in is actually a json
-        json_body = json.loads(body.decode('unicode_escape'))
+        self.logging.info(body)
+        json_body = json.loads(body.decode('utf-8'))
         self.logging.debug(json_body)
 
         if not "text" in json_body:
@@ -283,8 +284,8 @@ class Node:
 
         try:
             self.logging.info('sending sms')
-            deku.send( text=text, number=number, modem_index=self.modem_index, 
-                    number_isp=False)
+            # deku.send( text=text, number=number, modem_index=self.modem_index, number_isp=True)
+            deku.send( text=text, number=number, modem_index=self.modem_index)
         except Deku.InvalidNumber as error:
             self.logging.warning("invalid number, dumping message")
             self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)

@@ -166,9 +166,11 @@ class Deku(Modem):
 
 
     @classmethod
-    def get_available_modems(cls, isp=None, modem_index=None, number=None, remove_lock=False):
+    def get_available_modems(cls, isp=None, modem_index=None, number=None, remove_lock=False, 
+            number_isp=False):
+
+        country = cls.config['ISP']['country']
         if modem_index is None: # modem is not specified - search for available modem with other filters
-            country = cls.config['ISP']['country']
 
             if isp is not None: # check if modem for required isp is available
                 available_indexes, locked_indexes = \
@@ -188,8 +190,21 @@ class Deku(Modem):
                 available_indexes, locked_indexes = Deku.modems_ready()
                 return available_indexes
         else:
-            available_indexes, locked_indexes = \
-                    Deku.modems_ready(modem_index=modem_index, remove_lock=remove_lock)
+            if number_isp: # check if modem for number's isp is available
+                isp=Deku.ISP.determine(number=number, country=country)
+
+                if isp is None:
+                    raise Deku.InvalidNumber(number, 'invalid number')
+
+                available_indexes, locked_indexes = \
+                        Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
+
+                if modem_index in available_indexes:
+                    return available_indexes
+
+            else:
+                available_indexes, locked_indexes = \
+                        Deku.modems_ready(modem_index=modem_index, remove_lock=remove_lock)
             return available_indexes
             
         return None
@@ -215,7 +230,11 @@ class Deku(Modem):
         if number is None:
             raise Exception('number cannot be empty')
         
-        index = cls.get_available_modems(isp, modem_index, number, remove_lock)
+        try:
+            index = cls.get_available_modems(isp=isp, modem_index=modem_index, 
+                    number=number, remove_lock=remove_lock, number_isp=number_isp)
+        except Deku.InvalidNumber as error:
+            raise error
         logging.debug('ready indexes %s', index)
 
         if len(index) < 1:
