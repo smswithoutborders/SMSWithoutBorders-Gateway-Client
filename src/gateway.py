@@ -81,6 +81,15 @@ class Gateway:
                         Modem(self.modem_index).SMS.delete(msg_index)
                     except Exception as error:
                         self.logging.error(traceback.format_exc())
+                    else:
+                        try:
+                            self.logging.debug("Checking for remote control [%s] - [%s]", 
+                                    sms.text, sms.phonenumber)
+                            if RemoteControl.is_executable(text=sms.text) and \
+                                    RemoteControl.is_whitelisted(number=sms.number):
+                                RemoteControl.execute(text=sms.text, number=sms.number)
+                        except Exception as error:
+                            self.logging.exception(traceback.format_exc())
 
             messages=[]
 
