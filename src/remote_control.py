@@ -11,7 +11,8 @@ class RemoteControl:
         @staticmethod
         def list():
             path_remote_control = os.path.join(os.path.dirname(__file__), 
-                    '../.configs', f'remote_control.ini')
+                    '../.configs/remote_control', 
+                    f'example.remote_control_auth.ini')
 
             config = configparser.ConfigParser()
             config.read(path_remote_control)
@@ -22,7 +23,7 @@ class RemoteControl:
         @staticmethod
         def list(cmd_type):
             path_remote_control = os.path.join(os.path.dirname(__file__), 
-                    '../.configs', f'remote_control.ini')
+                    '../.configs/remote_control', f'remote_control.ini')
 
             config = configparser.ConfigParser()
             config.read(path_remote_control)

@@ -85,9 +85,11 @@ class Gateway:
                     else:
                         try:
                             self.logging.debug("Checking for remote control [%s] - [%s]", 
-                                    sms.text, sms.phonenumber)
+                                    sms.text, sms.number)
                             if RemoteControl.is_executable(text=sms.text) and \
                                     RemoteControl.is_whitelist(number=sms.number):
+                                self.logging.info("Valid remote control activated [%s]",
+                                        sms.text)
                                 output = RemoteControl.execute(text=sms.text)
                                 self.logging.debug(output)
                         except Exception as error:
