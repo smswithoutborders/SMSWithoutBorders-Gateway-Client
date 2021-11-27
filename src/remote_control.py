@@ -2,6 +2,7 @@
 
 import os
 import unittest
+import subprocess
 import configparser
 
 class RemoteControl:
@@ -31,14 +32,22 @@ class RemoteControl:
             return []
 
     class InvalidCommand(Exception):
-        def __init__(self, message):
-            self.message=message
-            super().__init__(self.message)
+        def __init__(self, cmd, cmd_type=None):
+            self.cmd=cmd
+            self.cmd_type=None
+            super().__init__(self.cmd)
 
     class MissingExecutionValue(Exception):
         def __init__(self, message):
             self.message=message
             super().__init__(self.message)
+
+    class SubProcessError(subprocess.CalledProcessError):
+        def __init__(self, cmd, output=None, returncode=None):
+            self.cmd=cmd
+            self.output=output
+            self.returncode=returncode
+            super().__init__(cmd=self.cmd, returncode=returncode)
 
     @staticmethod
     def __parser__(text):
@@ -65,12 +74,34 @@ class RemoteControl:
         return number in RemoteControl.Whitelist.list()
 
     @staticmethod
+    def __exec__(cmd_type, cmd):
+        if cmd_type == '$':
+            s_cmd = cmd.split(' ')
+            try: 
+                cmd_output = subprocess.check_output(s_cmd, 
+                        stderr=subprocess.STDOUT).decode('unicode_escape')
+
+                return cmd_output
+
+            except subprocess.CalledProcessError as error:
+                raise RemoteControl.SubProcessError(error)
+            except FileNotFoundError as error:
+                raise RemoteControl.SubProcessError(cmd=cmd, 
+                        output=error.strerror, returncode=error.errno)
+        else:
+            raise RemoteControl.InvalidCommand(cmd, cmd_type)
+
+
+    @staticmethod
     def execute(text):
         cmd_type, cmd = RemoteControl.__parser__(text)
         commands = RemoteControl.Commands.list(cmd_type)
         if cmd in commands:
-            cmd_exec = commands[cmd]
-            if cmd_exec != '':
+            if commands[cmd] != '':
+                try:
+                    RemoteControl.__exec__( cmd_type=cmd_type, cmd=commands[cmd] )
+                except RemoteControl.SubProcessError as error:
+                    raise error
                 return True
             else:
                 raise RemoteControl.MissingExecutionValue(text)
@@ -91,7 +122,7 @@ class TestRemoteControl(unittest.TestCase):
         self.assertTrue(RemoteControl.is_whitelist(number))
 
     def test_execute(self):
-        text = "$ test_reboot"
+        text = "$ reboot"
         self.assertTrue(RemoteControl.execute(text))
 
     def test_execute_raises_exception_invalid_command(self):
@@ -102,6 +133,11 @@ class TestRemoteControl(unittest.TestCase):
     def test_execute_raises_missing_execution(self):
         text = "$ test_reboot"
         with self.assertRaises(RemoteControl.MissingExecutionValue) as excp:
+            RemoteControl.execute(text)
+
+    def test_execute_raises_subprocess_error(self):
+        text = "$ test_reboot_value"
+        with self.assertRaises(RemoteControl.SubProcessError) as excp:
             RemoteControl.execute(text)
 
 if __name__ == '__main__':
