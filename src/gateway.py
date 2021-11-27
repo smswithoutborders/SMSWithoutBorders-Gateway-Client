@@ -18,6 +18,7 @@ from enum import Enum
 from common.mmcli_python.modem import Modem
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 from router import Router
+from remote_control import RemoteControl
 
 class Gateway:
 
@@ -86,8 +87,9 @@ class Gateway:
                             self.logging.debug("Checking for remote control [%s] - [%s]", 
                                     sms.text, sms.phonenumber)
                             if RemoteControl.is_executable(text=sms.text) and \
-                                    RemoteControl.is_whitelisted(number=sms.number):
-                                RemoteControl.execute(text=sms.text, number=sms.number)
+                                    RemoteControl.is_whitelist(number=sms.number):
+                                output = RemoteControl.execute(text=sms.text)
+                                self.logging.debug(output)
                         except Exception as error:
                             self.logging.exception(traceback.format_exc())
 
