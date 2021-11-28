@@ -47,62 +47,83 @@ class Gateway:
         self.logging.propagate = False
         self.sleep_time = int(self.config['MODEMS']['sleep_time'])
 
+    def __publish__(self, sms, queue_name):
+        try:
+            self.publish_channel.basic_publish(
+                    exchange='',
+                    routing_key=queue_name,
+                    body=json.dumps({"text":sms.text, "phonenumber":sms.number}),
+                    properties=pika.BasicProperties(
+                        delivery_mode=2))
+            self.logging.info("published %s",{"text":sms.text, "phonenumber":sms.number})
+        except Exception as error:
+            raise error
+
+    def __exec_remote_control__(self, sms):
+        try:
+            self.logging.debug("Checking for remote control [%s] - [%s]", 
+                    sms.text, sms.number)
+            if RemoteControl.is_executable(text=sms.text):
+                self.logging.info("Valid remote control activated [%s]", 
+                        sms.text)
+                if RemoteControl.is_whitelist(number=sms.number):
+                    output = RemoteControl.execute(text=sms.text)
+                    self.logging.debug(output)
+                else:
+                    self.logging.warning(
+                            "Remote Control requester not whitelisted - [%s]",
+                            sms.number)
+            else:
+                self.logging.debug("Not valid remote control command")
+        except Exception as error:
+            raise error
+
 
     def monitor_incoming(self):
         connection_url=self.config['GATEWAY']['connection_url']
         queue_name=self.config['GATEWAY']['routing_queue_name']
 
+        try:
+            while Deku.modem_ready(self.modem_index):
+                if not hasattr(self, 'publish_connection') or \
+                        self.publish_connection.is_closed:
+                    self.publish_connection, self.publish_channel = create_channel(
+                            connection_url=connection_url,
+                            queue_name=queue_name,
+                            heartbeat=600,
+                            blocked_connection_timeout=60,
+                            durable=True)
 
-        while Deku.modem_ready(self.modem_index):
-            if not hasattr(self, 'publish_connection') or \
-                    self.publish_connection.is_closed:
-                self.publish_connection, self.publish_channel = create_channel(
-                        connection_url=connection_url,
-                        queue_name=queue_name,
-                        heartbeat=600,
-                        blocked_connection_timeout=60,
-                        durable=True)
+                messages=Modem(self.modem_index).SMS.list('received')
+                for msg_index in messages:
+                    sms=Modem.SMS(index=msg_index)
 
-            messages=Modem(self.modem_index).SMS.list('received')
-            for msg_index in messages:
-                sms=Modem.SMS(index=msg_index)
-
-                try:
-                    self.publish_channel.basic_publish(
-                            exchange='',
-                            routing_key=queue_name,
-                            body=json.dumps({"text":sms.text, "phonenumber":sms.number}),
-                            properties=pika.BasicProperties(
-                                delivery_mode=2))
-                    self.logging.info("published %s",{"text":sms.text, "phonenumber":sms.number})
-                except Exception as error:
-                    self.logging.exception(error)
-                else:
                     try:
-                        Modem(self.modem_index).SMS.delete(msg_index)
+                        self.__publish__(sms=sms, queue_name=queue_name)
                     except Exception as error:
-                        self.logging.error(traceback.format_exc())
+                        self.logging.critical(error)
+
                     else:
                         try:
-                            self.logging.debug("Checking for remote control [%s] - [%s]", 
-                                    sms.text, sms.number)
-                            if RemoteControl.is_executable(text=sms.text) and \
-                                    RemoteControl.is_whitelist(number=sms.number):
-                                self.logging.info("Valid remote control activated [%s]",
-                                        sms.text)
-                                output = RemoteControl.execute(text=sms.text)
-                                self.logging.debug(output)
+                            Modem(self.modem_index).SMS.delete(msg_index)
                         except Exception as error:
-                            self.logging.exception(traceback.format_exc())
+                            self.logging.error(traceback.format_exc())
+                        else:
+                            try:
+                                self.__exec_remote_control__(sms)
+                            except Exception as error:
+                                self.logging.exception(traceback.format_exc())
 
-            messages=[]
+                messages=[]
 
-            time.sleep(self.sleep_time)
+                time.sleep(self.sleep_time)
+        except Exception as error:
+            self.logging.critical(traceback.format_exc())
+
         self.logging.warning("disconnected") 
 
         if self.modem_index in active_threads:
             del active_threads[self.modem_index]
-
 
     def __del__(self):
         if self.publish_connection.is_open:

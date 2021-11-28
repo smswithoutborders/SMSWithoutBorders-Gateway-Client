@@ -9,10 +9,14 @@ class RemoteControl:
 
     class Whitelist:
         @staticmethod
-        def list():
-            path_remote_control = os.path.join(os.path.dirname(__file__), 
-                    '../.configs/remote_control', 
-                    f'example.remote_control_auth.ini')
+        def list(custom_path_remote_control=None):
+            path_remote_control=None
+            if custom_path_remote_control is None:
+                path_remote_control = os.path.join(os.path.dirname(__file__), 
+                        '../.configs/remote_control', 
+                        f'remote_control_auth.ini')
+            else:
+                path_remote_control = custom_path_remote_control
 
             config = configparser.ConfigParser()
             config.read(path_remote_control)
@@ -71,8 +75,8 @@ class RemoteControl:
         return False
 
     @staticmethod
-    def is_whitelist(number):
-        return number in RemoteControl.Whitelist.list()
+    def is_whitelist(number, path_remote_control=None):
+        return number in RemoteControl.Whitelist.list(path_remote_control)
 
     @staticmethod
     def __exec__(cmd_type, cmd):
@@ -120,7 +124,10 @@ class TestRemoteControl(unittest.TestCase):
 
     def test_is_whitelist(self):
         number = "+000000000"
-        self.assertTrue(RemoteControl.is_whitelist(number))
+        path_remote_control = os.path.join(os.path.dirname(__file__), 
+                '../.configs/remote_control', 
+                f'example.remote_control_auth.ini')
+        self.assertTrue(RemoteControl.is_whitelist(number, path_remote_control))
 
     def test_execute(self):
         text = "$ reboot"
