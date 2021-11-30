@@ -63,32 +63,37 @@ class Deku(Modem):
         
     @classmethod
     def modem_locked(cls, modem_index, remove_lock=True):
-        imei= Modem(modem_index).imei
-        lock_dir = os.path.join(os.path.dirname(__file__), 'services/locks', f'{imei}.lock')
+        try:
+            imei= Modem(modem_index).imei
+            lock_dir = os.path.join(os.path.dirname(__file__), 'services/locks', f'{imei}.lock')
 
-        lock_type=None
-        start_time=None
-        if os.path.isfile(lock_dir):
-            lock_config = configparser.ConfigParser()
-            lock_config.read(lock_dir)
+            lock_type=None
+            start_time=None
+            if os.path.isfile(lock_dir):
+                lock_config = configparser.ConfigParser()
+                lock_config.read(lock_dir)
 
-            start_time = float(lock_config['LOCKS']['START_TIME'])
-            lock_type = lock_config['LOCKS']['TYPE']
+                start_time = float(lock_config['LOCKS']['START_TIME'])
+                lock_type = lock_config['LOCKS']['TYPE']
 
-            ''' how long should benchmarks last before expiring '''
-            benchmark_timelimit = int(cls.config['MODEMS']['failed_sleep'])
+                ''' how long should benchmarks last before expiring '''
+                benchmark_timelimit = int(cls.config['MODEMS']['failed_sleep'])
 
-            ''' how long should benchmarks last before expiring if state is busy '''
-            busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
+                ''' how long should benchmarks last before expiring if state is busy '''
+                busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
 
-            if remove_lock and \
-                    (((time.time() - start_time ) > benchmark_timelimit and lock_type == 'FAILED') \
-                    or ((time.time() - start_time ) > busy_timelimit and lock_type == 'BUSY')):
-                os.remove(lock_dir)
-                return False, lock_type, lock_dir
-            return True, lock_type, lock_dir
-            
-        return False, lock_type, lock_dir
+                if remove_lock and \
+                        (((time.time() - start_time ) > benchmark_timelimit and lock_type == 'FAILED') \
+                        or ((time.time() - start_time ) > busy_timelimit and lock_type == 'BUSY')):
+                    os.remove(lock_dir)
+                    return False, lock_type, lock_dir
+                return True, lock_type, lock_dir
+                
+            return False, lock_type, lock_dir
+        except Modem.MissingModem as error:
+            return False, lock_type, lock_dir
+        except Modem.MissingIndex as error:
+            return False, lock_type, lock_dir
     
     @staticmethod
     def modem_ready(modem_index):
