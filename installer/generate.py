@@ -32,7 +32,7 @@ def generate_systemd():
                     "After" : "ModemManager.service",
                     "StartLimitIntervalSec" : "120",
                     "StartLimitBurst" : "5",
-                    "StartLimitAction" : "systemctl reboot"
+                    # "StartLimitAction" : "systemctl reboot"
                     },
                 "Service": {
                     "Type" : "simple",
