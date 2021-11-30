@@ -30,14 +30,14 @@ def generate_systemd():
                 "Unit": {
                     "Description" : "",
                     "After" : "ModemManager.service",
-                    "TimeoutStartSec" : "3600",
-                    # "StartLimitIntervalSec" : "60",
-                    # "StartLimitBurst" : "5"
-                    # "StartLimitAction" : "systemctl reboot"
+                    "StartLimitIntervalSec" : "120",
+                    "StartLimitBurst" : "5"
+                    "StartLimitAction" : "systemctl reboot"
                     },
                 "Service": {
                     "Type" : "simple",
                     "ExecStart": f"+{path_venv}/bin/python3 {path_main}",
+                    "TimeoutStartSec" : "3600",
                     "Restart" : "on-failure",
                     "RestartSec" : "10s"
                     },
