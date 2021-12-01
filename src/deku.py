@@ -54,6 +54,10 @@ class Deku(Modem):
             return None
 
         @classmethod
+        def cleanup(cls, number):
+            return number.replace(' ', '')
+
+        @classmethod
         def modems(cls, country, operator_code):
             for isp in cls.config_isp_operators[country]:
                 if cls.config_isp_operators[country][isp].lower() == operator_code.lower():
@@ -229,6 +233,8 @@ class Deku(Modem):
     def send(cls, text, number, timeout=20, number_isp=True, 
             modem_index=None, remove_lock=True, ignore_lock=False, isp=None):
         logging.debug("+ text: %s\n+ number: %s", text, number)
+
+        number = Deku.ISP.cleanup(number)
 
         if text is None:
             raise Exception('text cannot be empty')
