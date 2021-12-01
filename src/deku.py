@@ -53,8 +53,8 @@ class Deku(Modem):
             logging.error('could not determine rule')
             return None
 
-        @classmethod
-        def cleanup(cls, number):
+        @staticmethod
+        def cleanup(number):
             return number.replace(' ', '')
 
         @classmethod
@@ -233,8 +233,6 @@ class Deku(Modem):
     def send(cls, text, number, timeout=20, number_isp=True, 
             modem_index=None, remove_lock=True, ignore_lock=False, isp=None):
         logging.debug("+ text: %s\n+ number: %s", text, number)
-
-        number = Deku.ISP.cleanup(number)
 
         if text is None:
             raise Exception('text cannot be empty')

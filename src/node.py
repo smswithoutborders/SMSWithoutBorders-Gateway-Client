@@ -284,8 +284,8 @@ class Node:
 
         try:
             self.logging.info('sending sms')
-            # deku.send( text=text, number=number, modem_index=self.modem_index, number_isp=True)
-            deku.send( text=text, number=number, modem_index=self.modem_index)
+            ''' cleanup here, because we can't trust the user to have great input '''
+            deku.send( text=text, number=Deku.ISP.cleanup(number), modem_index=self.modem_index)
         except Deku.InvalidNumber as error:
             self.logging.warning("invalid number, dumping message")
             self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
