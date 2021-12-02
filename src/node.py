@@ -431,7 +431,8 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
             init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules)
             start_nodes()
         except Exception as error:
-            raise(error)
+            # raise error
+            logging.exception(error)
         time.sleep(sleep_time)
 
 def initiate_transmissions():
