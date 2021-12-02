@@ -428,7 +428,7 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
                 continue
 
         except Exception as error:
-            raise(error)
+            logging.warning(error)
         
         try:
             init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules)
