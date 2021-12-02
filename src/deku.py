@@ -96,17 +96,20 @@ class Deku(Modem):
             return False, lock_type, lock_dir
     
     @staticmethod
-    def modem_ready(modem_index):
+    def modem_ready(modem_index, index_only=False):
         try:
             modem = Modem(modem_index)
             if modem.state == 'disabled':
                 modem.enable()
             operator_code = modem.operator_code
-        except NameError as error:
-            raise(error)
-        except Exception as error:
-            raise(error)
 
+        except NameError as error:
+            raise error
+        except Exception as error:
+            raise error
+
+        if index_only:
+            return modem_index in Modem.list()
         return modem_index in Modem.list() and operator_code != '--'
     
     @staticmethod
@@ -138,10 +141,15 @@ class Deku(Modem):
         return messages
 
     @staticmethod
-    def modems_ready(isp=None, country=None, modem_index=None, remove_lock=False, ignore_lock=False):
+    def modems_ready(isp=None, country=None, modem_index=None, 
+            remove_lock=False, ignore_lock=False, index_only=False):
         available_indexes=[]
         indexes=[]
         locked_indexes=[]
+
+        if index_only:
+            # logging.info(Modem.list())
+            return Modem.list(), []
 
         if modem_index is not None:
             indexes.append(modem_index)

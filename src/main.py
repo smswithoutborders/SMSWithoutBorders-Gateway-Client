@@ -32,7 +32,7 @@ if __name__ == "__main__":
     log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
     logging.basicConfig(
             # format='%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s',
-            format='%(asctime)s|[%(levelname)s] %(message)s',
+            format='%(asctime)s|[%(levelname)s] [%(module)s] %(message)s',
             # datefmt='%Y-%m-%d %I:%M:%S %p',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[
@@ -73,6 +73,7 @@ if __name__ == "__main__":
         if args.module == "gateway" or args.module == "all":
             gateway_thread.join()
     except Exception as error:
+        # logging.info(error)
         logging.critical(traceback.format_exc())
 
         exit(1)
