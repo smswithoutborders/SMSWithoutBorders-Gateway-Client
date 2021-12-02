@@ -83,7 +83,7 @@ class Node:
 
             return connection, channel
         except Exception as error:
-            raise(error)
+            raise error
         '''
         except pika.exceptions.ConnectionClosedByBroker as error:
             raise(error)
@@ -396,12 +396,15 @@ def start_nodes():
                     node.create_connection()
                     thread.start()
 
+            '''
             except socket.gaierror as error:
                 logging.warning("unable to resolve server location (check internet connection)")
             except pika.exceptions.AMQPConnectionError as error:
                 logging.warning("unable to talk to server location (check internet connection)")
+            '''
             except Exception as error:
-                raise(error)
+                continue
+                # raise error
     except Exception as error:
         raise error
 
@@ -432,7 +435,7 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
             start_nodes()
         except Exception as error:
             # raise error
-            logging.exception(error)
+            logging.warning(error)
         time.sleep(sleep_time)
 
 def initiate_transmissions():
