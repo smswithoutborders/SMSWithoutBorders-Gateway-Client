@@ -85,7 +85,7 @@ class Gateway:
         connection_url=self.config['GATEWAY']['connection_url']
         queue_name=self.config['GATEWAY']['routing_queue_name']
 
-        self.logging.info("incoming %s", self.modem_index)
+        # self.logging.info("incoming %s", self.modem_index)
         try:
             while Deku.modem_ready(self.modem_index, index_only=True):
                 if not hasattr(self, 'publish_connection') or \

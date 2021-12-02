@@ -99,8 +99,10 @@ class Deku(Modem):
     def modem_ready(modem_index, index_only=False):
         try:
             modem = Modem(modem_index)
-            if modem.state == 'disabled':
+            if modem.state == 'disabled' or modem.state == 'idle':
                 modem.enable()
+            if modem.state == 'failed':
+                return False
             operator_code = modem.operator_code
 
         except NameError as error:
@@ -147,9 +149,6 @@ class Deku(Modem):
         indexes=[]
         locked_indexes=[]
 
-        if index_only:
-            # logging.info(Modem.list())
-            return Modem.list(), []
 
         if modem_index is not None:
             indexes.append(modem_index)
@@ -157,6 +156,11 @@ class Deku(Modem):
             indexes= Modem.list()
 
         for _modem_index in indexes:
+            if index_only:
+                if Deku.modem_ready(_modem_index, index_only=index_only):
+                    available_indexes.append(_modem_index)
+                continue
+
             locked_state, lock_type, lock_file = Deku.modem_locked(
                     _modem_index, remove_lock=remove_lock)
 
@@ -165,7 +169,7 @@ class Deku(Modem):
                 continue
 
             if isp is None:
-                if Deku.modem_ready(_modem_index):
+                if Deku.modem_ready(_modem_index, index_only=index_only):
                     available_indexes.append(_modem_index)
             else:
                 if country is None:
