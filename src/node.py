@@ -396,15 +396,15 @@ def start_nodes():
                     node.create_connection()
                     thread.start()
 
+            except Exception as error:
+                continue
+                # raise error
             '''
             except socket.gaierror as error:
                 logging.warning("unable to resolve server location (check internet connection)")
             except pika.exceptions.AMQPConnectionError as error:
                 logging.warning("unable to talk to server location (check internet connection)")
             '''
-            except Exception as error:
-                continue
-                # raise error
     except Exception as error:
         raise error
 
