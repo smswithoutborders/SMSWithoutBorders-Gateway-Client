@@ -183,32 +183,32 @@ class Deku(Modem):
 
 
     @classmethod
-    def get_available_modems(cls, isp=None, number=None, 
-            remove_lock=False, number_isp=False):
+    def get_available_modems(cls, isp=None, modem_index=None, 
+            number=None, remove_lock=False, number_isp=False, dump_isp=False):
 
         country = cls.config['ISP']['country']
+        if modem_index is None: # modem is not specified - search for available modem with other filters
 
-        if number_isp: # check if modem for number's isp is available
-            lookup_isp=Deku.ISP.determine(number=number, country=country)
+            if isp is not None: # check if modem for required isp is available
+                available_indexes, locked_indexes = \
+                        Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
+                return available_indexes
 
-            if lookup_isp is None or (isp is not None and isp != lookup_isp):
-                raise Deku.InvalidNumber(number, 'invalid number')
+            elif number_isp: # check if modem for number's isp is available
+                isp=Deku.ISP.determine(number=number, country=country)
 
-            available_indexes, locked_indexes = \
-                    Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
-            return available_indexes
+                if isp is None:
+                    raise Deku.InvalidNumber(number, 'invalid number')
 
-        elif isp is not None: # check if modem for required isp is available
-            available_indexes, locked_indexes = \
-                    Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
-            return available_indexes
-        else:
-            available_indexes, locked_indexes = Deku.modems_ready()
-            return available_indexes
-        '''
+                available_indexes, locked_indexes = \
+                        Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
+                return available_indexes
+            else:
+                available_indexes, locked_indexes = Deku.modems_ready()
+                return available_indexes
         else:
             if number_isp: # check if modem for number's isp is available
-                lookup_isp=Deku.ISP.determine(number=number, country=country)
+                isp=Deku.ISP.determine(number=number, country=country)
 
                 if isp is None:
                     raise Deku.InvalidNumber(number, 'invalid number')
@@ -224,7 +224,6 @@ class Deku(Modem):
                         Deku.modems_ready(modem_index=modem_index, remove_lock=remove_lock)
             return available_indexes
             
-        '''
         return None
 
 
@@ -240,7 +239,7 @@ class Deku(Modem):
 
     @classmethod
     def send(cls, text, number, timeout=20, number_isp=True, 
-            modem_index=None, remove_lock=True, ignore_lock=False, isp=None):
+            modem_index=None, remove_lock=True, ignore_lock=False, isp=None, dump_isp=False):
         logging.debug("+ text: %s\n+ number: %s", text, number)
 
         if text is None:
@@ -250,7 +249,8 @@ class Deku(Modem):
         
         try:
             index = cls.get_available_modems(isp=isp, modem_index=modem_index, 
-                    number=number, remove_lock=remove_lock, number_isp=number_isp)
+                    number=number, remove_lock=remove_lock, number_isp=number_isp,
+                    dump_isp=dump_isp)
         except Deku.InvalidNumber as error:
             raise error
         logging.debug('ready indexes %s', index)
