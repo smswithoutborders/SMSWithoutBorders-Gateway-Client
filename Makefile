@@ -4,7 +4,8 @@ pip=pip3
 
 venv_path=venv
 build_path=$(pwd)/installer/files
-systemd_path=/usr/lib/systemd/system
+# systemd_path=/usr/lib/systemd/system
+systemd_path=/etc/systemd/system
 path_rabbitmq=third_party/rabbitmq
 path_rabbitmq_builds=third_party/rabbitmq/builds
 
