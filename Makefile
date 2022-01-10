@@ -21,6 +21,7 @@ gen_configs:
 	@cp -nv .configs/extensions/example.authorize.ini .configs/extensions/authorize.ini
 	@cp -nv .configs/extensions/example.labels.ini .configs/extensions/labels.ini
 	@cp -nv .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
+	@cp -nv .configs/remote_control/example.remote_control_auth.ini .configs/remote_control/remote_control_auth.ini
 	@mkdir -p $(build_path)
 	@mkdir -p $(path_rabbitmq_builds)
 	@$(python) installer/generate.py
@@ -69,6 +70,10 @@ restart:
 	@systemctl is-active deku_gateway.service
 	@sudo systemctl restart deku_cluster.service
 	@systemctl is-active deku_cluster.service
+
+clear:
+	@rm -f src/services/locks/*.lock
+	@rm -f src/services/status/*.ini
 
 clean:
 	@#rm -rf $(venv_path)

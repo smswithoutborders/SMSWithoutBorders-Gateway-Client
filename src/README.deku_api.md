@@ -12,6 +12,22 @@ python3 src/deku_api.py
 
 #### Endpoints
 
+##### Fetch state of cluster
+> Protocol: GET \
+> Url: /system/state \
+> Returns: -
+```python
+active or inactive, 200
+```
+```bash
+failed 4xx
+error 5xx
+```
+*Example*
+```bash
+curl localhost:5000/system/state
+```
+
 ##### Fetch modems
 > Protocol: GET \
 > Url: /modems \

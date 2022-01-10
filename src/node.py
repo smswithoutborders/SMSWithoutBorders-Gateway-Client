@@ -83,7 +83,7 @@ class Node:
 
             return connection, channel
         except Exception as error:
-            raise(error)
+            raise error
         '''
         except pika.exceptions.ConnectionClosedByBroker as error:
             raise(error)
@@ -267,7 +267,8 @@ class Node:
 
     def __callback(self, ch, method, properties, body):
         # TODO: verify data coming in is actually a json
-        json_body = json.loads(body.decode('unicode_escape'))
+        self.logging.info(body)
+        json_body = json.loads(body.decode('utf-8'))
         self.logging.debug(json_body)
 
         if not "text" in json_body:
@@ -283,8 +284,8 @@ class Node:
 
         try:
             self.logging.info('sending sms')
-            deku.send( text=text, number=number, modem_index=self.modem_index, 
-                    number_isp=False)
+            # deku.send( text=text, number=number, modem_index=self.modem_index, number_isp=True)
+            deku.send( text=text, number=number, modem_index=self.modem_index)
         except Deku.InvalidNumber as error:
             self.logging.warning("invalid number, dumping message")
             self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
@@ -385,21 +386,27 @@ def init_nodes(indexes, config, config_isp_default, config_isp_operators, config
                 raise(error)
 
 def start_nodes():
-    for modem_index, thread_n_node in active_nodes.items():
-        thread = thread_n_node[0]
-        node = thread_n_node[1]
-        try:
-            if thread.native_id is None:
-                logging.debug("starting nodes")
-                node.create_connection()
-                thread.start()
+    try:
+        for modem_index, thread_n_node in active_nodes.items():
+            thread = thread_n_node[0]
+            node = thread_n_node[1]
+            try:
+                if thread.native_id is None:
+                    logging.debug("starting nodes")
+                    node.create_connection()
+                    thread.start()
 
-        except socket.gaierror as error:
-            logging.warning("unable to resolve server location (check internet connection)")
-        except pika.exceptions.AMQPConnectionError as error:
-            logging.warning("unable to talk to server location (check internet connection)")
-        except Exception as error:
-            raise(error)
+            except Exception as error:
+                continue
+                # raise error
+            '''
+            except socket.gaierror as error:
+                logging.warning("unable to resolve server location (check internet connection)")
+            except pika.exceptions.AMQPConnectionError as error:
+                logging.warning("unable to talk to server location (check internet connection)")
+            '''
+    except Exception as error:
+        raise error
 
 def manage_modems(config, config_event_rules, config_isp_default, config_isp_operators):
     global active_nodes
@@ -421,13 +428,14 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
                 continue
 
         except Exception as error:
-            raise(error)
+            logging.warning(error)
         
         try:
             init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules)
             start_nodes()
         except Exception as error:
-            raise(error)
+            # raise error
+            logging.warning(error)
         time.sleep(sleep_time)
 
 def initiate_transmissions():
