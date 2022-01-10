@@ -99,7 +99,7 @@ class Node:
         modem_status_file=configparser.ConfigParser()
         if os.path.isfile(status_file):
             self.logging.debug('Status file exist...')
-            modem_status_file.read(self.status_file)
+            modem_status_file.read(status_file)
 
         with open(status_file, 'w') as fd_status_file:
             for name, member in Node.Category.__members__.items():
