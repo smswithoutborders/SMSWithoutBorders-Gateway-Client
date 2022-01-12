@@ -241,7 +241,6 @@ class Deku(Modem):
         if len(text) < 1:
             raise Deku.InvalidText('length cannot be 0')
 
-
         # send through modem
         try:
             logging.debug("Sending SMS...")

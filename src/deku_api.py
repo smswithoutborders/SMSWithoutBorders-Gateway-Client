@@ -68,7 +68,7 @@ def modem_send_sms(modem_index):
     number = data['number']
 
     try:
-        deku.send(text=text, number=number, modem_index=modem_index)
+        deku.modem_send(text=text, number=number, modem_index=modem_index)
         return 'sms sent', 200
     except subprocess.CalledProcessError as error:
         return "Failed to send", 408
