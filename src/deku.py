@@ -139,7 +139,7 @@ class Deku(Modem):
     @classmethod
     def __change_modem_state(cls, modem_imei, state):
         lock_file = os.path.join(os.path.dirname(__file__), 
-                'services/locks', f'{modem.imei}.lock')
+                'services/locks', f'{modem_imei}.lock')
         Deku.__write_lock_file__(lock_file, 'BUSY')
 
 
