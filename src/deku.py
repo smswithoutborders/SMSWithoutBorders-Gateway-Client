@@ -16,62 +16,72 @@ import traceback
 import logging
 import argparse
 import configparser, threading
-from datetime import datetime
 import subprocess
+import phonenumbers
+
+from datetime import datetime
+from phonenumbers import geocoder, carrier
 
 from common.mmcli_python.modem import Modem
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 class Deku(Modem):
 
-    class InvalidNumber(Exception):
-        def __init__(self, number, message):
+    @classmethod
+    def __init__(cls, config, config_isp_default, config_isp_operators):
+        cls.config = config
+        cls.config_isp_operators = config_isp_operators
+
+    class NoMatchOperator(Exception):
+        def __init__(self, number, message=None):
             self.number=number
-            self.message=message
+            self.message=message or 'no match operator'
+            super().__init__(self.message)
+
+    class InvalidNumber(Exception):
+        def __init__(self, number, message=None):
+            self.number=number
+            self.message=message or 'invalid number'
+            super().__init__(self.message)
+
+    class InvalidText(Exception):
+        def __init__(self, text=None, message=None):
+            self.text=text
+            self.message=message or 'invalid text'
+            super().__init__(self.message)
+
+    class BadFormNumber(Exception):
+        def __init__(self, number, message=None):
+            self.number=number
+            self.message=message or 'badly formed number'
             super().__init__(self.message)
 
     class NoAvailableModem(Exception):
-        def __init__(self, message):
-            self.message=message
+        def __init__(self, message=None):
+            self.message=message or 'no available modem'
             super().__init__(self.message)
 
-    class ISP:
-        @classmethod
-        def __init__(cls, config_isp_default, config_isp_operators):
-            cls.config_isp_default = config_isp_default
-            cls.config_isp_operators = config_isp_operators
-
-        @classmethod
-        def determine(cls, number, country, parsed_rules=None):
-            if number.find(cls.config_isp_default['country_codes'][country]) > -1:
-                number= number.replace(cls.config_isp_default['country_codes'][country], '')
-            for rules in cls.config_isp_default[country]:
-                for rule in cls.config_isp_default[country][rules].split(','):
-                    if re.search(rule, number):
-                        return rules
-
-            logging.error('could not determine rule')
-            return None
-
-        @classmethod
-        def modems(cls, country, operator_code):
-            for isp in cls.config_isp_operators[country]:
-                if cls.config_isp_operators[country][isp].lower() == operator_code.lower():
-                    return isp
-            return None
-
-        
     @classmethod
-    def modem_locked(cls, modem_index, remove_lock=True):
-        try:
-            imei= Modem(modem_index).imei
-            lock_dir = os.path.join(os.path.dirname(__file__), 'services/locks', f'{imei}.lock')
+    def modem_operator(cls, modem:Modem, country):
+        operator_code = modem.operator_code
+        for operator in cls.config_isp_operators[country]:
+            if cls.config_isp_operators[country][operator].lower() == operator_code.lower():
+                return operator
 
+        return ''
+        
+
+    @classmethod
+    def modem_locked(cls, modem, remove_lock=True):
+        try:
             lock_type=None
             start_time=None
-            if os.path.isfile(lock_dir):
+            modem_state_filename = os.path.join(
+                    os.path.dirname(__file__), 'services/locks', f'{modem.imei}.lock')
+
+            if os.path.isfile(modem_state_filename):
                 lock_config = configparser.ConfigParser()
-                lock_config.read(lock_dir)
+                lock_config.read(modem_state_filename)
 
                 start_time = float(lock_config['LOCKS']['START_TIME'])
                 lock_type = lock_config['LOCKS']['TYPE']
@@ -82,23 +92,24 @@ class Deku(Modem):
                 ''' how long should benchmarks last before expiring if state is busy '''
                 busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
 
-                if remove_lock and \
-                        (((time.time() - start_time ) > benchmark_timelimit and lock_type == 'FAILED') \
-                        or ((time.time() - start_time ) > busy_timelimit and lock_type == 'BUSY')):
-                    os.remove(lock_dir)
-                    return False, lock_type, lock_dir
-                return True, lock_type, lock_dir
-                
-            return False, lock_type, lock_dir
-        except Modem.MissingModem as error:
-            return False, lock_type, lock_dir
-        except Modem.MissingIndex as error:
-            return False, lock_type, lock_dir
+                if remove_lock and (
+                        (time.time() - start_time ) > benchmark_timelimit and \
+                                (lock_type == 'FAILED' or lock_type == 'BUSY')):
+
+                    os.remove(modem_state_filename)
+                    return False, lock_type, modem_state_filename
+
+                else:
+                    return True, lock_type, modem_state_filename
+
+        except Exception as error:
+            raise error
+
+        return False, lock_type, modem_state_filename
     
     @staticmethod
-    def modem_ready(modem_index, index_only=False):
+    def modem_ready(modem:Modem, index_only=False):
         try:
-            modem = Modem(modem_index)
             if modem.state == 'disabled' or modem.state == 'idle':
                 modem.enable()
             if modem.state == 'failed':
@@ -111,125 +122,12 @@ class Deku(Modem):
             raise error
 
         if index_only:
-            return modem_index in Modem.list()
-        return modem_index in Modem.list() and operator_code != '--'
-    
-    @staticmethod
-    def state():
-        try:
-            command = ['systemctl', 'is-active', 'deku_cluster.service']
-            systemd_output = subprocess.check_output(
-                    command, stderr=subprocess.STDOUT).decode('unicode_escape')
-            return systemd_output
-        except Exception as error:
-            raise error
-
-
-    @classmethod
-    def status(cls):
-        indexes=cls.modems_ready()
-        messages=[]
-        for index in indexes:
-            modem=Modem(index)
-            message=f'====Modem({modem.imei})====\n' + \
-                    f'- index={index}\n' + \
-                    f'- state={modem.state}\n' + \
-                    f'- model={modem.model}\n' + \
-                    f'- dbus_path={modem.dbus_path}\n' + \
-                    f'- power_state={modem.power_state}\n' + \
-                    f'- operator_code={modem.operator_code}\n' + \
-                    f'- operator_name={modem.operator_name}\n'
-            messages.append(message)
-        return messages
-
-    @staticmethod
-    def modems_ready(isp=None, country=None, modem_index=None, 
-            remove_lock=False, ignore_lock=False, index_only=False):
-        available_indexes=[]
-        indexes=[]
-        locked_indexes=[]
-
-
-        if modem_index is not None:
-            indexes.append(modem_index)
-        else:
-            indexes= Modem.list()
-
-        for _modem_index in indexes:
-            if index_only:
-                if Deku.modem_ready(_modem_index, index_only=index_only):
-                    available_indexes.append(_modem_index)
-                continue
-
-            locked_state, lock_type, lock_file = Deku.modem_locked(
-                    _modem_index, remove_lock=remove_lock)
-
-            if not ignore_lock and locked_state:
-                locked_indexes.append(_modem_index)
-                continue
-
-            if isp is None:
-                if Deku.modem_ready(_modem_index, index_only=index_only):
-                    available_indexes.append(_modem_index)
-            else:
-                if country is None:
-                    raise Exception('country cannot be None')
-                modem_isp = Deku.ISP.modems(
-                        operator_code=Modem(_modem_index).operator_code, country=country)
-                if isp == modem_isp and Deku.modem_ready(_modem_index):
-                    available_indexes.append(_modem_index)
-
-        return available_indexes, locked_indexes
-
-
-    @classmethod
-    def get_available_modems(cls, isp=None, number=None, 
-            remove_lock=False, number_isp=False):
-
-        country = cls.config['ISP']['country']
-
-        if number_isp: # check if modem for number's isp is available
-            lookup_isp=Deku.ISP.determine(number=number, country=country)
-
-            if lookup_isp is None or (isp is not None and isp != lookup_isp):
-                raise Deku.InvalidNumber(number, 'invalid number')
-
-            available_indexes, locked_indexes = \
-                    Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
-            return available_indexes
-
-        elif isp is not None: # check if modem for required isp is available
-            available_indexes, locked_indexes = \
-                    Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
-            return available_indexes
-        else:
-            available_indexes, locked_indexes = Deku.modems_ready()
-            return available_indexes
-        '''
-        else:
-            if number_isp: # check if modem for number's isp is available
-                lookup_isp=Deku.ISP.determine(number=number, country=country)
-
-                if isp is None:
-                    raise Deku.InvalidNumber(number, 'invalid number')
-
-                available_indexes, locked_indexes = \
-                        Deku.modems_ready(isp=isp, country=country, remove_lock=remove_lock)
-
-                if modem_index in available_indexes:
-                    return available_indexes
-
-            else:
-                available_indexes, locked_indexes = \
-                        Deku.modems_ready(modem_index=modem_index, remove_lock=remove_lock)
-            return available_indexes
-            
-        '''
-        return None
+            return modem.index in Modem.list()
+        return modem.index in Modem.list() and operator_code != '--'
 
 
     @staticmethod
-    def write_lock_file(lock_file, status):
+    def __write_lock_file__(lock_file, status):
         with open(lock_file, 'w') as fd_lock_file:
             write_config = configparser.ConfigParser()
             write_config['LOCKS'] = {}
@@ -239,63 +137,136 @@ class Deku(Modem):
 
 
     @classmethod
-    def send(cls, text, number, timeout=20, number_isp=True, 
-            modem_index=None, remove_lock=True, ignore_lock=False, isp=None):
-        logging.debug("+ text: %s\n+ number: %s", text, number)
+    def __change_modem_state(cls, modem_imei, state):
+        lock_file = os.path.join(os.path.dirname(__file__), 
+                'services/locks', f'{modem.imei}.lock')
+        Deku.__write_lock_file__(lock_file, 'BUSY')
 
-        if text is None:
-            raise Exception('text cannot be empty')
-        if number is None:
-            raise Exception('number cannot be empty')
-        
+
+    @classmethod
+    def operator_send(cls, operator_name, text, number):
+        pass
+    
+    @classmethod
+    def number_send(cls, text, number):
+        pass
+
+
+    @classmethod
+    def modem_available(cls, modem:Modem ):
+        # check modem state
+        is_locked,_,__ = cls.modem_locked(modem=modem)
+
+        return is_locked, Deku.modem_ready(modem)
+
+    @classmethod
+    def get_available_modems(cls):
+        available_modems = []
+        locked_modems = []
+        hw_inactive_modems = []
+        for modem_index in Modem.list():
+            modem = Modem(index=modem_index)
+
+            is_locked, hw_active_state = cls.modem_available( modem )
+
+            if is_locked:
+                locked_modems.append(modem)
+            
+            if not hw_active_state:
+                hw_inactive_modems.append(state)
+            
+            if not is_locked and hw_active_state:
+                available_modems.append(modem)
+
+        return available_modems, locked_modems, hw_inactive_modems
+
+
+    @staticmethod
+    def validate_number(number):
         try:
-            index = cls.get_available_modems(isp=isp, modem_index=modem_index, 
-                    number=number, remove_lock=remove_lock, number_isp=number_isp)
+            _number = phonenumbers.parse(number, 'en')
+
+            if not phonenumbers.is_valid_number(_number):
+                raise Deku.InvalidNumber(number)
+
+            return \
+                    phonenumbers.geocoder.description_for_number(_number, 'en'), \
+                    phonenumbers.carrier.name_for_number(_number, 'en')
+
+        except phonenumbers.NumberParseException as error:
+            if error.error_type == phonenumbers.NumberParseException.INVALID_COUNTRY_CODE:
+                if number[0] == '+' or number[0] == '0':
+                    raise Deku.BadFormNumber( number, 'INVALID_COUNTRY_CODE')
+                else:
+                    raise Deku.BadFormNumber( number, 'MISSING_COUNTRY_CODE')
+
+            else:
+                raise error
+
+        except Exception as error:
+            raise error
+
+    @classmethod
+    def modem_send(cls, modem_index, text, number, timeout=20, match_operator=False):
+        ''' sends through specified modem '''
+
+        # check if modem is available
+        modem = Modem(index=modem_index)
+        is_locked, hw_active_state = cls.modem_available(modem)
+        if is_locked or not hw_active_state:
+            raise Deku.NoAvailableModem()
+
+        # validate number
+        try:
+            country_code, operator_name = Deku.validate_number(number)
+
+            if match_operator:
+                logging.debug("Matching operator...")
+                modem_operator = Deku.modem_operator(modem, cls.config['ISP']['country']) 
+                print("modem operator:", modem_operator.lower(), 
+                        " number operator", operator_name.lower())
+                if operator_name.lower().find(modem_operator.lower()) < 0:
+                    raise Deku.NoMatchOperator(number)
+
         except Deku.InvalidNumber as error:
             raise error
-        logging.debug('ready indexes %s', index)
 
-        if len(index) < 1:
-            msg = f"No available modem for type {isp}"
-            raise Deku.NoAvailableModem(msg)
+        except Deku.BadFormNumber as error:
+            raise error
 
-        modem_index=index[0] #TODO use better criteria for filtering, maybe signal strength
-        modem = Modem(modem_index)
+        except Exception as error:
+            raise error
 
+        # validate text
+        if len(text) < 1:
+            raise Deku.InvalidText('length cannot be 0')
+
+
+        # send through modem
         try:
-            lock_file = os.path.join(os.path.dirname(__file__), 
-                    'services/locks', f'{modem.imei}.lock')
-            Deku.write_lock_file(lock_file, 'BUSY')
-
-            modem=modem.SMS.set(text=text, number=number)
-            modem.send(timeout=timeout)
+            logging.debug("Sending SMS...")
+            SMS=modem.SMS.set(text=text, number=number)
+            SMS.send(timeout=timeout)
+            logging.debug("SENT SMS!")
+        
         except subprocess.CalledProcessError as error:
-            Deku.write_lock_file(lock_file, 'FAILED')
+            Deku.__change_modem_state(modem_imei=modem.imei, state='FAILED')
+
             raise subprocess.CalledProcessError(cmd=error.cmd, 
                     output=error.output, returncode=error.returncode)
+
         except Exception as error:
-            Deku.write_lock_file(lock_file, 'FAILED')
-            raise(error)
+            Deku.__change_modem_state(modem_imei=modem.imei, state='FAILED')
+            raise error
+
         finally:
-            status, lock_type, lock_file = Deku.modem_locked(modem_index)
+            status, lock_type, lock_file = Deku.modem_locked(modem)
             logging.debug("status %s, lock_type %s, lock_file %s", 
                     status, lock_type, lock_file)
 
             if status and lock_type == 'BUSY':
                 os.remove(lock_file)
-               
-        return 0
 
-    @staticmethod
-    def modem(modem_index):
-        return Modem(modem_index)
-
-    @classmethod
-    def __init__(cls, config, config_isp_default, config_isp_operators):
-        cls.ISP(config_isp_default=config_isp_default, 
-                config_isp_operators=config_isp_operators)
-
-        cls.config = config
 
     @classmethod
     def cli_parse_ussd(cls, modem_index, command):

@@ -11,6 +11,7 @@ import time
 import pika 
 import configparser
 import logging
+import phonenumbers
 
 from colorama import init
 from datetime import datetime
@@ -109,20 +110,19 @@ class Node:
 
             modem_status_file.write(fd_status_file)
 
-    def __init__(self, modem_index, modem_isp, config, config_event_rules, deku):
+    def __init__(self, modem, config, config_event_rules, deku):
         self.deku = deku
         self.config_event_rules = config_event_rules
         self.config = config
-        self.modem_index = modem_index
-        self.modem_isp = modem_isp
-
-        self.modem = Modem(self.modem_index)
+        self.modem = modem
+        self.modem_index = modem.index
+        self.modem_operator_name = deku.modem_operator(modem, config['ISP']['country'])
 
         self.connection_url=config['NODE']['connection_url']
         self.queue_name=(
             config['NODE']['api_id'] 
             + '_' + config['NODE']['outgoing_queue_name'] 
-            + '_' + modem_isp)
+            + '_' + self.modem_operator_name)
         self.username=config['NODE']['api_id']
         self.password=config['NODE']['api_key']
         self.exchange_name=config['NODE']['outgoing_exchange_name']
@@ -130,7 +130,7 @@ class Node:
         self.binding_key=(
             config['NODE']['api_id'] 
             + '_' + config['NODE']['outgoing_queue_name'] 
-            + '.' + modem_isp)
+            + '.' + self.modem_operator_name)
         self.callback=self.__callback
         self.durable=True
         self.prefetch_count=1
@@ -143,7 +143,7 @@ class Node:
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
 
-        logger_name=f"{self.modem_isp}:{self.modem_index}"
+        logger_name=f"{self.modem_operator_name}:{self.modem_index}"
         self.logging=logging.getLogger(logger_name)
         self.logging.setLevel(logging.NOTSET)
         self.logging.addHandler(handler)
@@ -267,34 +267,82 @@ class Node:
 
     def __callback(self, ch, method, properties, body):
         # TODO: verify data coming in is actually a json
-        self.logging.info(body)
+        self.logging.debug(body)
         json_body = json.loads(body.decode('utf-8'))
         self.logging.debug(json_body)
 
         if not "text" in json_body:
-            self.logging.warning('poorly formed message - text missing')
+            self.logging.error('poorly formed message - text missing')
             return 
         
         if not "number" in json_body:
-            self.logging.warning('poorly formed message - number missing')
+            self.logging.error('poorly formed message - number missing')
             return 
 
         text=json_body['text']
         number=json_body['number']
 
+        # validate number
         try:
-            self.logging.info('sending sms')
-            deku.send( text=text, number=number, modem_index=self.modem_index, number_isp=True)
-            # deku.send( text=text, number=number, modem_index=self.modem_index, dump_isp=True)
+            Deku.validate_number(number)
+
         except Deku.InvalidNumber as error:
-            self.logging.warning("invalid number, dumping message")
+            self.logging.error("invalid number, dumping message")
             self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+
+        except Deku.BadFormNumber as error:
+            # self.logging.exception(error)
+            if error.message == 'MISSING_COUNTRY_CODE':
+                self.logging.debug("Detected missing country code, attempting to repair...")
+                new_number = self.config['ISP']['country_code'] + number
+                try:
+                    Deku.validate_number(new_number)
+                    number = new_number
+                    self.logging.debug("Repaired successful - %s", number)
+
+                except Deku.InvalidNumber as error:
+                    self.logging.error("invalid number, dumping message")
+                    self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+                    return
+
+                except Deku.BadFormNumber as error:
+                    self.logging.error("badly formed number, dumping message")
+                    self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+                    return
+                
+                except Exception as error:
+                    self.logging.exception(error)
+                    return
+
+            else:
+                # dump message
+                self.logging.error("invalid country code, dumping message")
+                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+                return
+
+        except Exception as error:
+            self.logging.exception(error)
+            return
+
+
+        try:
+            deku.modem_send(
+                    modem_index=self.modem_index,
+                    text=text,
+                    number=number,
+                    match_operator=True)
+
+        except Deku.NoMatchOperator as error:
+            ''' could either choose to republish to right operator or dump '''
+            self.logging.error("no match operator, dumping message")
+            self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+
         except Deku.NoAvailableModem as error:
             self.logging.warning("no available modem while trying to send")
             ch.basic_reject(
                     delivery_tag=method.delivery_tag, 
                     requeue=True)
-            self.outgoing_connection.sleep(self.sleep_time)
+            #  self.outgoing_connection.sleep(self.sleep_time)
 
         except subprocess.CalledProcessError as error:
             if ch.is_open:
@@ -309,22 +357,22 @@ class Node:
                 ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
             self.logging.exception(error)
         else:
-            if ch.is_open:
-                ch.basic_ack(delivery_tag=method.delivery_tag)
+            if self.outgoing_channel.is_open:
+                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
             try:
                 self.update_status(Node.Category.SUCCESS)
             except Exception as error:
                 self.logging.exception(traceback.format_exc())
             self.logging.info('sms sent')
         finally:
-            if ch.is_closed:
+            if self.outgoing_channel.is_closed:
                 return
 
     def __modem_monitor(self):
         self.logging.debug("monitoring state of modem")
         try:
             messages = self.modem.SMS.list('received')
-            while deku.modem_ready(self.modem_index):
+            while deku.modem_ready(self.modem):
                 time.sleep(self.sleep_time)
             self.logging.warning("disconnected")
         except Exception as error:
@@ -356,49 +404,51 @@ class Node:
             wd.join()
 
         except Exception as error:
-            raise(error)
+            raise error
         finally:
             if self.modem_index in active_nodes:
+                # logging.critical("\n\n\nDELETING node from stack")
+                # print(active_nodes)
                 del active_nodes[self.modem_index]
 
 
 '''++ startup routines'''
-def init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules):
+def init_nodes(modems:[], config, config_isp_default, config_isp_operators, config_event_rules):
     logging.debug("initializing nodes")
-    isp_country = config['ISP']['country']
-    for modem_index in indexes:
-        if modem_index not in active_nodes:
-            if not deku.modem_ready(modem_index):
-                logging.debug("modem(%s) not ready", mdoem_index)
+    operator_country = config['ISP']['country']
+
+    for modem in modems:
+        if modem.index not in active_nodes:
+            if not deku.modem_ready(modem):
+                logging.debug("modem(%s) not ready", modem.index)
                 continue
             try:
-                modem_isp = deku.ISP.modems(
-                        operator_code=Modem(modem_index).operator_code, 
-                        country=isp_country)
+                modem_isp = deku.modem_operator(modem, operator_country)
 
-                node=Node(modem_index, modem_isp, config, config_event_rules, deku=deku)
+                node=Node(modem, config, config_event_rules, deku=deku)
                 node_thread=threading.Thread(
                         target=node.start_consuming, daemon=True)
 
-                active_nodes[modem_index] = [node_thread, node]
+                active_nodes[modem.index] = [node_thread, node]
 
             except Exception as error:
-                raise(error)
+                raise error
 
 def start_nodes():
+    logging.debug('starting nodes')
+    # logging.debug('%s', active_nodes)
     try:
         for modem_index, thread_n_node in active_nodes.items():
             thread = thread_n_node[0]
             node = thread_n_node[1]
             try:
                 if thread.native_id is None:
-                    logging.debug("starting nodes")
                     node.create_connection()
                     thread.start()
 
             except Exception as error:
-                continue
-                # raise error
+                # continue
+                raise error
             '''
             except socket.gaierror as error:
                 logging.warning("unable to resolve server location (check internet connection)")
@@ -416,27 +466,39 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
 
     logging.info('modem manager started')
     while True:
-        indexes=[]
         try:
-            indexes, locked_indexes = deku.modems_ready(remove_lock=True)
+            available_modems, locked_modems, hw_inactive_modems = \
+                    deku.get_available_modems()
 
-            stdout_logging.info("available modems %d %s, locked modems %d %s", 
-                    len(indexes), indexes, len(locked_indexes), locked_indexes)
+            logging.debug("\n+ Available modems %s" + \
+                    "\n- Locked modems %s" + \
+                    "\n- Hardware inactive modems %s", 
+                    [modem.index for modem in available_modems], \
+                    [modem.index for modem in locked_modems], \
+                    [modem.index for modem in hw_inactive_modems])
 
-            if len(indexes) < 1:
+            if len(available_modems) < 1:
                 time.sleep(sleep_time)
                 continue
 
+            '''
+            stdout_logging.info("available modems %d %s, locked modems %d %s", 
+                    len(modems), indexes, len(locked_indexes), locked_indexes)
+            '''
+
         except Exception as error:
-            logging.warning(error)
-        
-        try:
-            init_nodes(indexes, config, config_isp_default, config_isp_operators, config_event_rules)
-            start_nodes()
-        except Exception as error:
-            # raise error
-            logging.warning(error)
-        time.sleep(sleep_time)
+            logging.exception(error)
+
+        else:
+            try:
+                init_nodes(available_modems, config, 
+                        config_isp_default, config_isp_operators, config_event_rules)
+                start_nodes()
+            except Exception as error:
+                logging.exception(error)
+                # print(active_nodes)
+
+            time.sleep(sleep_time)
 
 def initiate_transmissions():
     logging.debug("instantiating transmissions")
