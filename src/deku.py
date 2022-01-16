@@ -173,7 +173,7 @@ class Deku(Modem):
                 locked_modems.append(modem)
             
             if not hw_active_state:
-                hw_inactive_modems.append(state)
+                hw_inactive_modems.append(modem)
             
             if not is_locked and hw_active_state:
                 available_modems.append(modem)
