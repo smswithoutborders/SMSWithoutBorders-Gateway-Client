@@ -193,6 +193,7 @@ class Node:
 
             modems_status_file.write(fd_status_file)
 
+        # TODO: handle exception
         self.event_listener(category, counter)
 
     def event_run(self, action):
@@ -260,9 +261,9 @@ class Node:
                 if request_transmission_timer > next_transmission_timer:
                     self.next_transmission()
             except subprocess.CalledProcessError as error:
-                raise(error)
+                raise error 
             except Exception as error:
-                raise(error)
+                raise error
 
 
     def __callback(self, ch, method, properties, body):
