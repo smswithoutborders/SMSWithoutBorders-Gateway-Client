@@ -110,7 +110,7 @@ class Node:
 
             modem_status_file.write(fd_status_file)
 
-    def __init__(self, modem, config, config_event_rules, deku):
+    def __init__(self, modem:Modem, config, config_event_rules, deku):
         self.deku = deku
         self.config_event_rules = config_event_rules
         self.config = config
@@ -184,11 +184,16 @@ class Node:
         with open(self.status_file, 'w') as fd_status_file:
             if category == Node.Category.FAILED:
                 ''' update failed counter for modem '''
-                modems_status_file[category.value]['COUNTER']=str(int(modems_status_file[category.value]['COUNTER'])+1)
+                modems_status_file[category.value]['COUNTER']=str(
+                        int(modems_status_file[category.value]['COUNTER'])+1)
+
                 counter=int(modems_status_file[category.value]['COUNTER'])
+
             elif category == Node.Category.SUCCESS:
                 ''' udpate success counter for modem '''
-                modems_status_file[category.value]['COUNTER']=str(int(modems_status_file[category.value]['COUNTER'])+1)
+                modems_status_file[category.value]['COUNTER']=str(
+                        int(modems_status_file[category.value]['COUNTER'])+1)
+
                 modems_status_file[Node.Category.FAILED.value]['COUNTER'] = '0'
 
             modems_status_file.write(fd_status_file)
@@ -483,7 +488,7 @@ def manage_modems(config, config_event_rules, config_isp_default, config_isp_ope
                 continue
 
             '''
-            stdout_logging.info("available modems %d %s, locked modems %d %s", 
+            logging.debug("available modems %d %s, locked modems %d %s", 
                     len(modems), indexes, len(locked_indexes), locked_indexes)
             '''
 
@@ -523,7 +528,6 @@ def format_transmissions(category, action, output):
 
 def main(config, config_event_rules, config_isp_default, config_isp_operators):
     logging.debug("node main started")
-    global stdout_logging
     global deku
 
     formatter = logging.Formatter('%(asctime)s|[%(levelname)s] [%(filename)s] %(message)s', 
@@ -531,11 +535,6 @@ def main(config, config_event_rules, config_isp_default, config_isp_operators):
 
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
-
-    stdout_logging=logging.getLogger('stdout_only')
-    stdout_logging.setLevel(logging.INFO)
-    stdout_logging.addHandler(handler)
-    stdout_logging.propagate = False
 
     deku=Deku(config=config, 
             config_isp_default=config_isp_default, 
