@@ -133,5 +133,6 @@ class ModemManager:
                             target=model.main,
                             daemon=True)
 
-                    self.active_nodes[modem.imei] = [modem_thread, model]
-                    logging.debug("added %s to active nodes", modem.imei)
+                    if not modem.imei in self.active_nodes:
+                        self.active_nodes[modem.imei] = [modem_thread, model]
+                        logging.debug("added %s to active nodes", modem.imei)

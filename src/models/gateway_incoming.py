@@ -79,10 +79,9 @@ class NodeIncoming:
 
                     else:
                         try:
-                            # self.modem.SMS.delete(msg_index)
-                            pass
+                            self.modem.SMS.delete(msg_index)
                         except Exception as error:
-                            logging.exception(error)
+                            raise error
                         '''
                         else:
                             try:
