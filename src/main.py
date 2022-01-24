@@ -8,12 +8,8 @@ import threading
 import argparse
 import traceback
 
-# import node
-# import gateway
 import incoming
 from modem_manager import ModemManager
-from common.CustomConfigParser.customconfigparser import CustomConfigParser
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -26,7 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--module", 
             nargs='?',
             default="all",
-            help="cluster, gateway, all")
+            help="incoming, outgoing, all")
 
     args = parser.parse_args()
 
@@ -45,6 +41,7 @@ if __name__ == "__main__":
 
     formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
+    """
     try:
         configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
         config=configreader.read(".configs/config.ini")
@@ -54,6 +51,7 @@ if __name__ == "__main__":
         third_party_paths = config.read('deps/.configs/paths.ini')
     except Exception as error:
         logging.critical(traceback.format_exc())
+    """
 
     try:
         modemManager = ModemManager()
@@ -87,4 +85,4 @@ if __name__ == "__main__":
                 gateway_thread.join()
             """
         except Exception as error:
-            logging.critical(traceback.format_exc())
+            logging.critical(error)
