@@ -5,7 +5,7 @@ import sqlite3
 import logging
 from common.mmcli_python.modem import Modem
 
-class NodeIdentifier():
+class NodeIdentifier:
     def __init__(self, modem:Modem=None) -> None:
         # super().__init__()
         self.modem = modem
@@ -21,15 +21,15 @@ class NodeIdentifier():
             raise error
         return ""
 
-    def __is_database__(self):
+    def __is_database__(self) -> None:
         try:
             self.con = sqlite3.connect(
                     f"file:{self.ledger_filepath}?mode=rw",
                     uri=True)
 
         except sqlite3.OperationalError as error:
-            # raise error
             return False
+
         except Exception as error:
             raise error
 
