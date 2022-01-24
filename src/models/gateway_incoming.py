@@ -7,8 +7,8 @@ from common.mmcli_python.modem import Modem
 
 class NodeIncoming:
     def __init__(cls, modem:Modem, daemon_sleep_time:int=3)->None:
-        self.modem = modem
-        self.daemon_sleep_time = daemon_sleep_time
+        cls.modem = modem
+        cls.daemon_sleep_time = daemon_sleep_time
 
     @classmethod
     def init(cls, modem:Modem, daemon_sleep_time:int=3)->NodeIncoming:
@@ -92,6 +92,8 @@ class NodeIncoming:
         """
 
     def __del__(self):
+        """
         if self.publish_connection.is_open:
             self.publish_connection.close()
-        self.logging.debug("cleaned up gateway instance")
+        """
+        logging.debug("cleaned up gateway instance")

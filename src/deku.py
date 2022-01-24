@@ -25,6 +25,8 @@ from phonenumbers import geocoder, carrier
 from common.mmcli_python.modem import Modem
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
+import common.MCCMNC as MCCMNC
+
 class Deku(Modem):
 
     @classmethod
@@ -62,14 +64,21 @@ class Deku(Modem):
             super().__init__(self.message)
 
     @classmethod
-    def modem_operator(cls, modem:Modem, country):
+    def get_modem_operator(cls, modem:Modem):
         operator_code = modem.operator_code
-        for operator in cls.config_isp_operators[country]:
-            if cls.config_isp_operators[country][operator].lower() == operator_code.lower():
-                return operator
+
+        ''' requires the first 3 digits '''
+        cm_op_code = (int(modem.operator_code[0:3]), int(modem.operator_code[-1]))
+        if cm_op_code in MCCMNC.MNC_dict:
+            operator_details = MCCMNC.MNC_dict[cm_op_code]
+
+            if operator_details[0] == int(modem.operator_code):
+                operator_name = str(operator_details[1])
+                logging.debug("%s", operator_name)
+
+                return operator_name
 
         return ''
-        
 
     @classmethod
     def modem_locked(cls, modem, remove_lock=True):
