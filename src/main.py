@@ -8,8 +8,10 @@ import threading
 import argparse
 import traceback
 
-import node
-import gateway
+# import node
+# import gateway
+import incoming
+from modem_manager import ModemManager
 from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 
@@ -54,29 +56,35 @@ if __name__ == "__main__":
         logging.critical(traceback.format_exc())
 
     try:
-        if args.module == "cluster" or args.module == "all":
-            node_thread = threading.Thread(target=node.main, 
-                    args=(config, config_event_rules, config_isp_default, config_isp_operators,),
-                    daemon=True)
-
-            node_thread.start()
-
-        if args.module == "gateway" or args.module == "all":
-            gateway_thread = threading.Thread(target=gateway.main, 
-                    args=(config, config_event_rules, config_isp_default, config_isp_operators,),
-                    daemon=True)
-
-            gateway_thread.start()
-
-        if args.module == "cluster" or args.module == "all":
-            node_thread.join()
-        if args.module == "gateway" or args.module == "all":
-            gateway_thread.join()
+        modemManager = ModemManager()
     except Exception as error:
-        # logging.info(error)
-        logging.critical(traceback.format_exc())
-
-        exit(1)
+        logging.exception(error)
     else:
-        exit(0)
-        logging.critical(error)
+        try:
+            if args.module == "incoming" or args.module == "all":
+                th_incoming = threading.Thread(target=incoming.main, 
+                        args=(modemManager,),
+                        daemon=True)
+
+                th_incoming.start()
+                th_incoming.join()
+
+            """
+            if args.module == "outgoing" or args.module == "all":
+                '''
+                gateway_thread = threading.Thread(target=gateway.main, 
+                        args=(config, config_event_rules, config_isp_default, config_isp_operators,),
+                        daemon=True)
+
+                gateway_thread.start()
+                '''
+                # modemManager.init_daemon(model=gatewayIncoming)
+                pass
+
+            if args.module == "cluster" or args.module == "all":
+                node_thread.join()
+            if args.module == "gateway" or args.module == "all":
+                gateway_thread.join()
+            """
+        except Exception as error:
+            logging.critical(traceback.format_exc())

@@ -1,14 +1,39 @@
 #!/usr/bin/env python3
 
+import logging
+import threading
+import time
+from deku import Deku
+
 class ModemManager:
-    def init_daemon(self, model:Model, daemon_sleep_time:int=3) -> None:
-        logging.daemon("initializing modem manager daemon")
+    """Summary of ModemManager
+    Attributes:
+    """
+    def __init__(self, daemon_sleep_time:int=3)->None:
+        """Initialize a modem manager instance.
+        """
+        self.models = []
+        self.daemon_sleep_time=daemon_sleep_time
+        self.active_nodes = {}
 
-        self.daemon_sleep_time = daemon_sleep_time
-        
-        self.model = model
+    def add_model(self, model) -> None:
+        self.models.append(model)
 
-        self.active_nodes = []
+    def daemon(self) -> None:
+        """Binds modems to models
+
+        lengthy description
+
+            Args:
+            model: Any class that extends model class
+            daemon_sleep_time: How long the daemon should sleep thread
+            after listening
+
+            Returns: None
+        """
+
+        logging.debug("initializing modem manager daemon")
+
 
         try:
             th_hardware_state_monitor = threading.Thread( 
@@ -45,12 +70,12 @@ class ModemManager:
     def __daemon_hardware_state__(self) -> None:
         while True:
             try:
-                indexes, locked_indexes = Deku.modems_ready(remove_lock=True, index_only=True)
-                logging.debug("available modems %d %s, locked modems %d %s", 
-                        len(indexes), indexes, len(locked_indexes), locked_indexes)
+                available_modems, locked_modems,_ = Deku.get_available_modems()
+                logging.debug("available modems:%s\tlocked modems:%s",
+                        available_modems, locked_modems)
 
-                if len(indexes) < 1:
-                    time.sleep(self.sleep_time)
+                if len(available_modems) < 1:
+                    time.sleep(self.daemon_sleep_time)
                     continue
 
             except Exception as error:
@@ -58,7 +83,7 @@ class ModemManager:
 
             else:
                 try:
-                    self.__add_active_nodes__(indexes=indexes)
+                    self.__add_active_nodes__(indexes=available_modems)
                 except Exception as error:
                     raise error
 
@@ -68,18 +93,18 @@ class ModemManager:
     def __add_active_nodes__(self, indexes:list()) -> None:
         for modem_index in indexes:
             if modem_index not in self.active_nodes:
-                if not self.deku.modem_ready(modem_index, index_only=True):
+                if not Deku.modem_ready(modem_index, index_only=True):
                     continue
-                try:
+                
+                for _model in self.models:
                     modem = Modem(modem_index)
                     node_operator = Deku.get_modem_operator(modem)
 
-                    model = self.model.init(modem=modem)
+                    model = _model.init(modem=modem)
 
                     modem_thread = threading.Thread(
-                            target=model.main, daemon=True)
+                            target=model.main,
+                            args=(modem,),
+                            daemon=True)
 
                     self.active_nodes[modem.imei] = [modem_thread, model]
-
-                except Exception as error:
-                    raise error

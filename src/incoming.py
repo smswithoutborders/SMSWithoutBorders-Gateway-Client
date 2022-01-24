@@ -19,6 +19,9 @@ from common.mmcli_python.modem import Modem
 from router import Router
 from remote_control import RemoteControl
 
+from modem_manager import ModemManager
+from models.gateway_incoming import NodeIncoming
+
 def route_online(data):
     try:
         results = router.route_online(data=data)
@@ -165,23 +168,11 @@ def incoming_listener():
         logging.critical(error)
 
 
-def check_default_configs():
-    default_config_filepath = os.path.join(os.path.dirname(__file__), 
-            '../.configs', 'config.ini')
-
-    # check if config file exist
-    if not os.path.isfile(default_config_filepath):
-        raise Exception("failed to read config file: " +
-                default_config_filepath)
-
-    configs = configparser.ConfigParser()
-    configs.read(default_config_filepath)
-
-    # TODO find default values and check for them
-
-
-def main():
-    ''' set it up, don't check for it '''
+def main(modemManager:ModemManager)->None:
+    """Starts listening for incoming messages.
+    """
+    logging.debug("Gateway incoming initializing...")
+    """
     try:
         if not setup_ledger():
             raise Exception('failed to setup ledger')
@@ -190,16 +181,13 @@ def main():
             raise Exception('failed to setting up modem manager')
     except Exception as error:
         raise error
+    """
 
     try:
-        gatewayIncoming = GatewayIncoming()
-        modemManager = ModemManager()
-
+        modemManager.add_model(model=NodeIncoming)
+        modemManager.daemon()
     except Exception as error:
         raise error
-
-    else:
-        modemManager.init_daemon(model=gatewayIncoming)
 
 if __name__ == "__main__":
     main()
