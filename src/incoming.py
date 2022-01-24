@@ -138,6 +138,7 @@ def incoming_listener():
 def main(modemManager:ModemManager)->None:
     """Starts listening for incoming messages.
     """
+
     logging.debug("Gateway incoming initializing...")
     """
     try:
