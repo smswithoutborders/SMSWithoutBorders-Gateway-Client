@@ -6,8 +6,8 @@ venv_path=venv
 build_path=$(pwd)/installer/files
 # systemd_path=/usr/lib/systemd/system
 systemd_path=/etc/systemd/system
-path_rabbitmq=third-party/rabbitmq
-path_rabbitmq_builds=third-party/rabbitmq/builds
+path_rabbitmq=deps/rabbitmq
+path_rabbitmq_builds=deps/rabbitmq/builds
 
 gateway_state=$(shell systemctl is-active deku_gateway.service)
 cluster_state=$(shell systemctl is-active deku_cluster.service)
@@ -26,7 +26,7 @@ gen_configs:
 	@mkdir -p $(path_rabbitmq_builds)
 	@$(python) installer/generate.py
 
-rabbitmq_checks:third-party/rabbitmq/version.lock third-party/rabbitmq/init.sh
+rabbitmq_checks:deps/rabbitmq/version.lock deps/rabbitmq/init.sh
 	@echo "Checks passed"
 
 init_rabbitmq:

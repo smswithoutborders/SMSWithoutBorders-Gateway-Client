@@ -51,7 +51,7 @@ if __name__ == "__main__":
         config_event_rules=configreader.read(".configs/events/rules.ini")
         config_isp_default = configreader.read('.configs/isp/default.ini')
         config_isp_operators = configreader.read('.configs/isp/operators.ini')
-        third_party_paths = config.read('.third-party/.configs/paths.ini')
+        third_party_paths = config.read('deps/.configs/paths.ini')
     except Exception as error:
         logging.critical(traceback.format_exc())
 

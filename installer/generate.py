@@ -139,9 +139,9 @@ def generate_deps():
 
     def rabbitmq():
         path_rabbitmq_versions_lock =os.path.join(
-                os.path.dirname(__file__), '../third-party/rabbitmq', 'version.lock')
+                os.path.dirname(__file__), '../deps/rabbitmq', 'version.lock')
         path_rabbitmq_init_script =os.path.join(
-                os.path.dirname(__file__), '../third-party/rabbitmq', 'init.sh')
+                os.path.dirname(__file__), '../deps/rabbitmq', 'init.sh')
 
         versioning_info=None
         with open(path_rabbitmq_versions_lock, 'r') as fd_rabbitmq:
@@ -222,7 +222,7 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
     write_file(env_data, path_rmq_env_conf)
 
     path_rabbitmq_init_script =os.path.join(
-            os.path.dirname(__file__), '../third-party/rabbitmq', 'init.sh')
+            os.path.dirname(__file__), '../deps/rabbitmq', 'init.sh')
 
     cp_file_data = f'\ncp {path_rmq_env_conf} {rmq_template["Service"]["EnvironmentFile"]}'
     update_init_file(cp_file_data, path_rabbitmq_init_script)
@@ -231,10 +231,10 @@ if __name__ == "__main__":
     global path_rabbitmq, path_rabbitmq_builds
 
     path_rabbitmq=os.path.join(
-            os.path.dirname(__file__), '../third-party/rabbitmq', '')
+            os.path.dirname(__file__), '../deps/rabbitmq', '')
 
     path_rabbitmq_builds=os.path.join(
-            os.path.dirname(__file__), '../third-party/rabbitmq/builds', '')
+            os.path.dirname(__file__), '../deps/rabbitmq/builds', '')
 
     generate_systemd()
     path_rabbitmq_instance, path_rabbitmq_init_script = generate_deps()
