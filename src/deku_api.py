@@ -7,7 +7,6 @@ import subprocess
 import os
 import traceback
 
-from common.CustomConfigParser.customconfigparser import CustomConfigParser
 from common.mmcli_python.modem import Modem as Modems
 from flask_cors import CORS
 

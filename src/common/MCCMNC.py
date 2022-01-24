@@ -1,22 +1,6 @@
-# −*− coding: UTF−8 −*−
-#/**
-# * Software Name : libmich 
-# * Version : 0.2.2
-# *
-# *--------------------------------------------------------
-# * File Name : formats/MCCMNC.py
-# * Created : 2012-04-04
-# * Authors : Benoit Michau 
-# *--------------------------------------------------------
-#*/ 
-
 #!/usr/bin/env python3
 
-# Mobile Country Codes:
-# from http://mcclist.com
-#
 # mcc : [country, call_code]
-
 MCC_dict = { \
     289 : [u'Abkhazia', '+7'],
     412 : [u'Afganistan', '+93'],

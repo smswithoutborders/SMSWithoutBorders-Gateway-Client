@@ -4,7 +4,6 @@ src
 .. toctree::
    :maxdepth: 4
 
-   common
    deku
    deku_api
    incoming

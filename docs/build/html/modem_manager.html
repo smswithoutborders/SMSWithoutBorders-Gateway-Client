@@ -64,8 +64,54 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="modem-manager-module">
-<h1>modem_manager module<a class="headerlink" href="#modem-manager-module" title="Permalink to this headline"></a></h1>
+  <section id="module-modem_manager">
+<span id="modem-manager-module"></span><h1>modem_manager module<a class="headerlink" href="#module-modem_manager" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="modem_manager.ModemManager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">modem_manager.</span></span><span class="sig-name descname"><span class="pre">ModemManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">daemon_sleep_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#modem_manager.ModemManager" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Summary of ModemManager
+Attributes:</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="modem_manager.ModemManager.add_model">
+<span class="sig-name descname"><span class="pre">add_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#modem_manager.ModemManager.add_model" title="Permalink to this definition"></a></dt>
+<dd><p>Add model to daemon.</p>
+<p>The <cite>main()</cite> would be called for each model included.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>model: </dt><dd><p>DataType (any class) which has a method called <cite>main</cite>
+that will be called by the daemon thread</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="modem_manager.ModemManager.daemon">
+<span class="sig-name descname"><span class="pre">daemon</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#modem_manager.ModemManager.daemon" title="Permalink to this definition"></a></dt>
+<dd><p>Binds modems to models</p>
+<p>Monitors I/O changes of modem. Once a modem is active, it gets 
+added to the list of active nodes. 
+For each active node, the requested model will be triggered for them.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>model: </dt><dd><p>Any class that extends model class 
+daemon_sleep_time: How long the daemon should sleep thread
+after listening</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Returns: None</p>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

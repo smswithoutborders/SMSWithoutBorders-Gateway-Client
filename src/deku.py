@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-'''
-- making Deku and SMS manager
-- Deku runs in the terminal no place else
-'''
-
 import configparser
 import re
 import os 
@@ -23,7 +18,6 @@ from datetime import datetime
 from phonenumbers import geocoder, carrier
 
 from common.mmcli_python.modem import Modem
-from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 import common.MCCMNC as MCCMNC
 

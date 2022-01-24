@@ -2,7 +2,6 @@
 
 ''' Telegram '''
 from transmissionLayer_telegram import TelegramTransmissionLayer
-from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 class TransmissionLayer:
     @classmethod

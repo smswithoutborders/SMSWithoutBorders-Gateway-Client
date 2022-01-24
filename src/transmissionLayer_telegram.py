@@ -1,21 +1,6 @@
 #!/usr/bin/env python3
 
 
-"""
-Usage: this is customized for each user as a template
-- If you want a telegram remote control for your clusters, create one
-- then use this template for remote manipulation
-
-- This should be hosted along side deku for best experience
-- If failure to communicate, can mean Deku is currently offline
-"""
-
-
-"""
-#### TODO
-- Bot should be able to manage individual nodes (specified by users)
-"""
-
 import os
 import logging
 import configparser
@@ -23,8 +8,6 @@ import traceback
 from telegram import KeyboardButton,ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot, ParseMode
 import telegram
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler,Filters
-
-from common.CustomConfigParser.customconfigparser import CustomConfigParser 
 
 class TelegramTransmissionLayer:
     # def __init__(self, token, configfile, adminfile=None):

@@ -21,7 +21,6 @@ from enum import Enum
 from deku import Deku
 from transmissionLayer import TransmissionLayer
 from common.mmcli_python.modem import Modem
-from common.CustomConfigParser.customconfigparser import CustomConfigParser
 
 '''
 resources:
