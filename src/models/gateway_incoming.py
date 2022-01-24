@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 import logging 
+import pika
+import time
+import json
+
 from common.mmcli_python.modem import Modem
+from deku import Deku
+from rabbitmq_broker import RabbitMQBroker
 
 class NodeIncoming:
     def __init__(cls, modem:Modem, daemon_sleep_time:int=3)->None:
@@ -15,7 +21,7 @@ class NodeIncoming:
         nodeIncoming = NodeIncoming(modem, daemon_sleep_time)
         return nodeIncoming
 
-    def __publish_to_broker__(self, sms, queue_name):
+    def __publish_to_broker__(self, sms:str, queue_name:str)->None:
         try:
             publish_data = {"text":sms.text, "number":sms.number}
             self.publish_channel.basic_publish(
@@ -24,72 +30,81 @@ class NodeIncoming:
                     body=json.dumps(publish_data),
                     properties=pika.BasicProperties(
                         delivery_mode=2))
-            self.logging.info("published %s", publish_data)
+            logging.debug("published %s", publish_data)
         except Exception as error:
             raise error
 
     def main(self, publish_url:str='localhost', 
             queue_name:str='incoming.route.route') -> None:
-        logging.debug("NodeIncoming main called...")
+
         """Monitors modems for incoming messages and publishes.
+
+        This is process is blocking.
+
+            Args:
+                publish_url:
+                    url of local rabbitmq broker.
+
+                queue_name:
+                    name of queue on rabbitmq where messages for routing
+                    should routed to.
         """
 
-        """
+        logging.debug("monitoring incoming messages")
+
         try:
             while Deku.modem_ready(self.modem, index_only=True):
                 if not hasattr(self, 'publish_connection') or \
                         self.publish_connection.is_closed:
 
-                    self.publish_connection, self.publish_channel = create_channel(
-                            connection_url=connection_url,
-                            queue_name=queue_name,
-                            heartbeat=600,
-                            blocked_connection_timeout=60,
-                            durable=True)
+                    self.publish_connection, self.publish_channel = \
+                            RabbitMQBroker.create_channel(
+                                connection_url=publish_url,
+                                queue_name=queue_name,
+                                heartbeat=600,
+                                blocked_connection_timeout=60,
+                                durable=True)
 
                 incoming_messages = self.modem.SMS.list('received')
                 for msg_index in incoming_messages:
                     sms=Modem.SMS(index=msg_index)
+                    logging.debug("Number:%s, Text:%s", 
+                            sms.number, sms.text)
 
                     try:
                         self.__publish_to_broker__(sms=sms, queue_name=queue_name)
                     except Exception as error:
-                        self.logging.critical(error)
+                        # self.logging.critical(error)
+                        raise error
 
                     else:
                         try:
-                            self.modem.SMS.delete(msg_index)
+                            # self.modem.SMS.delete(msg_index)
+                            pass
                         except Exception as error:
-                            self.logging.error(traceback.format_exc())
+                            logging.exception(error)
+                        '''
                         else:
                             try:
                                 self.__exec_remote_control__(sms)
                             except Exception as error:
-                                self.logging.exception(traceback.format_exc())
-
-                incoming_messages=[]
-                time.sleep(self.sleep_time)
+                                # self.logging.exception(traceback.format_exc())
+                                raise error
+                        '''
+                # incoming_messages=[]
+                time.sleep(self.daemon_sleep_time)
 
         except Modem.MissingModem as error:
-            self.logging.exception(traceback.format_exc())
-            self.logging.warning("Modem [%s] not initialized", self.modem.index)
-        except Modem.MissingIndex as error:
-            self.logging.exception(traceback.format_exc())
-            self.logging.warning("Modem [%s] not initialized", self.modem_index)
-            self.logging.warning("Modem [%s] Index not initialized", self.modem.index)
-        except Exception as error:
-            self.logging.exception(traceback.format_exc())
-            self.logging.warning("Modem [%s] not initialized", self.modem.index)
-            self.logging.critical(traceback.format_exc())
-        finally:
-            time.sleep(self.sleep_time)
+            logging.exception(error)
 
-        try:
-            if self.modem.index in active_threads:
-                del active_threads[self.modem.index]
+        except Modem.MissingIndex as error:
+            logging.exception(error)
+
         except Exception as error:
-            raise error
-        """
+            logging.exception(error)
+
+        finally:
+            time.sleep(self.daemon_sleep_time)
 
     def __del__(self):
         """

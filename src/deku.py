@@ -74,7 +74,7 @@ class Deku(Modem):
 
             if operator_details[0] == int(modem.operator_code):
                 operator_name = str(operator_details[1])
-                logging.debug("%s", operator_name)
+                # logging.debug("%s", operator_name)
 
                 return operator_name
 

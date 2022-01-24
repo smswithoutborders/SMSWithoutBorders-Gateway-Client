@@ -70,15 +70,28 @@ class ModemManager:
 
 
     def __daemon_active_state_monitor__(self) -> None:
-        for modem_imei, thread_model in self.active_nodes.items():
-            model_thread = thread_model[0]
+        logging.debug("monitoring active modems")
+        while True:
             try:
-                if model_thread.native_id is None:
-                    thread.start()
-                    logging.debug("started thread: %s", modem_imei)
+                for modem_imei, thread_model in self.active_nodes.items():
+                    model_thread = thread_model[0]
+                    try:
+                        if model_thread.native_id is None:
+                            model_thread.start()
+                            logging.debug("started thread: %s", modem_imei)
+
+                        if not model_thread.is_alive():
+                            del self.active_nodes[modem_imei]
+                            logging.debug("removed thread: %s", modem_imei)
+
+                    except Exception as error:
+                        raise error
 
             except Exception as error:
                 raise error
+
+            finally:
+                time.sleep(self.daemon_sleep_time)
 
     def __daemon_hardware_state__(self) -> None:
         while True:
@@ -102,6 +115,7 @@ class ModemManager:
                     raise error
 
             finally:
+                logging.debug("sleeping hardware monitor daemon")
                 time.sleep(self.daemon_sleep_time)
 
     def __add_active_nodes__(self, modems:list()) -> None:
@@ -117,7 +131,7 @@ class ModemManager:
 
                     modem_thread = threading.Thread(
                             target=model.main,
-                            args=(modem,),
                             daemon=True)
 
                     self.active_nodes[modem.imei] = [modem_thread, model]
+                    logging.debug("added %s to active nodes", modem.imei)
