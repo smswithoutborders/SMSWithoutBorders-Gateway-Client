@@ -192,13 +192,11 @@ class NodeOutgoing:
             except Exception as error:
                 self.outgoing_channel.basic_reject(
                         delivery_tag=method.delivery_tag, requeue=True)
-                logging.exception(error)
+                # logging.exception(error)
+                raise error
             else:
                 self.outgoing_channel.basic_ack(
                         delivery_tag=method.delivery_tag)
-            finally:
-                if self.outgoing_channel.is_closed:
-                    return
 
     def main(self, connection_url:str='localhost',
             queue_name:str='outgoing.route.route')->None:
@@ -239,11 +237,6 @@ class NodeOutgoing:
                 raise error
 
     def __del__(self):
-        if self.outgoing_connection.is_open:
+        if hasattr(self, 'outgoing_connection') and self.outgoing_connection.is_open:
             self.outgoing_connection.close()
-
-        if self.modem.imei in self.active_nodes:
-            # del self.active_nodes[self.modem.imei][self.__class__]
-            del self.active_nodes[self.modem.imei][self]
-
         logging.debug("cleaned up node_outgoing instance")

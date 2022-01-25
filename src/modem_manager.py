@@ -107,12 +107,15 @@ class ModemManager:
                 time.sleep(self.daemon_sleep_time)
 
     def __add_active_nodes__(self, modems:list()) -> None:
+        logging.debug("# of models %d", len(self.models))
         for modem in modems:
             if modem.imei not in self.active_nodes:
                 if not Deku.modem_ready(modem, index_only=True):
                     continue
                 
                 for _model in self.models:
+                    logging.debug("initializing modem for %s %s", 
+                            modem.imei, _model)
                     node_operator = Deku.get_modem_operator_name(modem)
 
                     model = _model.init(modem=modem, active_nodes=self.active_nodes)
@@ -123,11 +126,13 @@ class ModemManager:
 
                     # TODO won't work with multiple models
                     if not modem.imei in self.active_nodes or \
-                        not model in self.active_nodes[modem.imei]:
-                            modem_thread.start()
-                            logging.debug("started %s", modem.imei)
+                        not model.__class__.__name__ in self.active_nodes[modem.imei]:
+                            # modem_thread.start()
+                            logging.debug("started %s for %s", modem.imei, model)
 
-                            self.active_nodes[modem.imei] = {model: modem_thread}
+                            self.active_nodes[modem.imei] = {
+                                    model.__class__.__name__: modem_thread}
                             # self.active_nodes[modem.imei][model] = modem_thread
                             # self.active_nodes[modem.imei] = [modem_thread, model]
-                            logging.debug("added %s to active nodes", modem.imei)
+                            logging.debug("added %s to active nodes %s", 
+                                    modem.imei, model.__class__.__name__)

@@ -117,8 +117,4 @@ class NodeIncoming:
             time.sleep(self.daemon_sleep_time)
 
     def __del__(self):
-        if self.modem.imei in self.active_nodes:
-            # del self.active_nodes[self.modem.imei][self.__class__]
-            del self.active_nodes[self.modem.imei][self]
-
         logging.debug("cleaned up node_incoming instance")

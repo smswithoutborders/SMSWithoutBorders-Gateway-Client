@@ -27,7 +27,7 @@ def main(modemManager:ModemManager)->None:
 
     try:
         modemManager.add_model(model=NodeOutgoing)
-        modemManager.daemon()
+        # modemManager.daemon()
     except Exception as error:
         raise error
 

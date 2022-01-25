@@ -30,29 +30,14 @@ if __name__ == "__main__":
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
     log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
     logging.basicConfig(
-            # format='%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s',
             format='%(asctime)s|[%(levelname)s] [%(module)s] %(message)s',
-            # datefmt='%Y-%m-%d %I:%M:%S %p',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[
                 logging.FileHandler(log_file_path),
                 logging.StreamHandler(sys.stdout) ],
-            # encoding='utf-8',
             level=args.log.upper())
 
     formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-    """
-    try:
-        configreader=CustomConfigParser(os.path.join(os.path.dirname(__file__), '..', ''))
-        config=configreader.read(".configs/config.ini")
-        config_event_rules=configreader.read(".configs/events/rules.ini")
-        config_isp_default = configreader.read('.configs/isp/default.ini')
-        config_isp_operators = configreader.read('.configs/isp/operators.ini')
-        third_party_paths = config.read('deps/.configs/paths.ini')
-    except Exception as error:
-        logging.critical(traceback.format_exc())
-    """
 
     try:
         modemManager = ModemManager()
@@ -60,13 +45,6 @@ if __name__ == "__main__":
         logging.exception(error)
     else:
         try:
-            if args.module == "incoming" or args.module == "all":
-                th_incoming = threading.Thread(target=incoming.main, 
-                        args=(modemManager,),
-                        daemon=True)
-
-                th_incoming.start()
-                th_incoming.join()
 
             if args.module == "outgoing" or args.module == "all":
                 th_incoming = threading.Thread(target=outgoing.main, 
@@ -74,13 +52,17 @@ if __name__ == "__main__":
                         daemon=True)
 
                 th_incoming.start()
-                th_incoming.join()
+                if not args.module == "all":
+                    th_incoming.join()
+                    modemManager.daemon()
 
-            """
-            if args.module == "cluster" or args.module == "all":
-                node_thread.join()
-            if args.module == "gateway" or args.module == "all":
-                gateway_thread.join()
-            """
+            if args.module == "incoming" or args.module == "all":
+                th_incoming = threading.Thread(target=incoming.main, 
+                        args=(modemManager,),
+                        daemon=True)
+
+                th_incoming.start()
+                th_incoming.join()
+                modemManager.daemon()
         except Exception as error:
             logging.exception(error)
