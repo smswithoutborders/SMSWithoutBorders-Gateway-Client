@@ -127,7 +127,7 @@ class ModemManager:
                     # TODO won't work with multiple models
                     if not modem.imei in self.active_nodes or \
                         not model.__class__.__name__ in self.active_nodes[modem.imei]:
-                            # modem_thread.start()
+                            modem_thread.start()
                             logging.debug("started %s for %s", modem.imei, model)
 
                             self.active_nodes[modem.imei] = {
