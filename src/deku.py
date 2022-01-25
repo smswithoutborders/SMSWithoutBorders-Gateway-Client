@@ -210,11 +210,24 @@ class Deku(Modem):
             raise error
 
     @classmethod
-    def modem_send(cls, modem_index, text, number, timeout=20, match_operator=False):
-        ''' sends through specified modem '''
+    def modem_send(cls, 
+            modem:Modem, 
+            text:str, 
+            number:int, 
+            timeout:int=20, 
+            match_operator:bool=False)->None:
+        """Send out SMS through specified modem.
 
-        # check if modem is available
-        modem = Modem(index=modem_index)
+            Args:
+                modem (Modem): The :cls:Modem for outgoing SMS.
+                text (str): Text to be sent via SMS.
+                number (str): Number of SMS reciepient.
+                timeout (int): How long sending daemon should request to send 
+                before declaring a failure to send.
+                match_operator (bool): If True Modem's operator must match the
+                number's operator, else it fails to send
+        """
+
         is_locked, hw_active_state = cls.modem_available(modem)
         if is_locked or not hw_active_state:
             raise Deku.NoAvailableModem()

@@ -38,4 +38,15 @@ class RabbitMQBroker:
         except Exception as error:
             raise error
 
+        '''
+        except pika.exceptions.ConnectionClosedByBroker as error:
+            raise(error)
+        except pika.exceptions.AMQPChannelError as error:
+            raise(error)
+        except pika.exceptions.AMQPConnectionError as error:
+            raise(error)
+        except socket.gaierror as error:
+            raise(error)
+        '''
+
 

@@ -110,4 +110,8 @@ class NodeIncoming:
         if self.publish_connection.is_open:
             self.publish_connection.close()
         """
-        logging.debug("cleaned up gateway instance")
+
+        if self.modem.imei in self.active_nodes:
+            del self.active_nodes[self.modem.imei]
+
+        logging.debug("cleaned up node_incoming instance")

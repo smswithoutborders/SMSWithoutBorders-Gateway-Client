@@ -9,6 +9,7 @@ import argparse
 import traceback
 
 import incoming
+import outgoing
 from modem_manager import ModemManager
 
 if __name__ == "__main__":
@@ -67,22 +68,19 @@ if __name__ == "__main__":
                 th_incoming.start()
                 th_incoming.join()
 
-            """
             if args.module == "outgoing" or args.module == "all":
-                '''
-                gateway_thread = threading.Thread(target=gateway.main, 
-                        args=(config, config_event_rules, config_isp_default, config_isp_operators,),
+                th_incoming = threading.Thread(target=outgoing.main, 
+                        args=(modemManager,),
                         daemon=True)
 
-                gateway_thread.start()
-                '''
-                # modemManager.init_daemon(model=gatewayIncoming)
-                pass
+                th_incoming.start()
+                th_incoming.join()
 
+            """
             if args.module == "cluster" or args.module == "all":
                 node_thread.join()
             if args.module == "gateway" or args.module == "all":
                 gateway_thread.join()
             """
         except Exception as error:
-            logging.critical(error)
+            logging.exception(error)

@@ -61,7 +61,7 @@ class ModemManager:
         else:
             try:
                 th_hardware_state_monitor.start()
-                th_active_state_monitor.start()
+                # th_active_state_monitor.start()
 
                 # if state dies, no need for active
                 th_hardware_state_monitor.join()
@@ -76,9 +76,11 @@ class ModemManager:
                 for modem_imei, thread_model in self.active_nodes.items():
                     model_thread = thread_model[0]
                     try:
-                        if model_thread.native_id is None:
+                        '''
+                        if model_thread.get_native_id() is None:
                             model_thread.start()
                             logging.debug("started thread: %s", modem_imei)
+                        '''
 
                         if not model_thread.is_alive():
                             del self.active_nodes[modem_imei]
@@ -88,8 +90,7 @@ class ModemManager:
                         raise error
 
             except Exception as error:
-                raise error
-
+                logging.exception(error)
             finally:
                 time.sleep(self.daemon_sleep_time)
 
@@ -127,12 +128,15 @@ class ModemManager:
                 for _model in self.models:
                     node_operator = Deku.get_modem_operator(modem)
 
-                    model = _model.init(modem=modem)
+                    model = _model.init(modem=modem, active_nodes=self.active_nodes)
 
                     modem_thread = threading.Thread(
                             target=model.main,
                             daemon=True)
 
                     if not modem.imei in self.active_nodes:
+                        modem_thread.start()
+                        logging.debug("started %s", modem.imei)
+
                         self.active_nodes[modem.imei] = [modem_thread, model]
                         logging.debug("added %s to active nodes", modem.imei)
