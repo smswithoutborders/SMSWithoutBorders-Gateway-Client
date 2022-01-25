@@ -65,7 +65,7 @@ class NodeOutgoing:
 
         self.username=config['OUTGOING']['API_ID']
         self.queue_name = config['OUTGOING']['QUEUE_NAME']
-        self.modem_operator = Deku.get_modem_operator(self.modem)
+        self.modem_operator = Deku.get_modem_operator_name(self.modem)
 
         """
         format: queue_name
@@ -85,9 +85,12 @@ class NodeOutgoing:
         (username_QUEUE_NAME.OPERATOR_NAME)
         """
         self.binding_key=(
-            self.username
-            + '_' + self.queue_name
+            config['OUTGOING']['API_ID'] 
+            + '_' + config['OUTGOING']['QUEUE_NAME']
             + '.' + self.modem_operator)
+        
+        logging.debug("binding key: %s", self.binding_key)
+
         self.callback=self.__get_published__
 
         self.connection_url=config['OUTGOING']['CONNECTION_URL']
@@ -96,7 +99,7 @@ class NodeOutgoing:
         self.exchange_name=config['OUTGOING']['EXCHANGE_NAME']
         self.exchange_type=config['OUTGOING']['EXCHANGE_TYPE']
 
-    def __validate_repair_request__(self, number):
+    def __validate_repair_request__(self, number, method):
         try:
             Deku.validate_number(number)
         
@@ -110,7 +113,7 @@ class NodeOutgoing:
 
                 try:
                     # TODO get country from modems
-                    new_number = self.config['ISP']['country_code'] + number
+                    new_number = Deku.get_modem_country_code(self.modem) + number
                     Deku.validate_number(new_number)
                 except Deku.InvalidNumber as error:
                     logging.error("invalid number, dumping message")
@@ -132,7 +135,7 @@ class NodeOutgoing:
             else:
                 logging.error("invalid country code, dumping message")
                 self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-                raise error
+                raise Exception("")
 
         except Exception as error:
             logging.exception(error)
@@ -159,13 +162,13 @@ class NodeOutgoing:
 
         else:
             try:
-                number=self.__validate_repair_request__(number)
+                number=self.__validate_repair_request__(number, method)
             except Exception as error:
                 return
 
             try:
                 Deku.modem_send(
-                        modem,
+                        self.modem,
                         text=text,
                         number=number,
                         match_operator=True)
@@ -236,12 +239,11 @@ class NodeOutgoing:
                 raise error
 
     def __del__(self):
-        """
-        if self.publish_connection.is_open:
-            self.publish_connection.close()
-        """
+        if self.outgoing_connection.is_open:
+            self.outgoing_connection.close()
 
         if self.modem.imei in self.active_nodes:
-            del self.active_nodes[self.modem.imei]
+            # del self.active_nodes[self.modem.imei][self.__class__]
+            del self.active_nodes[self.modem.imei][self]
 
         logging.debug("cleaned up node_outgoing instance")

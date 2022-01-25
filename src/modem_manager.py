@@ -52,47 +52,33 @@ class ModemManager:
             th_hardware_state_monitor = threading.Thread( 
                     target=self.__daemon_hardware_state__, 
                     daemon=True)
-            th_active_state_monitor = threading.Thread(
-                target=self.__daemon_active_state_monitor__, 
-                daemon=True)
-
         except Exception as error:
             raise error
         else:
             try:
                 th_hardware_state_monitor.start()
-                # th_active_state_monitor.start()
 
                 # if state dies, no need for active
                 th_hardware_state_monitor.join()
             except Exception as error:
                 raise error
 
+    def __refresh_nodes__(self, available_modems)->None:
+        """Checks HW available modems against active running nodes
+        """
+        modems = [modem.imei for modem in available_modems]
+        active_nodes = self.active_nodes.keys()
+        not_active = list(set(active_nodes).difference(modems))
+        logging.debug("inactive nodes: %s", not_active)
 
-    def __daemon_active_state_monitor__(self) -> None:
-        logging.debug("monitoring active modems")
-        while True:
+        for modem_imei in not_active:
             try:
-                for modem_imei, thread_model in self.active_nodes.items():
-                    model_thread = thread_model[0]
-                    try:
-                        '''
-                        if model_thread.get_native_id() is None:
-                            model_thread.start()
-                            logging.debug("started thread: %s", modem_imei)
-                        '''
-
-                        if not model_thread.is_alive():
-                            del self.active_nodes[modem_imei]
-                            logging.debug("removed thread: %s", modem_imei)
-
-                    except Exception as error:
-                        raise error
-
+                del self.active_nodes[modem_imei]
+                logging.debug("removed modem %s", self.modem.imei)
             except Exception as error:
                 logging.exception(error)
-            finally:
-                time.sleep(self.daemon_sleep_time)
+        logging.debug("refreshed nodes")
+
 
     def __daemon_hardware_state__(self) -> None:
         while True:
@@ -111,6 +97,7 @@ class ModemManager:
 
             else:
                 try:
+                    self.__refresh_nodes__(available_modems + locked_modems)
                     self.__add_active_nodes__(modems=available_modems)
                 except Exception as error:
                     raise error
@@ -121,12 +108,12 @@ class ModemManager:
 
     def __add_active_nodes__(self, modems:list()) -> None:
         for modem in modems:
-            if modem.index not in self.active_nodes:
+            if modem.imei not in self.active_nodes:
                 if not Deku.modem_ready(modem, index_only=True):
                     continue
                 
                 for _model in self.models:
-                    node_operator = Deku.get_modem_operator(modem)
+                    node_operator = Deku.get_modem_operator_name(modem)
 
                     model = _model.init(modem=modem, active_nodes=self.active_nodes)
 
@@ -134,9 +121,13 @@ class ModemManager:
                             target=model.main,
                             daemon=True)
 
-                    if not modem.imei in self.active_nodes:
-                        modem_thread.start()
-                        logging.debug("started %s", modem.imei)
+                    # TODO won't work with multiple models
+                    if not modem.imei in self.active_nodes or \
+                        not model in self.active_nodes[modem.imei]:
+                            modem_thread.start()
+                            logging.debug("started %s", modem.imei)
 
-                        self.active_nodes[modem.imei] = [modem_thread, model]
-                        logging.debug("added %s to active nodes", modem.imei)
+                            self.active_nodes[modem.imei] = {model: modem_thread}
+                            # self.active_nodes[modem.imei][model] = modem_thread
+                            # self.active_nodes[modem.imei] = [modem_thread, model]
+                            logging.debug("added %s to active nodes", modem.imei)

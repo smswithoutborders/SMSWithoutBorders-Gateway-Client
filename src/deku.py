@@ -24,7 +24,7 @@ import common.MCCMNC as MCCMNC
 class Deku(Modem):
 
     @classmethod
-    def __init__(cls, config, config_isp_default, config_isp_operators):
+    def __init__(cls)->None:
         cls.config = config
         cls.config_isp_operators = config_isp_operators
 
@@ -58,7 +58,7 @@ class Deku(Modem):
             super().__init__(self.message)
 
     @classmethod
-    def get_modem_operator(cls, modem:Modem):
+    def get_modem_operator_name(cls, modem:Modem)->str:
         operator_code = modem.operator_code
 
         ''' requires the first 3 digits '''
@@ -71,6 +71,19 @@ class Deku(Modem):
                 # logging.debug("%s", operator_name)
 
                 return operator_name
+
+        return ''
+
+    @classmethod
+    def get_modem_country_code(cls, modem:Modem)->str:
+        operator_code = modem.operator_code
+
+        ''' requires the first 3 digits '''
+        cm_op_code = int(modem.operator_code[0:3])
+        if cm_op_code in MCCMNC.MCC_dict:
+            operator_details = MCCMNC.MCC_dict[cm_op_code]
+
+            return str(operator_details[1])
 
         return ''
 
@@ -90,10 +103,14 @@ class Deku(Modem):
                 lock_type = lock_config['LOCKS']['TYPE']
 
                 ''' how long should benchmarks last before expiring '''
-                benchmark_timelimit = int(cls.config['MODEMS']['failed_sleep'])
+                # benchmark_timelimit = int(cls.config['MODEMS']['failed_sleep'])
+                # benchmark_timelimit = cls.daemon_sleep_time
+                benchmark_timelimit = 10
 
                 ''' how long should benchmarks last before expiring if state is busy '''
-                busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
+                # busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
+                # busy_timelimit = cls.daemon_busy_timeout
+                busy_timelimit = 30
 
                 if remove_lock and (
                         (time.time() - start_time ) > benchmark_timelimit and \
@@ -238,10 +255,10 @@ class Deku(Modem):
 
             if match_operator:
                 logging.debug("Matching operator...")
-                modem_operator = Deku.modem_operator(modem, cls.config['ISP']['country']) 
-                print("modem operator:", modem_operator.lower(), 
-                        " number operator", operator_name.lower())
-                if operator_name.lower().find(modem_operator.lower()) < 0:
+                modem_operator = Deku.get_modem_operator_name(modem)
+                logging.debug("operator name: %s, modem operator: %s", 
+                        operator_name, modem_operator)
+                if not operator_name == modem_operator:
                     raise Deku.NoMatchOperator(number)
 
         except Deku.InvalidNumber as error:
