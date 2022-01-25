@@ -12,13 +12,24 @@ from deku import Deku
 from rabbitmq_broker import RabbitMQBroker
 
 class NodeIncoming:
-    def __init__(cls, modem:Modem, daemon_sleep_time:int=3)->None:
-        cls.modem = modem
-        cls.daemon_sleep_time = daemon_sleep_time
+    def __init__(self, modem:Modem, 
+            daemon_sleep_time:int=3, 
+            active_nodes:dict=None)->None:
+        self.modem = modem
+        self.daemon_sleep_time = daemon_sleep_time
+        self.active_nodes = active_nodes
 
     @classmethod
-    def init(cls, modem:Modem, daemon_sleep_time:int=3)->NodeIncoming:
-        nodeIncoming = NodeIncoming(modem, daemon_sleep_time)
+    def init(cls, modem:Modem, daemon_sleep_time:int=3, 
+            active_nodes:dict=None)->NodeOutgoing:
+        """Create an instance of :cls:NodeOutgoing.
+
+            Args:
+                modem: Instanstiates a node for this modem.
+                daemon_sleep_time: Sleep time for each modem.
+                active_nodes: from :cls:ModemManager to manage active nodes.
+        """
+        nodeIncoming = NodeIncoming(modem, daemon_sleep_time, active_nodes)
         return nodeIncoming
 
     def __publish_to_broker__(self, sms:str, queue_name:str)->None:
@@ -106,12 +117,8 @@ class NodeIncoming:
             time.sleep(self.daemon_sleep_time)
 
     def __del__(self):
-        """
-        if self.publish_connection.is_open:
-            self.publish_connection.close()
-        """
-
         if self.modem.imei in self.active_nodes:
-            del self.active_nodes[self.modem.imei]
+            # del self.active_nodes[self.modem.imei][self.__class__]
+            del self.active_nodes[self.modem.imei][self]
 
         logging.debug("cleaned up node_incoming instance")
