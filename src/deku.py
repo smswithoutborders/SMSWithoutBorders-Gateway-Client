@@ -185,18 +185,21 @@ class Deku(Modem):
         locked_modems = []
         hw_inactive_modems = []
         for modem_index in Modem.list():
-            modem = Modem(index=modem_index)
+            try:
+                modem = Modem(index=modem_index)
 
-            is_locked, hw_active_state = cls.modem_available( modem )
+                is_locked, hw_active_state = cls.modem_available( modem )
 
-            if is_locked:
-                locked_modems.append(modem)
-            
-            if not hw_active_state:
-                hw_inactive_modems.append(modem)
-            
-            if not is_locked and hw_active_state:
-                available_modems.append(modem)
+                if is_locked:
+                    locked_modems.append(modem)
+                
+                if not hw_active_state:
+                    hw_inactive_modems.append(modem)
+                
+                if not is_locked and hw_active_state:
+                    available_modems.append(modem)
+            except Exception as error:
+                logging.exception(error)
 
         return available_modems, locked_modems, hw_inactive_modems
 

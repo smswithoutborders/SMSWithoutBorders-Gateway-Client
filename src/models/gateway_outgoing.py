@@ -162,6 +162,8 @@ class NodeOutgoing(threading.Event):
                 number=self.__validate_repair_request__(number, method)
             except Exception as error:
                 return
+            finally:
+                self.outgoing_connection.sleep(self.daemon_sleep_time)
 
             try:
                 logging.debug("sending: [%s]%s %s", 
@@ -183,7 +185,7 @@ class NodeOutgoing(threading.Event):
                 self.outgoing_channel.basic_reject(
                         delivery_tag=method.delivery_tag, 
                         requeue=True)
-                #  self.outgoing_connection.sleep(self.sleep_time)
+                self.outgoing_connection.sleep(self.daemon_sleep_time)
 
             except subprocess.CalledProcessError as error:
                 logging.exception(error)
