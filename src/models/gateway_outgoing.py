@@ -161,9 +161,8 @@ class NodeOutgoing(threading.Event):
             try:
                 number=self.__validate_repair_request__(number, method)
             except Exception as error:
-                return
-            finally:
                 self.outgoing_connection.sleep(self.daemon_sleep_time)
+                return
 
             try:
                 logging.debug("sending: [%s]%s %s", 
