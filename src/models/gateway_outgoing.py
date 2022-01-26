@@ -24,11 +24,10 @@ resources:
     - https://pika.readthedocs.io/en/stable/modules/adapters/blocking.html?highlight=BlockingChannel#pika.adapters.blocking_connection.BlockingChannel
 '''
 
-class NodeOutgoing:
+class NodeOutgoing(threading.Event):
 
     @classmethod
-    def init(cls, modem:Modem, daemon_sleep_time:int=3, 
-            active_nodes:dict=None)->NodeOutgoing:
+    def init(cls, modem:Modem, daemon_sleep_time:int=3)->NodeOutgoing:
         """Create an instance of :cls:NodeOutgoing.
 
             Args:
@@ -37,8 +36,7 @@ class NodeOutgoing:
                 active_nodes: from :cls:ModemManager to manage active nodes.
         """
 
-        nodeOutgoing = NodeOutgoing(modem, daemon_sleep_time, 
-                active_nodes=active_nodes)
+        nodeOutgoing = NodeOutgoing(modem, daemon_sleep_time)
         return nodeOutgoing
 
     def __init__(self, 
@@ -49,11 +47,11 @@ class NodeOutgoing:
             active_nodes:dict=None
             )->None:
 
+        super().__init__()
         self.modem = modem
         self.durable = durable
         self.prefetch_count = prefetch_count
         self.daemon_sleep_time = daemon_sleep_time
-        self.active_nodes = active_nodes
 
         config_filepath = os.path.join(
                 os.path.dirname(__file__), 
@@ -144,7 +142,6 @@ class NodeOutgoing:
         return number
 
     def __get_published__(self, ch, method, properties, body):
-        logging.debug(body)
         try:
             json_body = json.loads(body.decode('utf-8'))
             if not "text" in json_body:
@@ -167,6 +164,9 @@ class NodeOutgoing:
                 return
 
             try:
+                logging.debug("sending: [%s]%s %s", 
+                        Deku.get_modem_operator_name(self.modem), 
+                        self.modem.imei, body)
                 Deku.modem_send(
                         self.modem,
                         text=text,
@@ -186,6 +186,7 @@ class NodeOutgoing:
                 #  self.outgoing_connection.sleep(self.sleep_time)
 
             except subprocess.CalledProcessError as error:
+                logging.exception(error)
                 self.outgoing_channel.basic_reject(
                         delivery_tag=method.delivery_tag, requeue=True)
 
@@ -193,10 +194,17 @@ class NodeOutgoing:
                 self.outgoing_channel.basic_reject(
                         delivery_tag=method.delivery_tag, requeue=True)
                 # logging.exception(error)
-                raise error
+                # raise error
+                logging.exception(error)
             else:
                 self.outgoing_channel.basic_ack(
                         delivery_tag=method.delivery_tag)
+            finally:
+                if self.outgoing_channel.is_open:
+                    return
+
+    def signal_thread(self):
+        pass
 
     def main(self, connection_url:str='localhost',
             queue_name:str='outgoing.route.route')->None:
@@ -232,11 +240,17 @@ class NodeOutgoing:
             logging.error(error)
         else:
             try:
-                self.outgoing_channel.start_consuming() #blocking
-            except Exception as error:
-                raise error
+                # self.outgoing_channel.start_consuming() #blocking
+                blocking_channel = threading.Thread(
+                        target=self.outgoing_channel.start_consuming)
+                blocking_channel.start()
 
-    def __del__(self):
-        if hasattr(self, 'outgoing_connection') and self.outgoing_connection.is_open:
-            self.outgoing_connection.close()
-        logging.debug("cleaned up node_outgoing instance")
+                # Awaits signal from ModemManager that modem isn't available
+                self.wait()
+            except Exception as error:
+                # raise error
+                logging.exception(error)
+            finally:
+                if self.outgoing_connection.is_open:
+                    self.outgoing_connection.close()
+                    logging.debug("closed connection for %s", self.modem.imei)

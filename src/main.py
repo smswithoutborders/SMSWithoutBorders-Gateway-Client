@@ -48,8 +48,7 @@ if __name__ == "__main__":
 
             if args.module == "outgoing" or args.module == "all":
                 th_incoming = threading.Thread(target=outgoing.main, 
-                        args=(modemManager,),
-                        daemon=True)
+                        args=(modemManager,))
 
                 th_incoming.start()
                 if not args.module == "all":
@@ -58,8 +57,7 @@ if __name__ == "__main__":
 
             if args.module == "incoming" or args.module == "all":
                 th_incoming = threading.Thread(target=incoming.main, 
-                        args=(modemManager,),
-                        daemon=True)
+                        args=(modemManager,))
 
                 th_incoming.start()
                 th_incoming.join()

@@ -73,8 +73,10 @@ class ModemManager:
 
         for modem_imei in not_active:
             try:
+                for _, thread_model in self.active_nodes[modem_imei].items():
+                    thread_model[1].set()
                 del self.active_nodes[modem_imei]
-                logging.debug("removed modem %s", self.modem.imei)
+                logging.debug("removed modem %s", modem_imei)
             except Exception as error:
                 logging.exception(error)
         logging.debug("refreshed nodes")
@@ -87,10 +89,6 @@ class ModemManager:
                 logging.debug("+ Available modems %s Locked modems %s", 
                         [modem.index for modem in available_modems], \
                         [modem.index for modem in locked_modems])
-
-                if len(available_modems) < 1:
-                    time.sleep(self.daemon_sleep_time)
-                    continue
 
             except Exception as error:
                 raise error
@@ -118,11 +116,10 @@ class ModemManager:
                             modem.imei, _model)
                     node_operator = Deku.get_modem_operator_name(modem)
 
-                    model = _model.init(modem=modem, active_nodes=self.active_nodes)
+                    model = _model.init(modem=modem)
 
                     modem_thread = threading.Thread(
-                            target=model.main,
-                            daemon=True)
+                            target=model.main)
 
                     # TODO won't work with multiple models
                     if not modem.imei in self.active_nodes or \
@@ -131,8 +128,8 @@ class ModemManager:
                             logging.debug("started %s for %s", modem.imei, model)
 
                             self.active_nodes[modem.imei] = {
-                                    model.__class__.__name__: modem_thread}
-                            # self.active_nodes[modem.imei][model] = modem_thread
-                            # self.active_nodes[modem.imei] = [modem_thread, model]
+                                    model.__class__.__name__: 
+                                    (modem_thread, model)
+                                        }
                             logging.debug("added %s to active nodes %s", 
                                     modem.imei, model.__class__.__name__)

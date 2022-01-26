@@ -160,7 +160,7 @@ class Deku(Modem):
     def __change_modem_state(cls, modem_imei, state):
         lock_file = os.path.join(os.path.dirname(__file__), 
                 'services/locks', f'{modem_imei}.lock')
-        Deku.__write_lock_file__(lock_file, 'BUSY')
+        Deku.__write_lock_file__(lock_file, state)
 
 
     @classmethod
@@ -278,21 +278,28 @@ class Deku(Modem):
         try:
             logging.debug("Sending SMS...")
             SMS=modem.SMS.set(text=text, number=number)
+
+            cls.__change_modem_state(modem_imei=modem.imei, state='BUSY')
             SMS.send(timeout=timeout)
             logging.debug("SENT SMS!")
         
         except subprocess.CalledProcessError as error:
-            Deku.__change_modem_state(modem_imei=modem.imei, state='FAILED')
+            cls.__change_modem_state(modem_imei=modem.imei, state='FAILED')
 
+            '''
             raise subprocess.CalledProcessError(cmd=error.cmd, 
                     output=error.output, returncode=error.returncode)
+            '''
+            logging.exception(error)
+            logging.error("%s", error.output)
+            raise error
 
         except Exception as error:
-            Deku.__change_modem_state(modem_imei=modem.imei, state='FAILED')
+            cls.__change_modem_state(modem_imei=modem.imei, state='FAILED')
             raise error
 
         finally:
-            status, lock_type, lock_file = Deku.modem_locked(modem)
+            status, lock_type, lock_file = cls.modem_locked(modem)
             logging.debug("status %s, lock_type %s, lock_file %s", 
                     status, lock_type, lock_file)
 

@@ -6,15 +6,18 @@ import logging
 import pika
 import time
 import json
+import threading
 
 from common.mmcli_python.modem import Modem
 from deku import Deku
 from rabbitmq_broker import RabbitMQBroker
 
-class NodeIncoming:
+class NodeIncoming(threading.Event):
     def __init__(self, modem:Modem, 
             daemon_sleep_time:int=3, 
             active_nodes:dict=None)->None:
+
+        super().__init__()
         self.modem = modem
         self.daemon_sleep_time = daemon_sleep_time
         self.active_nodes = active_nodes
