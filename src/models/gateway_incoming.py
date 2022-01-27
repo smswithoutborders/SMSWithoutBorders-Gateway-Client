@@ -48,6 +48,40 @@ class NodeIncoming(threading.Event):
         except Exception as error:
             raise error
 
+
+    def seeder_gateways(self) -> list:
+        """Returns a list of Seeder Gateway addresses.
+        TODO:
+            Thinking of making sure each seeder Gateway get's some unique values to it
+                even if their communicating MSISDN changes
+
+            {"MSISDN": ["route urls",..]}
+        """
+
+        seeders = []
+        return seeders
+
+
+    def ledger_validate_data(self, data:dict) -> bool:
+        """Validates incoming SMS is a valid ledger response.
+
+        Checks the data for the following:
+            1. Number:
+                Checks if number is a valid Gateway Seeder number - seeder list
+            2. Text:
+                Checks the body of the text if:
+                    1. Is base64 encoded.
+                    2. Is JSON.
+                    3. Contains MSISIDN.
+                    4. Is valid MSISIDN.
+                    5. MSISIDN country matches country of SIM Operator CODE (MCCMNC).
+        This creates the ledger record and number acquisition is complete.
+        """
+
+        return False
+
+
+
     def main(self, publish_url:str='localhost', 
             queue_name:str='incoming.route.route') -> None:
 
@@ -85,6 +119,19 @@ class NodeIncoming(threading.Event):
                     logging.debug("Number:%s, Text:%s", 
                             sms.number, sms.text)
 
+                    try:
+                        data = {"MSISDN":sms.number, "IMSI":self.modem.imsi}
+                        if not Ledger.exist(data=data):
+                            if self.ledger_validate_data(data):
+                                Ledger().create(data)
+                                logging.debug("Created new ledger")
+                            else:
+                                logging.debug("Not a ledger command")
+                        else:
+                            logging.debug("Ledger exist, continuing to publish")
+                    except Exception as error:
+                        logging.exception(error)
+                    
                     try:
                         self.__publish_to_broker__(sms=sms, queue_name=queue_name)
                     except Exception as error:

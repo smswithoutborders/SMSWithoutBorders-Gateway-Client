@@ -11,19 +11,16 @@ def main(modemManager:ModemManager)->None:
         Args:
             ModemManager: An instantiated modemManager. Provide this to begin 
             monitoring modems for incoming messages.
+
+        TODO:
+            - Check ledger for seeders
+                + if not exist:
+                    - create one
+            - Check ledger for self MSISDN and IMSI
+                + if not exist:
+                    - send request to default MSISDN for MSISDN for IMSI
     """
     logging.debug("Gateway incoming initializing...")
-
-    """
-    try:
-        if not setup_ledger():
-            raise Exception('failed to setup ledger')
-        
-        if not setup_modem_manager():
-            raise Exception('failed to setting up modem manager')
-    except Exception as error:
-        raise error
-    """
 
     try:
         modemManager.add_model(model=NodeIncoming)

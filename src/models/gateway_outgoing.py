@@ -65,6 +65,8 @@ class NodeOutgoing(threading.Event):
         self.queue_name = config['OUTGOING']['QUEUE_NAME']
         self.modem_operator = Deku.get_modem_operator_name(self.modem)
 
+        logging.debug("%s", self.modem_operator)
+
         """
         format: queue_name
 
