@@ -6,56 +6,71 @@ import logging
 import traceback
 
 class Ledger:
-    def __init__(self, MSISDN:str=None, IMSI:str=None) -> None:
+    def __init__(self, db_name:str=None, populate_tables:list=[], populate:bool=True) -> None:
         self.con = None
-        self.MSISDN = MSISDN
-        self.IMSI = IMSI
+        self.db_name = db_name
 
-        self.db_client_filepath = os.path.join(
+        self.ledger_filepath = os.path.join(
                 os.path.dirname(__file__), '.db', 'ledger.db')
 
         try:
-            db_exist = self.__is_database__()
+            ledger_exist = self.__is_ledger_exist__()
         except Exception as error:
             raise error
 
-        if not db_exist:
+        if not ledger_exist:
             try:
-                ''' options-
-                1. create
-                '''
-                self.__create_db__()
-                logging.debug('created db file')
+                self.__create_ledger__()
+                logging.debug('ledger created successfully')
             except Exception as error:
                 raise error
 
-            try:
-                self.__create_db_tables__()
-                logging.debug('tables created in db')
-
-            except sqlite3.Warning as error:
-                logging.warning(error)
-
-            except Exception as error:
-                raise error
         else:
-            logging.debug('db file exist')
+            logging.debug('ledger exist')
 
-    def __create_db__(self):
+        if populate:
+            populate_tables.append('seeders')
+            for table in populate_tables:
+                try:
+                    self.__create_db_table__(table)
+                    logging.debug('%s table created', table)
+                except sqlite3.Warning as error:
+                    logging.warning(error)
+
+                except Exception as error:
+                    raise error
+
+    def __create_ledger__(self):
         try:
-            self.con = sqlite3.connect(self.db_client_filepath)
+            self.con = sqlite3.connect(self.ledger_filepath)
         except Exception as error:
             raise error
     
-    def __create_db_tables__(self):
+    def __create_db_table__(self, table:str):
+        tables = {
+                "clients" : 
+                '''CREATE TABLE clients 
+                (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                MSISDN TEXT NOT NULL UNIQUE,
+                IMSI TEXT NOT NULL UNIQUE,
+                update_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL);''',
+
+                "seeders" : 
+                '''CREATE TABLE seeders 
+                (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                IMSI TEXT NOT NULL UNIQUE,
+                update_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL);'''
+
+                }
+
+
+        if not table in tables:
+            logging.error("request to create invalid table %s", table)
+            raise Exception("unknown table")
+
         try:
             cur = self.con.cursor()
-            cur.execute('''CREATE TABLE clients
-            (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            MSISDN TEXT NOT NULL UNIQUE,
-            IMSI TEXT NOT NULL UNIQUE,
-            update_platform TEXT NOT NULL,
-            update_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL);''')
+            cur.execute(tables[table])
             
             self.con.commit()
 
@@ -66,72 +81,29 @@ class Ledger:
         except Exception as error:
             raise error
 
-    def __is_database__(self):
+    def __is_ledger_exist__(self):
         try:
             self.con = sqlite3.connect(
-                    f"file:{self.db_client_filepath}?mode=rw",
+                    f"file:{self.ledger_filepath}?mode=rw",
                     uri=True)
 
         except sqlite3.OperationalError as error:
-            # raise error
             return False
+
         except Exception as error:
             raise error
 
         return True
 
-    def __read_clients_db__(self) -> list:
-        cur = self.con.cursor()
-        clients = list()
 
-        try:
-            for row in cur.execute(
-                    'SELECT * FROM clients'):
-
-                ''' database structure --- 
-
-                + id:""
-                + MSISDN:""
-                + IMSI:""
-                + update_platform:""
-                + update_timestamp:""
-                '''
-
-                client = {}
-                client['id'] = row[0]
-                client['MSISDN'] = row[1]
-                client['IMSI'] = row[2]
-                client['update_platform'] = row[3]
-                client['update_timestamp'] = row[4]
-
-                clients.append(client)
-
-        except sqlite3.Warning as error:
-            logging.warning(error)
-
-        except Exception as error:
-            raise error
-
-        return clients
-
-    def get_list(self):
-        try:
-            clients = self.__read_clients_db__()
-        except Exception as error:
-            raise error
-
-        return clients
-
-    def create(self, data:dict) -> None:
+    def insert_client_record(self, data:dict) -> None:
         cur = self.con.cursor()
         data_values = (
                 data['MSISDN'],
-                data['IMSI'],
-                data['update_platform'])
+                data['IMSI'])
 
         try: 
-            cur.execute("INSERT INTO clients( MSISDN, IMSI, update_platform) VALUES(?,?,?)", data_values)
-
+            cur.execute("INSERT INTO clients ( MSISDN, IMSI) VALUES(?,?)", data_values)
             self.con.commit()
 
         except sqlite3.Warning as error:
@@ -140,24 +112,21 @@ class Ledger:
         except Exception as error:
             raise error
 
-    def exist(self, data:dict) -> bool:
+    def exist(self, data:dict, table:str) -> bool:
         cur = self.con.cursor()
         
         try:
             rows = cur.execute(
-                    "SELECT 1 FROM clients WHERE IMSI=:IMSI and MSISDN=:MSISDN",
-                    {"IMSI":data['IMSI'], "MSISDN":data['MSISDN']}).fetchall()
+                    "SELECT 1 FROM {} WHERE IMSI=:IMSI".format(table),
+                    {"IMSI":data['IMSI']}).fetchall()
 
-            return True if rows[0][0] == 1 else False
+            return True if len(rows) > 0 and rows[0][0] == 1 else False
 
         except sqlite3.Warning as error:
             logging.exception(error)
 
         except Exception as error:
             raise error
-
-    def __del__(self):
-        self.con.close()
 
 if __name__ == "__main__":
     logging.basicConfig(level='DEBUG')

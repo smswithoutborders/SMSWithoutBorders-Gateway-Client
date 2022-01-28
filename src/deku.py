@@ -75,6 +75,21 @@ class Deku(Modem):
         return ''
 
     @classmethod
+    def get_modem_operator_country(cls, modem:Modem) -> str:
+        try:
+            operator_code = modem.operator_code
+
+            ''' requires the first 3 digits '''
+            cm_op_code = int(modem.operator_code[0:3])
+            if cm_op_code in MCCMNC.MCC_dict:
+                operator_details = MCCMNC.MCC_dict[cm_op_code]
+
+                return str(operator_details[0])
+
+        except Exception as error:
+            raise error
+
+    @classmethod
     def get_modem_country_code(cls, modem:Modem)->str:
         operator_code = modem.operator_code
 
@@ -205,7 +220,7 @@ class Deku(Modem):
 
 
     @staticmethod
-    def validate_number(number):
+    def validate_MSISDN(MSISDN:str)->bool:
         try:
             _number = phonenumbers.parse(number, 'en')
 
@@ -254,7 +269,7 @@ class Deku(Modem):
 
         # validate number
         try:
-            country_code, operator_name = Deku.validate_number(number)
+            country, operator_name = Deku.validate_MSISDN(number)
 
             if match_operator:
                 logging.debug("Matching operator...")

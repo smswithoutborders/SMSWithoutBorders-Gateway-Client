@@ -63,4 +63,4 @@ if __name__ == "__main__":
                 th_incoming.join()
                 modemManager.daemon()
         except Exception as error:
-            logging.exception(error)
+            logging.debug(error)
