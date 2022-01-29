@@ -155,29 +155,52 @@ class NodeIncoming(threading.Event):
             raise error
         else:
             try:
-                data = {"IMSI":self.modem.operator_code}
+                sim_imsi = self.modem.get_sim_imsi()
+                data = {"IMSI": sim_imsi}
                 if not ledger.exist(data=data, table='clients'):
                     logging.debug("No record found for this Gateway, making request")
                     """
                     TODO:
                         Make request for SMS message here
                     """
-                    seeders = ledger.get_records('seeders')
+                    seeders = ledger.get_records(table='seeders')
                     if len(seeders) > 0:
                         seeder_MSISDN = seeders[0]['MSISDN']
-                        text = json.dumps({"IMSI": self.modem.get_sim_imsi()})
-                        text = str(base64.b64encode(str.encode(text)), 'utf-8')
-                        logging.debug("+ making request to seeder: %s %s", 
-                                seeder_MSISDN, text)
 
-                        try:
-                            Deku.modem_send(
-                                    modem=self.modem,
-                                    number=seeder_MSISDN,
-                                    text=text,
-                                    force=True)
-                        except Exception as error:
-                            raise error
+                        seeder_state = ledger.request_state(MSISDN= seeder_MSISDN)
+                        logging.debug("state %s", seeder_state)
+                        if seeder_state == "requested":
+                            seeder = ledger.get_seeder(MSISDN=seeder_MSISDN)
+                            logging.debug("validation request pending for %s", seeder)
+                        else:
+                            text = json.dumps({"IMSI": sim_imsi})
+                            text = str(base64.b64encode(str.encode(text)), 'utf-8')
+                            logging.debug("+ making request to seeder: %s %s", 
+                                    seeder_MSISDN, text)
+
+                            try:
+                                """
+                                Deku.modem_send(
+                                        modem=self.modem,
+                                        number=seeder_MSISDN,
+                                        text=text,
+                                        force=True)
+                                """
+                                pass
+                            except Exception as error:
+                                raise error
+                            else:
+                                """
+                                TODO:
+                                    - Insert in record that request has been made
+                                """
+                                try:
+                                    state = 'requested'
+                                    ledger.update_seeder_state(state=state, MSISDN=seeder_MSISDN)
+                                    logging.debug("updated seeder state: %s %s", 
+                                            seeder_MSISDN, state)
+                                except Exception as error:
+                                    raise error
                     else:
                         logging.warn("No seeder address found!")
                 else:

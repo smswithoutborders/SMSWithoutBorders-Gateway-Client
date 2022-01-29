@@ -78,6 +78,7 @@ class Ledger:
                 (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 MSISDN TEXT NOT NULL UNIQUE,
                 type TEXT NOT NULL,
+                state TEXT,
                 update_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL);'''
 
                 }
@@ -180,6 +181,52 @@ class Ledger:
 
         except Exception as error:
             raise error
+
+    def request_state(self, MSISDN:str)->None:
+        cur = self.con.cursor()
+        
+        try:
+            rows = cur.execute(
+                    "SELECT MSISDN, state FROM seeders WHERE MSISDN=:MSISDN",
+                    {"MSISDN":MSISDN}).fetchall()
+
+            return '' if len(rows) < 1 else rows[0][1]
+
+        except sqlite3.Warning as error:
+            logging.exception(error)
+
+        except Exception as error: raise error
+
+    def update_seeder_state(self, state:str, MSISDN:str) ->None:
+        cur = self.con.cursor()
+        data_values = (state, MSISDN)
+
+        try: 
+            cur.execute("UPDATE seeders SET state=:state WHERE MSISDN=:MSISDN", 
+                    {"state":state, "MSISDN":MSISDN})
+            self.con.commit()
+
+        except sqlite3.Warning as error:
+            logging.warning(error)
+
+        except Exception as error:
+            raise error
+
+    def get_seeder(self, MSISDN:str)->None:
+        cur = self.con.cursor()
+        
+        try:
+            rows = cur.execute(
+                    "SELECT * FROM seeders WHERE MSISDN=:MSISDN",
+                    {"MSISDN":MSISDN}).fetchall()
+
+            return rows
+
+        except sqlite3.Warning as error:
+            logging.exception(error)
+
+        except Exception as error: raise error
+
 
 if __name__ == "__main__":
     logging.basicConfig(level='DEBUG')
