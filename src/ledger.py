@@ -147,12 +147,28 @@ class Ledger:
         except Exception as error:
             raise error
 
-    def exist(self, data:dict, table:str) -> bool:
+    def seeder_record_exist(self, data:dict) -> bool:
         cur = self.con.cursor()
         
         try:
             rows = cur.execute(
-                    "SELECT 1 FROM {} WHERE IMSI=:IMSI".format(table),
+                    "SELECT 1 FROM seeders WHERE MSISDN=:MSISDN",
+                    {"MSISDN":data['MSISDN']}).fetchall()
+
+            return True if len(rows) > 0 and rows[0][0] == 1 else False
+
+        except sqlite3.Warning as error:
+            logging.exception(error)
+
+        except Exception as error:
+            raise error
+
+    def client_record_exist(self, data:dict) -> bool:
+        cur = self.con.cursor()
+        
+        try:
+            rows = cur.execute(
+                    "SELECT 1 FROM clients WHERE IMSI=:IMSI",
                     {"IMSI":data['IMSI']}).fetchall()
 
             return True if len(rows) > 0 and rows[0][0] == 1 else False

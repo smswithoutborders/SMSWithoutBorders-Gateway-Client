@@ -15,6 +15,8 @@ from rabbitmq_broker import RabbitMQBroker
 from ledger import Ledger
 
 class NodeIncoming(threading.Event):
+    locked_modems = True
+
     def __init__(self, modem:Modem, 
             daemon_sleep_time:int=3, 
             active_nodes:dict=None)->None:
@@ -61,10 +63,10 @@ class NodeIncoming(threading.Event):
         """
 
         seeders = []
-        ledger = Ledger('seeders')
+        ledger = Ledger(populate=False)
 
         try:
-            return ledger.exist(data={"MSISDN":MSISIDN})
+            return ledger.seeder_record_exist(data={"MSISDN":MSISDN})
         except Exception as error:
             raise error
 
@@ -87,15 +89,17 @@ class NodeIncoming(threading.Event):
 
         try:
             if not self.__is_seeder__(data['MSISDN']):
+                logging.debug("Not a seeder MSISDN %s", data["MSISDN"])
                 return False
 
             try:
                 # 1. 
                 text = base64.b64decode(data['text'])
             except Exception as error:
-                logging.exception(error)
-                logging.debug("Not a valid base64 number")
-                raise error
+                # logging.exception(error)
+                logging.debug("Not a valid base64 text %s", data['text'])
+                # raise error
+                return False
 
             else:
                 try:
@@ -157,12 +161,8 @@ class NodeIncoming(threading.Event):
             try:
                 sim_imsi = self.modem.get_sim_imsi()
                 data = {"IMSI": sim_imsi}
-                if not ledger.exist(data=data, table='clients'):
+                if not ledger.client_record_exist(data=data):
                     logging.debug("No record found for this Gateway, making request")
-                    """
-                    TODO:
-                        Make request for SMS message here
-                    """
                     seeders = ledger.get_records(table='seeders')
                     if len(seeders) > 0:
                         seeder_MSISDN = seeders[0]['MSISDN']
@@ -179,21 +179,14 @@ class NodeIncoming(threading.Event):
                                     seeder_MSISDN, text)
 
                             try:
-                                """
                                 Deku.modem_send(
                                         modem=self.modem,
                                         number=seeder_MSISDN,
                                         text=text,
                                         force=True)
-                                """
-                                pass
                             except Exception as error:
                                 raise error
                             else:
-                                """
-                                TODO:
-                                    - Insert in record that request has been made
-                                """
                                 try:
                                     state = 'requested'
                                     ledger.update_seeder_state(state=state, MSISDN=seeder_MSISDN)
@@ -261,7 +254,7 @@ class NodeIncoming(threading.Event):
                                 sms.number, sms.text)
 
                         try:
-                            data = {"MSISDN":sms.number, "IMSI":self.modem.imsi, "text":sms.text}
+                            data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
                             """
                             Checks if record exist in ledger (ledger already exist)
                             If not exist, check if incoming is for ledger
@@ -271,7 +264,7 @@ class NodeIncoming(threading.Event):
 
                             ledger = Ledger(['clients'])
 
-                            if not ledger.exist(data=data):
+                            if not ledger.client_record_exist(data=data):
                                 if self.is_ledger_request(data):
                                     ledger.insert_client_record(data)
                                     logging.debug("Created new ledger")
@@ -315,6 +308,3 @@ class NodeIncoming(threading.Event):
 
             finally:
                 time.sleep(self.daemon_sleep_time)
-
-    def __del__(self):
-        logging.debug("cleaned up node_incoming instance")

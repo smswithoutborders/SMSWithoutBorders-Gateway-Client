@@ -96,7 +96,7 @@ class ModemManager:
             else:
                 try:
                     self.__refresh_nodes__(available_modems + locked_modems)
-                    self.__add_active_nodes__(modems=available_modems)
+                    self.__add_nodes__(modems=available_modems)
                 except Exception as error:
                     raise error
 
@@ -104,14 +104,19 @@ class ModemManager:
                 logging.debug("sleeping hardware monitor daemon")
                 time.sleep(self.daemon_sleep_time)
 
-    def __add_active_nodes__(self, modems:list()) -> None:
+    def __add_nodes__(self, modems:list(), locked_modems=list()) -> None:
         logging.debug("# of models %d", len(self.models))
-        for modem in modems:
-            if modem.imei not in self.active_nodes:
-                if not Deku.modem_ready(modem, index_only=True):
-                    continue
-                
-                for _model in self.models:
+
+        for _model in self.models:
+            if hasattr(_model, 'locked_modems') and _model.locked_modems:
+                modems += locked_modems
+                # logging.debug("making available locked modems for %s", _model)
+
+            for modem in modems:
+                if modem.imei not in self.active_nodes:
+                    if not Deku.modem_ready(modem, index_only=True):
+                        continue
+                    
                     logging.debug("initializing modem for %s %s", 
                             modem.imei, _model)
                     node_operator = Deku.get_modem_operator_name(modem)
