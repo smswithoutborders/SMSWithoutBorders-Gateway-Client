@@ -228,7 +228,7 @@ class NodeIncoming(threading.Event):
 
         try:
             self.validate_has_MSISDN()
-            return
+            # return
 
         except Exception as error:
             raise error
