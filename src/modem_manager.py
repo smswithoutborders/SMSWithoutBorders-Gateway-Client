@@ -114,7 +114,8 @@ class ModemManager:
 
             for modem in modems:
                 if modem.imei not in self.active_nodes:
-                    if not Deku.modem_ready(modem, index_only=True):
+                    if not Deku.modem_ready(modem, index_only=True) or (
+                            hasattr(_model, 'locked_modems') and not _model.locked_modems):
                         continue
                     
                     logging.debug("initializing modem for %s %s", 

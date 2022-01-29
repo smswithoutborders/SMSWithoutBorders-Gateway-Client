@@ -163,6 +163,11 @@ class NodeIncoming(threading.Event):
                 data = {"IMSI": sim_imsi}
                 if not ledger.client_record_exist(data=data):
                     logging.debug("No record found for this Gateway, making request")
+                    """
+                    TODO:
+                        - Attempt to get local seeders first
+                        - Implement time to resend in cases feedback not received from seeder
+                    """
                     seeders = ledger.get_records(table='seeders')
                     if len(seeders) > 0:
                         seeder_MSISDN = seeders[0]['MSISDN']
@@ -200,10 +205,78 @@ class NodeIncoming(threading.Event):
                     logging.debug("Record exist in ledger")
             except Exception as error:
                 raise error
+    
+    def listen_for_sms_incoming(self, 
+            publish_url:str='localhost', queue_name:str='incoming.route.route' )->None:
+        # while Deku.modem_ready(self.modem, index_only=True):
+        while True:
+            if (
+                    not hasattr(self, 'publish_connection') or 
+                    self.publish_connection.is_closed):
+
+                logging.debug("creating new connection for publishing")
 
 
-    def main(self, publish_url:str='localhost', 
-            queue_name:str='incoming.route.route') -> None:
+                self.publish_connection, self.publish_channel = \
+                        RabbitMQBroker.create_channel(
+                            connection_url=publish_url,
+                            queue_name=queue_name,
+                            heartbeat=600,
+                            blocked_connection_timeout=60,
+                            durable=True)
+
+            incoming_messages = self.modem.SMS.list('received')
+            for msg_index in incoming_messages:
+                sms=Modem.SMS(index=msg_index)
+                logging.debug("Number:%s, Text:%s", 
+                        sms.number, sms.text)
+
+                try:
+                    data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
+                    """
+                    Checks if record exist in ledger (ledger already exist)
+                    If not exist, check if incoming is for ledger
+                    If for ledger insert record in ledger and continue (Number has been acquired)
+                    """
+                    logging.debug("checking if data is ledger")
+
+                    ledger = Ledger(['clients'])
+
+                    if not ledger.client_record_exist(data=data):
+                        if self.is_ledger_request(data):
+                            ledger.insert_client_record(data)
+                            logging.debug("Created new ledger")
+                        else:
+                            logging.debug("Not a ledger command")
+                    else:
+                        logging.debug("record exist, continuing to publish")
+                except Exception as error:
+                    logging.exception(error)
+                
+                try:
+                    self.__publish_to_broker__(sms=sms, queue_name=queue_name)
+                except Exception as error:
+                    # self.logging.critical(error)
+                    raise error
+
+                else:
+                    try:
+                        self.modem.SMS.delete(msg_index)
+                    except Exception as error:
+                        raise error
+                    '''
+                    else:
+                        try:
+                            self.__exec_remote_control__(sms)
+                        except Exception as error:
+                            # self.logging.exception(traceback.format_exc())
+                            raise error
+                    '''
+            # incoming_messages=[]
+            time.sleep(self.daemon_sleep_time)
+
+
+    def main(self) -> None:
 
         """Monitors modems for incoming messages and publishes.
 
@@ -220,12 +293,6 @@ class NodeIncoming(threading.Event):
 
         logging.debug("monitoring incoming messages")
 
-        """
-        TODO: 
-            Check if modem (simcard) has records stored -
-            if not - make request
-        """
-
         try:
             self.validate_has_MSISDN()
             # return
@@ -235,67 +302,10 @@ class NodeIncoming(threading.Event):
 
         else:
             try:
-                while Deku.modem_ready(self.modem, index_only=True):
-                    if not hasattr(self, 'publish_connection') or \
-                            self.publish_connection.is_closed:
-
-                        self.publish_connection, self.publish_channel = \
-                                RabbitMQBroker.create_channel(
-                                    connection_url=publish_url,
-                                    queue_name=queue_name,
-                                    heartbeat=600,
-                                    blocked_connection_timeout=60,
-                                    durable=True)
-
-                    incoming_messages = self.modem.SMS.list('received')
-                    for msg_index in incoming_messages:
-                        sms=Modem.SMS(index=msg_index)
-                        logging.debug("Number:%s, Text:%s", 
-                                sms.number, sms.text)
-
-                        try:
-                            data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
-                            """
-                            Checks if record exist in ledger (ledger already exist)
-                            If not exist, check if incoming is for ledger
-                            If for ledger insert record in ledger and continue (Number has been acquired)
-                            """
-                            logging.debug("checking if data is ledger")
-
-                            ledger = Ledger(['clients'])
-
-                            if not ledger.client_record_exist(data=data):
-                                if self.is_ledger_request(data):
-                                    ledger.insert_client_record(data)
-                                    logging.debug("Created new ledger")
-                                else:
-                                    logging.debug("Not a ledger command")
-                            else:
-                                logging.debug("record exist, continuing to publish")
-                        except Exception as error:
-                            logging.exception(error)
-                        
-                        try:
-                            self.__publish_to_broker__(sms=sms, queue_name=queue_name)
-                        except Exception as error:
-                            # self.logging.critical(error)
-                            raise error
-
-                        else:
-                            try:
-                                self.modem.SMS.delete(msg_index)
-                            except Exception as error:
-                                raise error
-                            '''
-                            else:
-                                try:
-                                    self.__exec_remote_control__(sms)
-                                except Exception as error:
-                                    # self.logging.exception(traceback.format_exc())
-                                    raise error
-                            '''
-                    # incoming_messages=[]
-                    time.sleep(self.daemon_sleep_time)
+                incoming_thread = threading.Thread(target=self.listen_for_sms_incoming, daemon=True)
+                incoming_thread.start()
+                self.wait()
+                logging.debug("stopping incoming listener")
 
             except Modem.MissingModem as error:
                 logging.exception(error)
