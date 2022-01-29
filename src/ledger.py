@@ -9,6 +9,12 @@ class Ledger:
     def __init__(self, db_name:str=None, populate_tables:list=[], populate:bool=True) -> None:
         self.con = None
         self.db_name = db_name
+        self.seeders = [
+                # { "MSISDN":"+237671333468", "type":"swob-gateway-cluster" },
+                { "MSISDN":"+237652156811", "type":"swob-gateway-cluster" },
+                { "MSISDN":"+16073035353", "type":"twilio" }
+
+                ]
 
         self.ledger_filepath = os.path.join(
                 os.path.dirname(__file__), '.db', 'ledger.db')
@@ -22,6 +28,19 @@ class Ledger:
             try:
                 self.__create_ledger__()
                 logging.debug('ledger created successfully')
+
+                self.__create_db_table__('seeders')
+                logging.debug('seeder tables created')
+                
+                for seeder in self.seeders:
+                    try:
+                        self.insert_seeder_record(data=seeder)
+                        logging.debug("insert new seeder record: %s", seeder)
+                    except sqlite3.Warning as error:
+                        logging.warning(error)
+                    except Exception as error:
+                        raise error
+
             except Exception as error:
                 raise error
 
@@ -29,7 +48,6 @@ class Ledger:
             logging.debug('ledger exist')
 
         if populate:
-            populate_tables.append('seeders')
             for table in populate_tables:
                 try:
                     self.__create_db_table__(table)
@@ -58,7 +76,8 @@ class Ledger:
                 "seeders" : 
                 '''CREATE TABLE seeders 
                 (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                IMSI TEXT NOT NULL UNIQUE,
+                MSISDN TEXT NOT NULL UNIQUE,
+                type TEXT NOT NULL,
                 update_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL);'''
 
                 }
@@ -95,6 +114,21 @@ class Ledger:
 
         return True
 
+    def insert_seeder_record(self, data:dict) -> None:
+        cur = self.con.cursor()
+        data_values = (
+                data['MSISDN'],
+                data['type'])
+
+        try: 
+            cur.execute("INSERT INTO seeders ( MSISDN, type ) VALUES(?,?)", data_values)
+            self.con.commit()
+
+        except sqlite3.Warning as error:
+            logging.warning(error)
+
+        except Exception as error:
+            raise error
 
     def insert_client_record(self, data:dict) -> None:
         cur = self.con.cursor()
@@ -121,6 +155,25 @@ class Ledger:
                     {"IMSI":data['IMSI']}).fetchall()
 
             return True if len(rows) > 0 and rows[0][0] == 1 else False
+
+        except sqlite3.Warning as error:
+            logging.exception(error)
+
+        except Exception as error:
+            raise error
+
+    def get_records(self, table:str) -> None:
+        cur = self.con.cursor()
+        try:
+            rows = cur.execute(
+                    "SELECT ID, MSISDN FROM {} ORDER BY ID ASC".format(table)).fetchall()
+
+            data = {}
+            for index in range(len(rows)):
+                row = rows[index]
+                data[index] = {"MSISDN":row[1]}
+
+            return data
 
         except sqlite3.Warning as error:
             logging.exception(error)

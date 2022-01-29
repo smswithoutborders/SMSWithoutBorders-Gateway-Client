@@ -101,7 +101,7 @@ class NodeOutgoing(threading.Event):
 
     def __validate_repair_request__(self, number, method):
         try:
-            Deku.validate_number(number)
+            Deku.validate_MSISDN(number)
         
         except Deku.InvalidNumber as error:
             logging.debug("invalid number, dumping message")
@@ -114,7 +114,7 @@ class NodeOutgoing(threading.Event):
                 try:
                     # TODO get country from modems
                     new_number = Deku.get_modem_country_code(self.modem) + number
-                    Deku.validate_number(new_number)
+                    Deku.validate_MSISDN(new_number)
                 except Deku.InvalidNumber as error:
                     logging.error("invalid number, dumping message")
                     self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)

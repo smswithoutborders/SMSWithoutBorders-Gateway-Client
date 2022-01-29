@@ -222,7 +222,7 @@ class Deku(Modem):
     @staticmethod
     def validate_MSISDN(MSISDN:str)->bool:
         try:
-            _number = phonenumbers.parse(number, 'en')
+            _number = phonenumbers.parse(MSISDN, 'en')
 
             if not phonenumbers.is_valid_number(_number):
                 raise Deku.InvalidNumber(number)
@@ -233,10 +233,10 @@ class Deku(Modem):
 
         except phonenumbers.NumberParseException as error:
             if error.error_type == phonenumbers.NumberParseException.INVALID_COUNTRY_CODE:
-                if number[0] == '+' or number[0] == '0':
-                    raise Deku.BadFormNumber( number, 'INVALID_COUNTRY_CODE')
+                if MSISDN[0] == '+' or MSISDN[0] == '0':
+                    raise Deku.BadFormNumber( MSISDN, 'INVALID_COUNTRY_CODE')
                 else:
-                    raise Deku.BadFormNumber( number, 'MISSING_COUNTRY_CODE')
+                    raise Deku.BadFormNumber( MSISDN, 'MISSING_COUNTRY_CODE')
 
             else:
                 raise error
@@ -250,6 +250,7 @@ class Deku(Modem):
             text:str, 
             number:int, 
             timeout:int=20, 
+            force:bool=False,
             match_operator:bool=False)->None:
         """Send out SMS through specified modem.
 
@@ -263,15 +264,17 @@ class Deku(Modem):
                 number's operator, else it fails to send
         """
 
-        is_locked, hw_active_state = cls.modem_available(modem)
-        if is_locked or not hw_active_state:
-            raise Deku.NoAvailableModem()
+        if not force:
+            is_locked, hw_active_state = cls.modem_available(modem)
+            if is_locked or not hw_active_state:
+                raise Deku.NoAvailableModem()
+        else:
+            logging.debug("Using force not checking for locks")
 
         # validate number
         try:
-            country, operator_name = Deku.validate_MSISDN(number)
-
             if match_operator:
+                country, operator_name = Deku.validate_MSISDN(number)
                 logging.debug("Matching operator...")
                 modem_operator = Deku.get_modem_operator_name(modem)
                 logging.debug("operator name: %s, modem operator: %s", 

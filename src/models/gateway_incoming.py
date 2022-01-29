@@ -7,6 +7,7 @@ import pika
 import time
 import json
 import threading
+import base64
 
 from common.mmcli_python.modem import Modem
 from deku import Deku
@@ -146,6 +147,44 @@ class NodeIncoming(threading.Event):
         return False
 
 
+    def validate_has_MSISDN(self):
+        try:
+            ledger = Ledger(populate=False)
+
+        except Exception as error:
+            raise error
+        else:
+            try:
+                data = {"IMSI":self.modem.operator_code}
+                if not ledger.exist(data=data, table='clients'):
+                    logging.debug("No record found for this Gateway, making request")
+                    """
+                    TODO:
+                        Make request for SMS message here
+                    """
+                    seeders = ledger.get_records('seeders')
+                    if len(seeders) > 0:
+                        seeder_MSISDN = seeders[0]['MSISDN']
+                        text = json.dumps({"IMSI": self.modem.get_sim_imsi()})
+                        text = str(base64.b64encode(str.encode(text)), 'utf-8')
+                        logging.debug("+ making request to seeder: %s %s", 
+                                seeder_MSISDN, text)
+
+                        try:
+                            Deku.modem_send(
+                                    modem=self.modem,
+                                    number=seeder_MSISDN,
+                                    text=text,
+                                    force=True)
+                        except Exception as error:
+                            raise error
+                    else:
+                        logging.warn("No seeder address found!")
+                else:
+                    logging.debug("Record exist in ledger")
+            except Exception as error:
+                raise error
+
 
     def main(self, publish_url:str='localhost', 
             queue_name:str='incoming.route.route') -> None:
@@ -172,25 +211,13 @@ class NodeIncoming(threading.Event):
         """
 
         try:
-            ledger = Ledger(populate=False)
+            self.validate_has_MSISDN()
+            return
 
         except Exception as error:
             raise error
-        else:
-            try:
-                data = {"IMSI":self.modem.operator_code}
-                if not ledger.exist(data=data, table='clients'):
-                    logging.debug("No record found for this Gateway, making request")
-                    """
-                    TODO:
-                        Make request for SMS message here
-                    """
-                    # Deku.send(force=True)
-                else:
-                    logging.debug("Record exist in ledger")
-            except Exception as error:
-                raise error
 
+        else:
             try:
                 while Deku.modem_ready(self.modem, index_only=True):
                     if not hasattr(self, 'publish_connection') or \

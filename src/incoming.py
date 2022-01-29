@@ -27,7 +27,7 @@ def main(modemManager:ModemManager)->None:
     try:
         ''' would creat the clients and seeders ledger '''
         ledger = Ledger(populate_tables=['clients'])
-        logging.debug("ledgers checked and created")
+        # logging.debug("ledgers checked and created")
 
     except sqlite3.OperationalError as error:
         logging.debug("ledger exist already")
