@@ -30,15 +30,13 @@ def generate_systemd():
                 "Unit": {
                     "Description" : "",
                     "After" : "ModemManager.service",
-                    "StartLimitInterval" : "200",
-                    "StartLimitBurst" : "5"
                     },
                 "Service": {
                     "Type" : "simple",
                     "ExecStart": "",
                     "Restart" : "on-failure",
-                    "RestartSec" : "10s",
-                    "TimeoutStartSec" : "3600"
+                    "RestartSec": "1",
+                    "User":"root",
                     },
                 "Install": {
                     "WantedBy" : "multi-user.target"
@@ -84,7 +82,7 @@ def generate_systemd():
         schema.write(fd_schema)
 
     def populate_config(schema):
-        _cp = configparser.ConfigParser(strict=False)
+        _cp = configparser.ConfigParser(strict=False, interpolation=None)
         _cp.optionxform = lambda option: option
         _cp.read_dict(schema)
         return _cp
