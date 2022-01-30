@@ -155,7 +155,7 @@ class NodeOutgoing(threading.Event):
                 return 
 
             text=json_body['text']
-            number=json_body['number']
+            number=json_body['number'].replace(' ', '')
         except Exception as error:
             return
 
