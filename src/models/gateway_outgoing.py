@@ -73,10 +73,7 @@ class NodeOutgoing(threading.Event):
         (API_ID_QUEUE_NAME_OPERATOR_NAME)
         (username_QUEUE_NAME_OPERATOR_NAME)
         """
-        self.queue_name=(
-            config['OUTGOING']['API_ID'] 
-            + '_' + self.queue_name
-            + '_' + self.modem_operator)
+        self.queue_name=config['OUTGOING']['QUEUE_NAME'] + '_' + self.modem_operator
 
         """
         format: binding_key
@@ -84,10 +81,7 @@ class NodeOutgoing(threading.Event):
         (API_ID_QUEUE_NAME.OPERATOR_NAME)
         (username_QUEUE_NAME.OPERATOR_NAME)
         """
-        self.binding_key=(
-            config['OUTGOING']['API_ID'] 
-            + '_' + config['OUTGOING']['QUEUE_NAME']
-            + '.' + self.modem_operator)
+        self.binding_key=config['OUTGOING']['QUEUE_NAME'] + '.' + self.modem_operator
         
         logging.debug("binding key: %s", self.binding_key)
 

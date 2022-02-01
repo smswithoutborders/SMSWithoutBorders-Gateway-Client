@@ -208,17 +208,46 @@ class NodeIncoming(threading.Event):
             except Exception as error:
                 raise error
     
-    def listen_for_sms_incoming(self, publish_url:str='localhost', queue_name:str='incoming.route.route' )->None:
+    # def listen_for_sms_incoming(self, publish_url:str='localhost', queue_name:str='incoming.route.route' )->None:
+
+    def listen_for_sms_incoming(self)->None:
+        # while Deku.modem_ready(self.modem, index_only=True):
         while True:
             if ( not hasattr(self, 'publish_connection') or 
                     self.publish_connection.is_closed):
 
                 logging.debug("creating new connection for publishing")
 
+
+                config_filepath = os.path.join(
+                        os.path.dirname(__file__), '../../.configs', 'config.ini')
+                config = configparser.ConfigParser()
+                config.read(config_filepath)
+
+                publish_url = config['OUTGOING']['CONNECTION_URL']
+                exchange_name = config['OUTGOING']['EXCHANGE_NAME']
+
+                queue_name = config['OUTGOING']['QUEUE_NAME']
+                queue_name = queue_name + "_" + Deku.get_modem_operator_name(self.modem)
+
+                binding_key = config['OUTGOING']['QUEUE_NAME']
+                binding_key = binding_key + "." + Deku.get_modem_operator_name(self.modem)
+
+                username = config['OUTGOING']['API_ID']
+                password = config['OUTGOING']['API_KEY']
+                
+                logging.debug("username: %s", username)
+                logging.debug("password: %s", password)
+                logging.debug("queue_name: %s", queue_name)
+                logging.debug("binding_key: %s", binding_key)
                 self.publish_connection, self.publish_channel = \
                         RabbitMQBroker.create_channel(
                             connection_url=publish_url,
                             queue_name=queue_name,
+                            username=username,
+                            password=password,
+                            binding_key=binding_key,
+                            exchange_name=exchange_name,
                             heartbeat=600,
                             blocked_connection_timeout=60,
                             durable=True)

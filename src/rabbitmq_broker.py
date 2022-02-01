@@ -5,7 +5,7 @@ class RabbitMQBroker:
 
     @staticmethod
     def create_channel(connection_url, queue_name, exchange_name=None, 
-            exchange_type=None, durable=False, binding_key=None, callback=None, 
+            exchange_type='topic', durable=False, binding_key=None, callback=None, 
             prefetch_count=0, connection_port=5672, heartbeat=600, 
             blocked_connection_timeout=None, username='guest', password='guest', retry_delay=10):
 
