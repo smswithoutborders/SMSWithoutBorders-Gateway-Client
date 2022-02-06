@@ -164,11 +164,16 @@ class NodeOutgoing(threading.Event):
                 logging.debug("sending: [%s]%s %s", 
                         Deku.get_modem_operator_name(self.modem), 
                         self.modem.imei, body)
-                Deku.modem_send(
-                        self.modem,
-                        text=text,
-                        number=number,
-                        match_operator=True)
+
+                deku = Deku(modem=self.modem)
+                if deku.modem_ready():
+                    deku.modem_send(
+                            text=text,
+                            number=number,
+                            match_operator=True)
+                else:
+                    logging.debug("Modem not ready!")
+                    raise Exception("modem not ready")
 
             except Deku.NoMatchOperator as error:
                 ''' could either choose to republish to right operator or dump '''
@@ -183,22 +188,22 @@ class NodeOutgoing(threading.Event):
                 self.outgoing_connection.sleep(self.daemon_sleep_time)
 
             except subprocess.CalledProcessError as error:
-                logging.exception(error)
+                # logging.exception(error)
                 self.outgoing_channel.basic_reject(
                         delivery_tag=method.delivery_tag, requeue=True)
 
             except Exception as error:
                 self.outgoing_channel.basic_reject(
                         delivery_tag=method.delivery_tag, requeue=True)
-                # logging.exception(error)
-                # raise error
                 logging.exception(error)
             else:
                 self.outgoing_channel.basic_ack(
                         delivery_tag=method.delivery_tag)
+            """
             finally:
                 if self.outgoing_channel.is_open:
                     return
+            """
 
     def signal_thread(self):
         pass

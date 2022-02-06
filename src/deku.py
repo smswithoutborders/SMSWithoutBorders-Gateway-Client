@@ -23,10 +23,8 @@ import common.MCCMNC as MCCMNC
 
 class Deku(Modem):
 
-    @classmethod
-    def __init__(cls)->None:
-        cls.config = config
-        cls.config_isp_operators = config_isp_operators
+    def __init__(self, modem:Modem=None)->None:
+        self.modem = modem
 
     class NoMatchOperator(Exception):
         def __init__(self, number, message=None):
@@ -102,13 +100,13 @@ class Deku(Modem):
 
         return ''
 
-    @classmethod
-    def modem_locked(cls, modem, remove_lock=True):
+    def modem_locked(self, remove_lock=True):
         try:
             lock_type=None
             start_time=None
             modem_state_filename = os.path.join(
-                    os.path.dirname(__file__), 'services/locks', f'{modem.imei}.lock')
+                    os.path.dirname(__file__), 
+                    'services/locks', f'{self.modem.imei}.lock')
 
             if os.path.isfile(modem_state_filename):
                 lock_config = configparser.ConfigParser()
@@ -120,7 +118,7 @@ class Deku(Modem):
                 ''' how long should benchmarks last before expiring '''
                 # benchmark_timelimit = int(cls.config['MODEMS']['failed_sleep'])
                 # benchmark_timelimit = cls.daemon_sleep_time
-                benchmark_timelimit = 10
+                benchmark_timelimit = 20
 
                 ''' how long should benchmarks last before expiring if state is busy '''
                 # busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
@@ -142,14 +140,13 @@ class Deku(Modem):
 
         return False, lock_type, modem_state_filename
     
-    @staticmethod
-    def modem_ready(modem:Modem, index_only=False):
+    def modem_ready(self, index_only=False):
         try:
-            if modem.state == 'disabled' or modem.state == 'idle':
-                modem.enable()
-            if modem.state == 'failed':
+            if self.modem.state == 'disabled' or self.modem.state == 'idle':
+                self.modem.enable()
+            if self.modem.state == 'failed':
                 return False
-            operator_code = modem.operator_code
+            operator_code = self.modem.operator_code
 
         except NameError as error:
             raise error
@@ -157,12 +154,11 @@ class Deku(Modem):
             raise error
 
         if index_only:
-            return modem.index in Modem.list()
-        return modem.index in Modem.list() and operator_code != '--'
+            return self.modem.index in self.modem.list()
+        return self.modem.index in self.modem.list() and operator_code != '--'
 
 
-    @staticmethod
-    def __write_lock_file__(lock_file, status):
+    def __write_lock_file__(self,lock_file, status):
         with open(lock_file, 'w') as fd_lock_file:
             write_config = configparser.ConfigParser()
             write_config['LOCKS'] = {}
@@ -171,39 +167,28 @@ class Deku(Modem):
             write_config.write(fd_lock_file)
 
 
-    @classmethod
-    def __change_modem_state(cls, modem_imei, state):
+    def __change_modem_state(self, state):
         lock_file = os.path.join(os.path.dirname(__file__), 
-                'services/locks', f'{modem_imei}.lock')
-        Deku.__write_lock_file__(lock_file, state)
+                'services/locks', f'{self.modem.imei}.lock')
+        self.__write_lock_file__(lock_file, state)
 
+    def modem_available(self):
+        is_locked,_,__ = self.modem_locked()
 
-    @classmethod
-    def operator_send(cls, operator_name, text, number):
-        pass
-    
-    @classmethod
-    def number_send(cls, text, number):
-        pass
-
-
-    @classmethod
-    def modem_available(cls, modem:Modem ):
-        # check modem state
-        is_locked,_,__ = cls.modem_locked(modem=modem)
-
-        return is_locked, Deku.modem_ready(modem)
+        return is_locked, self.modem_ready()
 
     @classmethod
     def get_available_modems(cls):
         available_modems = []
         locked_modems = []
         hw_inactive_modems = []
+
         for modem_index in Modem.list():
             try:
                 modem = Modem(index=modem_index)
 
-                is_locked, hw_active_state = cls.modem_available( modem )
+                deku = Deku(modem=modem)
+                is_locked, hw_active_state = deku.modem_available()
 
                 if is_locked:
                     locked_modems.append(modem)
@@ -244,9 +229,7 @@ class Deku(Modem):
         except Exception as error:
             raise error
 
-    @classmethod
-    def modem_send(cls, 
-            modem:Modem, 
+    def modem_send(self,
             text:str, 
             number:int, 
             timeout:int=20, 
@@ -265,7 +248,7 @@ class Deku(Modem):
         """
 
         if not force:
-            is_locked, hw_active_state = cls.modem_available(modem)
+            is_locked, hw_active_state = self.modem_available()
             if is_locked or not hw_active_state:
                 raise Deku.NoAvailableModem()
         else:
@@ -276,7 +259,7 @@ class Deku(Modem):
             if match_operator:
                 country, operator_name = Deku.validate_MSISDN(number)
                 logging.debug("Matching operator...")
-                modem_operator = Deku.get_modem_operator_name(modem)
+                modem_operator = Deku.get_modem_operator_name(self.modem)
                 logging.debug("operator name: %s, modem operator: %s", 
                         operator_name, modem_operator)
                 if not operator_name == modem_operator:
@@ -298,29 +281,29 @@ class Deku(Modem):
         # send through modem
         try:
             logging.debug("Sending SMS...")
-            SMS=modem.SMS.set(text=text, number=number)
+            sms=self.modem.sms.set(text=text, number=number)
 
-            cls.__change_modem_state(modem_imei=modem.imei, state='BUSY')
-            SMS.send(timeout=timeout)
+            self.__change_modem_state(state='BUSY')
+            sms.send(timeout=timeout)
             logging.debug("SENT SMS!")
         
         except subprocess.CalledProcessError as error:
-            cls.__change_modem_state(modem_imei=modem.imei, state='FAILED')
+            self.__change_modem_state(state='FAILED')
 
             '''
             raise subprocess.CalledProcessError(cmd=error.cmd, 
                     output=error.output, returncode=error.returncode)
             '''
-            logging.exception(error)
-            logging.error("%s", error.output)
+            # logging.exception(error)
+            logging.debug("%s", error.output)
             raise error
 
         except Exception as error:
-            cls.__change_modem_state(modem_imei=modem.imei, state='FAILED')
+            self.__change_modem_state(state='FAILED')
             raise error
 
         finally:
-            status, lock_type, lock_file = cls.modem_locked(modem)
+            status, lock_type, lock_file = self.modem_locked()
             logging.debug("status %s, lock_type %s, lock_file %s", 
                     status, lock_type, lock_file)
 

@@ -95,8 +95,9 @@ class ModemManager:
 
             else:
                 try:
+                    self.__add_nodes__(modems=available_modems, 
+                            locked_modems=locked_modems)
                     self.__refresh_nodes__(available_modems + locked_modems)
-                    self.__add_nodes__(modems=available_modems)
                 except Exception as error:
                     raise error
 
@@ -104,38 +105,39 @@ class ModemManager:
                 logging.debug("sleeping hardware monitor daemon")
                 time.sleep(self.daemon_sleep_time)
 
-    def __add_nodes__(self, modems:list(), locked_modems=list()) -> None:
+    def __add_nodes__(self, modems:list(), 
+            locked_modems=list()) -> None:
         logging.debug("# of models %d", len(self.models))
 
         for _model in self.models:
+            # logging.debug("working with model %s", _model)
+
+            # some incoming doesn't need modems locked
             if hasattr(_model, 'locked_modems') and _model.locked_modems:
                 modems += locked_modems
-                # logging.debug("making available locked modems for %s", _model)
 
             for modem in modems:
-                if modem.imei not in self.active_nodes:
-                    if not Deku.modem_ready(modem, index_only=True) or (
+                model = _model.init(modem=modem)
+                if modem.imei in self.active_nodes and \
+                        model.__class__.__name__ in self.active_nodes[modem.imei]:
+                    """
+                    if not Deku.modem_ready(modem) or (
                             hasattr(_model, 'locked_modems') and not _model.locked_modems):
                         continue
-                    
-                    logging.debug("initializing modem for %s %s", 
-                            modem.imei, _model)
-                    node_operator = Deku.get_modem_operator_name(modem)
+                    """
+                    logging.debug("modem [%s] %s already active for %s",
+                            modem.imei, modem.index, _model)
+                    continue
 
-                    model = _model.init(modem=modem)
+                logging.debug("initializing modem for %s %s", 
+                        modem.imei, _model)
 
-                    modem_thread = threading.Thread(
-                            target=model.main)
+                modem_thread = threading.Thread(
+                        target=model.main)
+                modem_thread.start()
+                logging.debug("started %s for %s", modem.imei, model)
+                self.active_nodes[modem.imei] = {
+                        model.__class__.__name__: (modem_thread, model) }
 
-                    # TODO won't work with multiple models
-                    if not modem.imei in self.active_nodes or \
-                        not model.__class__.__name__ in self.active_nodes[modem.imei]:
-                            modem_thread.start()
-                            logging.debug("started %s for %s", modem.imei, model)
-
-                            self.active_nodes[modem.imei] = {
-                                    model.__class__.__name__: 
-                                    (modem_thread, model)
-                                        }
-                            logging.debug("added %s to active nodes %s", 
-                                    modem.imei, model.__class__.__name__)
+                logging.debug("added %s to active nodes %s", 
+                        modem.imei, model.__class__.__name__)
