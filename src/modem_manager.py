@@ -73,8 +73,12 @@ class ModemManager:
 
         for modem_imei in not_active:
             try:
-                for _, thread_model in self.active_nodes[modem_imei].items():
-                    thread_model[1].set()
+                for thread_thread, thread_model in self.active_nodes[modem_imei].items():
+                    if not thread_thread.is_alive():
+                        logging.debug("thread is active but not alive, deleting it")
+                        del self.active_nodes[modem_imei]
+                    else:
+                        thread_model[1].set()
                 del self.active_nodes[modem_imei]
                 logging.debug("removed modem %s", modem_imei)
             except Exception as error:
@@ -127,6 +131,7 @@ class ModemManager:
                     """
                     logging.debug("modem [%s] %s already active for %s",
                             modem.imei, modem.index, _model)
+
                     continue
 
                 logging.debug("initializing modem for %s %s", 
@@ -134,10 +139,15 @@ class ModemManager:
 
                 modem_thread = threading.Thread(
                         target=model.main)
-                modem_thread.start()
-                logging.debug("started %s for %s", modem.imei, model)
-                self.active_nodes[modem.imei] = {
-                        model.__class__.__name__: (modem_thread, model) }
 
-                logging.debug("added %s to active nodes %s", 
-                        modem.imei, model.__class__.__name__)
+                try:
+                    modem_thread.start()
+                except Exception as error:
+                    logging.exception(error)
+                else:
+                    logging.debug("started %s for %s", modem.imei, model)
+                    self.active_nodes[modem.imei] = {
+                            model.__class__.__name__: (modem_thread, model) }
+
+                    logging.debug("added %s to active nodes %s", 
+                            modem.imei, model.__class__.__name__)

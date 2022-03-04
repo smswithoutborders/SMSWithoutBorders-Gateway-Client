@@ -1,13 +1,33 @@
 #!/usr/bin/env python3
 
 import pika
+import logging
+
 class RabbitMQBroker:
 
     @staticmethod
-    def create_channel(connection_url, queue_name, exchange_name=None, 
-            exchange_type='topic', durable=False, binding_key=None, callback=None, 
-            prefetch_count=0, connection_port=5672, heartbeat=600, 
-            blocked_connection_timeout=None, username='guest', password='guest', retry_delay=10):
+    def on_close_callback(**kwargs) -> None:
+        """Call in case Pika connection is closed.
+        """
+        logging.info("PIKA CONNECTION CLOSED")
+
+    @staticmethod
+    def create_channel(
+            connection_url, 
+            queue_name, 
+            exchange_name=None, 
+            exchange_type='topic', 
+            durable=False, 
+            binding_key=None, 
+            callback=None, 
+            prefetch_count=0, 
+            connection_port=5672, 
+            heartbeat=600, 
+            blocked_connection_timeout=None, 
+            username='guest', 
+            password='guest', 
+            retry_delay=10,
+            connection_attempts=999999999) -> None:
 
         credentials=pika.PlainCredentials(username, password)
         try:
@@ -16,7 +36,10 @@ class RabbitMQBroker:
                     connection_port, 
                     '/',
                     credentials,
-                    retry_delay=retry_delay)
+                    retry_delay=retry_delay,
+                    heartbeat=heartbeat,
+                    connection_attempts=connection_attempts,
+                    )
 
             connection=pika.BlockingConnection(parameters=parameters)
             channel=connection.channel()

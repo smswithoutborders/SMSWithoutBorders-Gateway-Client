@@ -208,6 +208,7 @@ class NodeOutgoing(threading.Event):
     def signal_thread(self):
         pass
 
+
     def main(self, connection_url:str='localhost',
             queue_name:str='outgoing.route.route')->None:
 
@@ -239,15 +240,14 @@ class NodeOutgoing(threading.Event):
                     prefetch_count=self.prefetch_count)
             logging.info("Connection established successfully")
         except Exception as error:
-            logging.error(error)
+            logging.exception(error)
         else:
             try:
                 # self.outgoing_channel.start_consuming() #blocking
                 blocking_channel = threading.Thread(
-                        target=self.outgoing_channel.start_consuming)
+                        target=self.outgoing_channel.start_consuming, daemon=True)
                 blocking_channel.start()
 
-                # Awaits signal from ModemManager that modem isn't available
                 self.wait()
             except Exception as error:
                 # raise error
