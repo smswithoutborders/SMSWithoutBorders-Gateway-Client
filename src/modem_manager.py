@@ -74,11 +74,7 @@ class ModemManager:
         for modem_imei in not_active:
             try:
                 for thread_thread, thread_model in self.active_nodes[modem_imei].items():
-                    if not thread_thread.is_alive():
-                        logging.debug("thread is active but not alive, deleting it")
-                        del self.active_nodes[modem_imei]
-                    else:
-                        thread_model[1].set()
+                    thread_model[1].set()
                 del self.active_nodes[modem_imei]
                 logging.debug("removed modem %s", modem_imei)
             except Exception as error:
