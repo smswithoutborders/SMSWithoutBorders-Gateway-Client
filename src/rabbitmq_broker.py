@@ -27,7 +27,7 @@ class RabbitMQBroker:
             username='guest', 
             password='guest', 
             retry_delay=10,
-            connection_attempts=2) -> None:
+            connection_attempts=None) -> None:
 
         credentials=pika.PlainCredentials(username, password)
         try:
