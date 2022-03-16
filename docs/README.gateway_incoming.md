@@ -15,10 +15,15 @@
 
 <a name="MSISDN_request_sms_message" />
 
+#### Pinging
+
+<a name="pinging" />
+
+
 #### MSISDN request SMS message
 By default Nodes do not know their own MSISDN (but can have their [IMSI]()). MSISDN are required for [Gateway Server's broadcasting](gateway_server_broadcast) to app users and publishing on the [Available Gateway Clients dashboard](). \
 \
-Nodes acquire their MSISDN by sending an SMS to a [seeder gateway](seeder_gateway_MSISDN) which contains their IMSI. Once the request are completed the IMSI and MSISDN of the Node are stored on the server and are [queried]() anytime the Gateway server requires that information.
+Nodes acquire their MSISDN by sending an SMS to a [seeder gateway](seeder_gateway_MSISDN) which contains their IMSI. Seeders [respond]() to the Client with their IMSI and MSISDN. IMSI and MSISDN are not stored on seeder gateways and any request for information from them requires the entire self introduction to proceed.
 
 <a name="modules" />
 
