@@ -3,7 +3,8 @@
 - Every USB modem connected to them acts as an independent [Node](nodes) capable of receiving and processing SMS messages.
 - Gateway clients are utilized by SMSWithoutBorders android app to receive and [forward](forwarding) incoming messages online/offline servers.
 - USB modems connected to Gateway clients identify themselves by [publishing](publishing) their [MSISDN]() after a duration to a Gateway server.
-- Nodes attain their phone numbers by sending a [MSISDN request SMS message](MSISDN_request_sms_message) to [seeder Gateway clients](seeder_gateway_clients). 
+- Nodes attain their phone numbers by sending a [MSISDN request SMS message](MSISDN_request_sms_message) to [seeder Gateway clients](seeder_gateway_clients).
+- Gateway clients send [ping]() messages after custom time periods to Gateway servers. This keeps the server from deleting the Gateway client.
 
 <a name="processing" />
 
