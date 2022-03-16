@@ -33,6 +33,7 @@ sudo apt-get install -y erlang-base \
 ```bash
 pip3 install virtualenv
 git clone https://github.com/smswithoutborders/SMSWithoutBorders-Gateway-Client.git
+git submodule update --init --recursive
 cd SMSWithoutBorders-Gateway-Client
 make
 make install
@@ -79,7 +80,8 @@ make enable
 tail -f src/services/logs/service.log
 ```
 
-<h3>Setting up on Raspberry pi (tested on 4B)</h3>
-<h4>Ubuntu Server</h4>
+### Setting up on Raspberry pi (tested on 4B)
+#### Ubuntu Server
+_Refs_
 > https://ubuntu.com/tutorials/how-to-install-ubuntu-on-your-raspberry-pi#4-boot-ubuntu-server<br>
 > https://itsfoss.com/connect-wifi-terminal-ubuntu/
