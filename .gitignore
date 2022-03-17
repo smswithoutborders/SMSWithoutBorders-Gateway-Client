@@ -1,6 +1,6 @@
 *.sw*
 __pycache__/*
-*/*/__pycache__
+**/__pycache__
 venv/*
 .venv/*
 */config.ini
