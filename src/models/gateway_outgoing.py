@@ -26,8 +26,8 @@ resources:
 
 class NodeOutgoing(threading.Event):
 
-    @classmethod
-    def init(cls, modem:Modem, daemon_sleep_time:int=3)->NodeOutgoing:
+    @staticmethod
+    def init(modem:Modem, daemon_sleep_time:int=3)->NodeOutgoing:
         """Create an instance of :cls:NodeOutgoing.
 
             Args:

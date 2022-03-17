@@ -28,8 +28,8 @@ class NodeIncoming(threading.Event):
         self.daemon_sleep_time = daemon_sleep_time
         self.active_nodes = active_nodes
 
-    @classmethod
-    def init(cls, modem:Modem, daemon_sleep_time:int=3, 
+    @staticmethod
+    def init(modem:Modem, daemon_sleep_time:int=3, 
             active_nodes:dict=None)->NodeOutgoing:
         """Create an instance of :cls:NodeOutgoing.
 

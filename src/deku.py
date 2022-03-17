@@ -55,8 +55,8 @@ class Deku(Modem):
             self.message=message or 'no available modem'
             super().__init__(self.message)
 
-    @classmethod
-    def get_modem_operator_name(cls, modem:Modem)->str:
+    @staticmethod
+    def get_modem_operator_name(modem:Modem)->str:
         operator_code = modem.operator_code
 
         ''' requires the first 3 digits '''
@@ -72,8 +72,8 @@ class Deku(Modem):
 
         return ''
 
-    @classmethod
-    def get_modem_operator_country(cls, modem:Modem) -> str:
+    @staticmethod
+    def get_modem_operator_country(modem:Modem) -> str:
         try:
             operator_code = modem.operator_code
 
@@ -87,8 +87,8 @@ class Deku(Modem):
         except Exception as error:
             raise error
 
-    @classmethod
-    def get_modem_country_code(cls, modem:Modem)->str:
+    @staticmethod
+    def get_modem_country_code(modem:Modem)->str:
         operator_code = modem.operator_code
 
         ''' requires the first 3 digits '''
@@ -136,6 +136,8 @@ class Deku(Modem):
                     return True, lock_type, modem_state_filename
 
         except Exception as error:
+            if os.path.isfile(modem_state_filename):
+                os.remove(modem_state_filename)
             raise error
 
         return False, lock_type, modem_state_filename
@@ -177,8 +179,8 @@ class Deku(Modem):
 
         return is_locked, self.modem_ready()
 
-    @classmethod
-    def get_available_modems(cls):
+    @staticmethod
+    def get_available_modems():
         available_modems = []
         locked_modems = []
         hw_inactive_modems = []
