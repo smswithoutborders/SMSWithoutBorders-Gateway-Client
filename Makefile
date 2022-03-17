@@ -26,7 +26,7 @@ gen_configs:
 	@cp -nv .configs/extensions/example.labels.ini .configs/extensions/labels.ini
 	@cp -nv .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
 	@cp -nv .configs/remote_control/example.remote_control_auth.ini .configs/remote_control/remote_control_auth.ini
-	@cp -nv .configs/pre-commit .git/hooks/pre-commit
+	@ln -s -f ../../confs/pre-commit .git/hooks/pre-commit
 	
 	@echo "Creating deps build path $(build_path)"
 	@mkdir -p $(build_path)
