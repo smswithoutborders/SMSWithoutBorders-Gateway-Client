@@ -13,15 +13,17 @@ venv_path="venv"
 if [ ! -z "$VIRTUAL_ENV" ]; then
 	# update requirements docs proceed with commit
 	$(venv_path)/bin/activiate; \ 
-		pip freeze > $FILE \
+		pip3 install -r requirements.txt
+		pip3 freeze > $FILE \
 		git add $FILE
-	echo -e "+ Updated $FILE with pip requirements.\n"
+	echo -e "+ Updated $FILE with pip3 requirements.\n"
 else
 	echo -e ">> Activating virtual env..."
 	. $venv_path/bin/activate; \
 		if [ ! -z "$VIRTUAL_ENV" ]; then 
-			pip freeze > $FILE && git add $FILE
-			echo -e "+ Updated $FILE with pip requirements.\n"
+			pip3 install -r requirements.txt
+			pip3 freeze > $FILE && git add $FILE
+			echo -e "+ Updated $FILE with pip3 requirements.\n"
 		else
 			echo "- Failed to activate virtual env"
 			exit 1
