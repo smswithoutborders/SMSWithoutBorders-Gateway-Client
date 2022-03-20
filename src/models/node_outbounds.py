@@ -93,49 +93,6 @@ class NodeOutgoing(threading.Event):
         self.exchange_name=config['OUTGOING']['EXCHANGE_NAME']
         self.exchange_type=config['OUTGOING']['EXCHANGE_TYPE']
 
-    def __validate_repair_request__(self, number, method):
-        try:
-            Deku.validate_MSISDN(number)
-        
-        except Deku.InvalidNumber as error:
-            logging.debug("invalid number, dumping message")
-            self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-
-        except Deku.BadFormNumber as error:
-            if error.message == 'MISSING_COUNTRY_CODE':
-                logging.debug("Detected missing country code, attempting to repair...")
-
-                try:
-                    # TODO get country from modems
-                    new_number = Deku.get_modem_country_code(self.modem) + number
-                    Deku.validate_MSISDN(new_number)
-                except Deku.InvalidNumber as error:
-                    logging.error("invalid number, dumping message")
-                    self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-                    raise Exception("")
-
-                except Deku.BadFormNumber as error:
-                    logging.error("badly formed number, dumping message")
-                    self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-                    raise Exception("")
-                
-                except Exception as error:
-                    logging.exception(error)
-                    raise error
-
-                else:
-                    number = new_number
-                    logging.debug("Repaired successful - %s", number)
-            else:
-                logging.error("invalid country code, dumping message")
-                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-                raise Exception("")
-
-        except Exception as error:
-            logging.exception(error)
-            raise error
-
-        return number
 
     def __get_published__(self, ch, method, properties, body):
         try:
@@ -204,10 +161,6 @@ class NodeOutgoing(threading.Event):
                 if self.outgoing_channel.is_open:
                     return
             """
-
-    def signal_thread(self):
-        pass
-
 
     def main(self, connection_url:str='localhost',
             queue_name:str='outgoing.route.route')->None:

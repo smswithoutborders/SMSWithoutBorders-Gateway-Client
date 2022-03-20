@@ -55,50 +55,6 @@ class Deku(Modem):
             self.message=message or 'no available modem'
             super().__init__(self.message)
 
-    @staticmethod
-    def get_modem_operator_name(modem:Modem)->str:
-        operator_code = modem.operator_code
-
-        ''' requires the first 3 digits '''
-        cm_op_code = (int(modem.operator_code[0:3]), int(modem.operator_code[-1]))
-        if cm_op_code in MCCMNC.MNC_dict:
-            operator_details = MCCMNC.MNC_dict[cm_op_code]
-
-            if operator_details[0] == int(modem.operator_code):
-                operator_name = str(operator_details[1])
-                # logging.debug("%s", operator_name)
-
-                return operator_name
-
-        return ''
-
-    @staticmethod
-    def get_modem_operator_country(modem:Modem) -> str:
-        try:
-            operator_code = modem.operator_code
-
-            ''' requires the first 3 digits '''
-            cm_op_code = int(modem.operator_code[0:3])
-            if cm_op_code in MCCMNC.MCC_dict:
-                operator_details = MCCMNC.MCC_dict[cm_op_code]
-
-                return str(operator_details[0])
-
-        except Exception as error:
-            raise error
-
-    @staticmethod
-    def get_modem_country_code(modem:Modem)->str:
-        operator_code = modem.operator_code
-
-        ''' requires the first 3 digits '''
-        cm_op_code = int(modem.operator_code[0:3])
-        if cm_op_code in MCCMNC.MCC_dict:
-            operator_details = MCCMNC.MCC_dict[cm_op_code]
-
-            return str(operator_details[1])
-
-        return ''
 
     def modem_locked(self, remove_lock=True):
         try:
@@ -179,57 +135,6 @@ class Deku(Modem):
 
         return is_locked, self.modem_ready()
 
-    @staticmethod
-    def get_available_modems():
-        available_modems = []
-        locked_modems = []
-        hw_inactive_modems = []
-
-        for modem_index in Modem.list():
-            try:
-                modem = Modem(index=modem_index)
-
-                deku = Deku(modem=modem)
-                is_locked, hw_active_state = deku.modem_available()
-
-                if is_locked:
-                    locked_modems.append(modem)
-                
-                if not hw_active_state:
-                    hw_inactive_modems.append(modem)
-                
-                if not is_locked and hw_active_state:
-                    available_modems.append(modem)
-            except Exception as error:
-                logging.exception(error)
-
-        return available_modems, locked_modems, hw_inactive_modems
-
-
-    @staticmethod
-    def validate_MSISDN(MSISDN:str)->bool:
-        try:
-            _number = phonenumbers.parse(MSISDN, 'en')
-
-            if not phonenumbers.is_valid_number(_number):
-                raise Deku.InvalidNumber(number)
-
-            return \
-                    phonenumbers.geocoder.description_for_number(_number, 'en'), \
-                    phonenumbers.carrier.name_for_number(_number, 'en')
-
-        except phonenumbers.NumberParseException as error:
-            if error.error_type == phonenumbers.NumberParseException.INVALID_COUNTRY_CODE:
-                if MSISDN[0] == '+' or MSISDN[0] == '0':
-                    raise Deku.BadFormNumber( MSISDN, 'INVALID_COUNTRY_CODE')
-                else:
-                    raise Deku.BadFormNumber( MSISDN, 'MISSING_COUNTRY_CODE')
-
-            else:
-                raise error
-
-        except Exception as error:
-            raise error
 
     def modem_send(self,
             text:str, 

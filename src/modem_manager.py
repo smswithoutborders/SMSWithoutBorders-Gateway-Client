@@ -30,6 +30,32 @@ class ModemManager:
         """
         self.models.append(model)
 
+    @staticmethod
+    def get_available_modems():
+        available_modems = []
+        locked_modems = []
+        hw_inactive_modems = []
+
+        for modem_index in Modem.list():
+            try:
+                modem = Modem(index=modem_index)
+
+                deku = Deku(modem=modem)
+                is_locked, hw_active_state = deku.modem_available()
+
+                if is_locked:
+                    locked_modems.append(modem)
+                
+                if not hw_active_state:
+                    hw_inactive_modems.append(modem)
+                
+                if not is_locked and hw_active_state:
+                    available_modems.append(modem)
+            except Exception as error:
+                logging.exception(error)
+
+        return available_modems, locked_modems, hw_inactive_modems
+
     def daemon(self) -> None:
         """Binds modems to models
 
