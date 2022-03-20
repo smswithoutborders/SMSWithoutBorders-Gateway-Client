@@ -37,3 +37,7 @@ Nodes acquire their MSISDN by sending an SMS to a [seeder gateway](seeder_gatewa
 <a name="seeder_gateway_clients" />
 
 #### Seeder Gateway Clients
+- Seeders have the following:
+  1. Seeder functionality turned on in the conf file (seeder = True)
+  2. MSISDN and SMS present per seeding node
+  3. SMS capability
