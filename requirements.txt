@@ -40,4 +40,3 @@ tzdata==2021.5
 tzlocal==4.0.2
 urllib3==1.26.7
 Werkzeug==2.0.2
-
