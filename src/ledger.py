@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import sqlite3 as database
 
 class Ledger:
     
@@ -15,6 +16,9 @@ class Ledger:
         Check if ledger file exist,
         if not, create it
         """
+        self.database_conn = None
+        self.ledger_filename = os.path.join(
+                os.path.dirname(__file__), '.db/nodes', f"{IMSI}.db")
 
         try:
             if not self.__is_ledger_file__():
@@ -29,11 +33,22 @@ class Ledger:
             raise error
 
     def __is_ledger_file__(self):
-        return False
+        try:
+            self.database_conn = database.connect(
+                    f"file:{self.ledger_filename}.db?mode=rw", uri=True)
+        except database.OperationalError as error:
+            return False
+        except Exception as error:
+            raise error
 
-    def __create_ledger_file__(self):
-        pass
+        return True
 
+    def __create_ledger_file__(self) -> None:
+        """Create ledger file.
+        """
+        self.database_conn = database.connect(self.ledger_filename)
 
-    def find_seed(self):
-        return False
+    def is_ledger(self) -> bool:
+        """Checks if ledger file exist.
+        """
+        return self.__is_ledger_file__()

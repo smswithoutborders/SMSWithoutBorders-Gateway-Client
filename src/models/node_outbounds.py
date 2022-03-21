@@ -24,11 +24,11 @@ resources:
     - https://pika.readthedocs.io/en/stable/modules/adapters/blocking.html?highlight=BlockingChannel#pika.adapters.blocking_connection.BlockingChannel
 '''
 
-class NodeOutgoing(threading.Event):
+class NodeOutbounds(threading.Event):
 
     @staticmethod
-    def init(modem:Modem, daemon_sleep_time:int=3)->NodeOutgoing:
-        """Create an instance of :cls:NodeOutgoing.
+    def init(modem:Modem, daemon_sleep_time:int=3)->NodeOutbounds:
+        """Create an instance of :cls:NodeOutbounds.
 
             Args:
                 modem: Instanstiates a node for this modem.
@@ -36,7 +36,7 @@ class NodeOutgoing(threading.Event):
                 active_nodes: from :cls:ModemManager to manage active nodes.
         """
 
-        nodeOutgoing = NodeOutgoing(modem, daemon_sleep_time)
+        nodeOutgoing = NodeOutbounds(modem, daemon_sleep_time)
         return nodeOutgoing
 
     def __init__(self, 

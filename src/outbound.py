@@ -3,7 +3,7 @@
 import logging
 
 from modem_manager import ModemManager
-from models.gateway_outgoing import NodeOutgoing
+from models.node_outbounds import NodeOutbounds
 
 def main(modemManager:ModemManager)->None:
     """Starts listening for incoming messages.
@@ -26,7 +26,7 @@ def main(modemManager:ModemManager)->None:
     """
 
     try:
-        modemManager.add_model(model=NodeOutgoing)
+        modemManager.add_model(model=NodeOutbounds)
         # modemManager.daemon()
     except Exception as error:
         raise error

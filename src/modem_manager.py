@@ -111,7 +111,7 @@ class ModemManager:
     def __daemon_hardware_state__(self) -> None:
         while True:
             try:
-                available_modems, locked_modems,_ = Deku.get_available_modems()
+                available_modems, locked_modems,_ = ModemManager.get_available_modems()
                 logging.debug("+ Available modems %s Locked modems %s", 
                         [modem.index for modem in available_modems], \
                         [modem.index for modem in locked_modems])

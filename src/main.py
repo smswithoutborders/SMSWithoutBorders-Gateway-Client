@@ -8,8 +8,8 @@ import threading
 import argparse
 import traceback
 
-import incoming
-import outgoing
+import inbound
+import outbound
 from modem_manager import ModemManager
 
 if __name__ == "__main__":
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--module", 
             nargs='?',
             default="all",
-            help="incoming, outgoing, all")
+            help="outbound, inbound, all")
 
     args = parser.parse_args()
 
@@ -46,21 +46,21 @@ if __name__ == "__main__":
     else:
         try:
 
-            if args.module == "outgoing" or args.module == "all":
-                th_incoming = threading.Thread(target=outgoing.main, 
+            if args.module == "outbound" or args.module == "all":
+                thread_outbound = threading.Thread(target=outbound.main, 
                         args=(modemManager,))
 
-                th_incoming.start()
+                thread_outbound.start()
                 if not args.module == "all":
-                    th_incoming.join()
+                    thread_outbound.join()
                     modemManager.daemon()
 
-            if args.module == "incoming" or args.module == "all":
-                th_incoming = threading.Thread(target=incoming.main, 
+            if args.module == "inbound" or args.module == "all":
+                thread_outbound = threading.Thread(target=inbound.main, 
                         args=(modemManager,))
 
-                th_incoming.start()
-                th_incoming.join()
+                thread_outbound.start()
+                thread_outbound.join()
                 modemManager.daemon()
         except Exception as error:
             logging.debug(error)
