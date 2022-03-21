@@ -12,7 +12,7 @@ venv_path="venv"
 
 if [ ! -z "$VIRTUAL_ENV" ]; then
 	# update requirements docs proceed with commit
-	$(venv_path)/bin/activiate; \ 
+	$(venv_path)/bin/activate; \ 
 		pip install -r requirements.txt
 		pip freeze > $FILE \
 		git add $FILE
