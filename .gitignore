@@ -9,3 +9,4 @@ venv/*
 tmp/*
 installer/files/*
 *.dump
+tmp/*

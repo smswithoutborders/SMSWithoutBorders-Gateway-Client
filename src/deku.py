@@ -19,7 +19,6 @@ from phonenumbers import geocoder, carrier
 
 from common.mmcli_python.modem import Modem
 
-import common.MCCMNC as MCCMNC
 
 class Deku(Modem):
 

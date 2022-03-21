@@ -34,7 +34,11 @@ gen_configs:
 	@mkdir -p $(path_rabbitmq_builds)
 	@echo "Generating service files"
 	@$(python) installer/generate.py
+	@echo "Compiling binaries..."
+	@mkdir -p src/bins
+	@gcc src/seeders.c -o src/bins/seeders.bin 
 	@echo "Done configuration"
+	
 
 rabbitmq_checks:deps/rabbitmq/version.lock deps/rabbitmq/init.sh
 	@echo "rabbitmq checks passed"

@@ -14,7 +14,9 @@ import base64
 from common.mmcli_python.modem import Modem
 from deku import Deku
 from rabbitmq_broker import RabbitMQBroker
-from ledger import Ledger
+from seeds import Seeds
+from seeders import Seeders
+import helpers
 
 class NodeInbound(threading.Event):
     locked_modems = True
@@ -118,6 +120,31 @@ class NodeInbound(threading.Event):
             time.sleep(self.daemon_sleep_time)
 
 
+    def make_seeder_request(seeder: Seeder):
+        """Sends a request to the provided seeder.
+        """
+        text = json.dumps({"IMSI": self.modem.get_sim_imsi()})
+
+        text = str(base64.b64encode(str.encode(text)), 'utf-8')
+
+        logging.debug("+ making request to seeder: %s %s", 
+                seeder.MSISDN, text)
+
+        try:
+            Deku.modem_send(
+                    modem=self.modem,
+                    number=seeder.MSISDN,
+                    text=text,
+                    force=True)
+        except Exception as error:
+            raise error
+        else:
+            try:
+                seeder.update_state('requested')
+                logging.debug("Seeder %s state changed to requested", seeder._id)
+            except Exception as error:
+                raise error
+
     def main(self, seeder=False) -> None:
 
         """Monitors modems for inbound messages and publishes.
@@ -136,28 +163,41 @@ class NodeInbound(threading.Event):
         logging.debug("monitoring inbound messages")
 
         try:
-            self.seed = Seed(IMSI=IMSI, seeder=seeder)
+            IMSI= self.modem.get_sim_imsi()
+            self.seed = Seeds(IMSI=IMSI, seeder=seeder)
             if not self.seed.is_seed():
-                seeders = self.seed.request_remote_seeders()
+                logging.debug("[%s] is not a seed... fetching remote seeders", self.seed.IMSI)
+                seeders = Seeders.request_remote_seeders()
 
                 if len(seeders) < 1:
-                    seeders = self.seed.request_hardcoded_seeders()
+                    logging.debug("No remote seeders found, checking for hardcoded")
 
-                seeder = self.seed.filter_seeders(seeders, 
-                        {"country":helpers.get_operator_country(self.modem.get_sim_imsi()),
-                            "operator_name":helpers.get_operator_name(self.modem)})
+                    # Important: Should never be empty
+                    seeders = Seeders.request_hardcoded_seeders()
+                else:
+                    logging.debug("%d remote seeders found", len(seeders))
 
-                if not seeder:
-                    seeder = self.seed.filter_seeders(seeders, 
-                            {"country":helpers.get_operaetor_country(self.modem.get_sim_imsi())})
+                filtered_seeders = Seeders._filter(seeders, 
+                        {"country":helpers.get_modem_operator_country(self.modem),
+                            "operator_name":helpers.get_modem_operator_name(self.modem)})
 
-                if not seeder:
+                if not filtered_seeders:
+                    logging.debug("No seeders found for filter, trying with lesser filters")
+                    filtered_seeders = Seeders._filter(seeders, 
+                            {"country":helpers.get_modem_operator_country(self.modem)})
+                else:
+                    logging.debug("%d filtered seeders found!", len(filtered_seeders))
+
+                if len(filtered_seeders) > 0:
+                    logging.debug("%d filtered seeders found!", len(filtered_seeders))
+                    seeder = filtered_seeders[0]
+                else:
+                    logging.debug("no seeders found, falling back to hardcoded ones")
                     seeder = seeders[0]
 
                 try:
-                    """
-                    Deku makes request to seeder information
-                    """
+                    logging.debug("making seeder request [%s]", seeder.MSISDN)
+                    self.make_seeder_request(seeder=seeder)
                 except Exception as error:
                     raise error
                 else:

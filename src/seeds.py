@@ -3,26 +3,25 @@
 import base64
 import json
 
-from src.ledger import Ledger
+from ledger import Ledger
 
 class Seeds(Ledger):
 
     def __init__(self, IMSI: str, seeder: bool=False):
-        super.__init__(IMSI=IMSI)
-
+        super().__init__(IMSI=IMSI)
         self.IMSI = IMSI
         self.seeder = seeder
-        self.ledger = Ledger(IMSI=IMSI)
 
     def is_seed(self) -> bool:
         """Checks if current node can seed.
         In other to seed, an MSISDN and IMSI should be present in local db.
         """
+        result = self.find(["MSISDN", "IMSI"])
+        if len(result) > 0:
+            return True
+
+        return False
         
-        try:
-            return self.ledger.find_seed()
-        except Exception as error:
-            raise error
 
     def is_seeder_message(self, data: base64) -> bool:
         """Checks if message is in format required for seeder update.
@@ -149,57 +148,3 @@ class Seeds(Ledger):
         return False
 
 
-    def make_seed(self):
-        try:
-            ledger = Ledger(populate=False)
-
-        except Exception as error:
-            raise error
-        else:
-            try:
-                sim_imsi = self.modem.get_sim_imsi()
-                data = {"IMSI": sim_imsi}
-                if not ledger.client_record_exist(data=data):
-                    logging.debug("No record found for this Gateway, making request")
-                    """
-                    TODO:
-                        - Attempt to get local seeders first
-                        - Implement time to resend in cases feedback not received from seeder
-                    """
-                    seeders = ledger.get_records(table='seeders')
-                    if len(seeders) > 0:
-                        seeder_MSISDN = seeders[0]['MSISDN']
-
-                        seeder_state = ledger.request_state(MSISDN= seeder_MSISDN)
-                        logging.debug("state %s", seeder_state)
-                        if seeder_state == "requested":
-                            seeder = ledger.get_seeder(MSISDN=seeder_MSISDN)
-                            logging.debug("validation request pending for %s", seeder)
-                        else:
-                            text = json.dumps({"IMSI": sim_imsi})
-                            text = str(base64.b64encode(str.encode(text)), 'utf-8')
-                            logging.debug("+ making request to seeder: %s %s", 
-                                    seeder_MSISDN, text)
-
-                            try:
-                                Deku.modem_send(
-                                        modem=self.modem,
-                                        number=seeder_MSISDN,
-                                        text=text,
-                                        force=True)
-                            except Exception as error:
-                                raise error
-                            else:
-                                try:
-                                    state = 'requested'
-                                    ledger.update_seeder_state(state=state, MSISDN=seeder_MSISDN)
-                                    logging.debug("updated seeder state: %s %s", 
-                                            seeder_MSISDN, state)
-                                except Exception as error:
-                                    raise error
-                    else:
-                        logging.warn("No seeder address found!")
-                else:
-                    logging.debug("Record exist in ledger")
-            except Exception as error:
-                raise error

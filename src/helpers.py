@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import common.MCCMNC as MCCMNC
+from common.mmcli_python.modem import Modem
+
 def validate_repair_request(self, number, method):
     try:
         Deku.validate_MSISDN(number)
