@@ -120,7 +120,7 @@ class NodeInbound(threading.Event):
             time.sleep(self.daemon_sleep_time)
 
 
-    def make_seeder_request(seeder: Seeder):
+    def make_seeder_request(self, seeder: Seeders):
         """Sends a request to the provided seeder.
         """
         text = json.dumps({"IMSI": self.modem.get_sim_imsi()})
@@ -131,8 +131,8 @@ class NodeInbound(threading.Event):
                 seeder.MSISDN, text)
 
         try:
-            Deku.modem_send(
-                    modem=self.modem,
+            # deku = Deku(self.modem)
+            Deku(self.modem).modem_send( 
                     number=seeder.MSISDN,
                     text=text,
                     force=True)
@@ -141,7 +141,7 @@ class NodeInbound(threading.Event):
         else:
             try:
                 seeder.update_state('requested')
-                logging.debug("Seeder %s state changed to requested", seeder._id)
+                logging.debug("Seeder %s state changed to requested", seeder.MSISDN)
             except Exception as error:
                 raise error
 
@@ -166,9 +166,9 @@ class NodeInbound(threading.Event):
             IMSI= self.modem.get_sim_imsi()
             self.seed = Seeds(IMSI=IMSI, seeder=seeder)
             if not self.seed.is_seed():
+                seeder = None
                 logging.debug("[%s] is not a seed... fetching remote seeders", self.seed.IMSI)
                 seeders = Seeders.request_remote_seeders()
-
                 if len(seeders) < 1:
                     logging.debug("No remote seeders found, checking for hardcoded")
 
@@ -209,7 +209,8 @@ class NodeInbound(threading.Event):
             raise error
         else:
             try:
-                logging.info("[%s | %s] starting incoming listener", self.modem.imei, self.modem.get_operator_name())
+                logging.info("[%s | %s] starting incoming listener", 
+                        self.modem.imei, helpers.get_modem_operator_name(self.modem))
                 inbound_thread = threading.Thread(
                         target=self.listen_for_sms_inbound, 
                         daemon=True)
