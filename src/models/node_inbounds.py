@@ -137,11 +137,39 @@ class NodeInbound(threading.Event):
 
         try:
             self.seed = Seed(IMSI=IMSI, seeder=seeder)
+            if not self.seed.is_seed():
+                seeders = self.seed.request_remote_seeders()
+
+                if len(seeders) < 1:
+                    seeders = self.seed.request_hardcoded_seeders()
+
+                seeder = self.seed.filter_seeders(seeders, 
+                        {"country":helpers.get_operator_country(self.modem.get_sim_imsi()),
+                            "operator_name":helpers.get_operator_name(self.modem)})
+
+                if not seeder:
+                    seeder = self.seed.filter_seeders(seeders, 
+                            {"country":helpers.get_operaetor_country(self.modem.get_sim_imsi())})
+
+                if not seeder:
+                    seeder = seeders[0]
+
+                try:
+                    """
+                    Deku makes request to seeder information
+                    """
+                except Exception as error:
+                    raise error
+                else:
+                    logging.info("Seed request made successfully!")
+            else:
+                logging.info("Node is valid seed!")
+
         except Exception as error:
             raise error
-
         else:
             try:
+                logging.info("[%s | %s] starting incoming listener", self.modem.imei, self.modem.get_operator_name())
                 inbound_thread = threading.Thread(
                         target=self.listen_for_sms_inbound, 
                         daemon=True)
