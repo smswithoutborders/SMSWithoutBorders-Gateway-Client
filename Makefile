@@ -123,6 +123,7 @@ remove:
 	@rm -rfv $(path_rabbitmq_builds)
 	@rm -f $(path_rabbitmq)/*.sh
 	@rm -rf rabbitmq_server*
+	@rm -rf src/bins
 	@sudo systemctl daemon-reload
 	@echo "complete"
 update:

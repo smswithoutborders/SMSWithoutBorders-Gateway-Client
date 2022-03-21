@@ -4,3 +4,4 @@ config.ini
 log_trace/*
 locks/*
 status/*
+bins/*
