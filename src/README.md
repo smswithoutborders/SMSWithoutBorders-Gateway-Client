@@ -33,7 +33,6 @@ sudo apt-get install -y erlang-base \
 ```bash
 pip3 install virtualenv
 git clone https://github.com/smswithoutborders/SMSWithoutBorders-Gateway-Client.git
-git submodule update --init --recursive
 cd SMSWithoutBorders-Gateway-Client
 make
 make install
@@ -65,7 +64,7 @@ To automatically enable transmissions, provide the required authentication detai
 - Edit `.config/extensions/platforms/telegram.ini` ref:[link Telegram config file](.configs/extensions/platforms/example.telegram.ini) \
 All other supported platforms are placed in `.configs/extensions/platforms/
 
-#### Running
+#### Running as system service
 ##### Linux
 ```bash
 make start
@@ -73,6 +72,22 @@ make start
 - To auto start on bootup
 ```bash
 make enable
+```
+
+<b>To view all running logs</b>
+```bash
+tail -f src/services/logs/service.log
+```
+
+#### Running manually
+##### Linux
+- To run the outgoing (send out SMS messages)
+```bash
+python3 src/main.py --log=DEBUG --module=outgoing
+```
+- To run the incoming (receive and process incoming messages)
+```bash
+python3 src/main.py --log=DEBUG --module=inbound
 ```
 
 <b>To view all running logs</b>
