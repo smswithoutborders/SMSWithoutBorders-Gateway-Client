@@ -18,7 +18,6 @@ class Seeds(Ledger):
         In other to seed, an MSISDN and IMSI should be present in local db.
         """
         result = self.find_seed()
-        logging.debug(result)
         if len(result) > 0:
             return True
 
@@ -79,15 +78,16 @@ class Seeds(Ledger):
     def ping(self):
         return False
 
-    def make_seed(self, MSISDN: str):
+    def make_seed(self, MSISDN: str) -> int:
         """Updates the ledger record for current IMSI with MSISDN.
         """
         try:
             logging.debug("updating seed with MSISDN: %s", MSISDN)
             rowcount = self.update_seed_MSISDN(seed_MSISDN=MSISDN)
-            logging.info("Making seed rowcount: %d", rowcount)
         except Exception as error:
             raise error
+        else:
+            return rowcount
 
     def remote_seed(self):
         """Deletes the seed record for node.

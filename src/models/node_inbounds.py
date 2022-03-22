@@ -63,7 +63,10 @@ class NodeInbound(threading.Event):
             seed_MSISDN = seed.process_seed_message(data=bytes(sms.text, 'utf-8'))
 
             logging.info("Updating seed record with: %s", seed_MSISDN)
-            seed.make_seed(MSISDN=seed_MSISDN)
+            rowcount = seed.make_seed(MSISDN=seed_MSISDN)
+
+            if rowcount < 1:
+                logging.error("Failed to update seed record!")
 
             logging.debug("Updating seeder for node")
             seed.update_seeder(seeder_MSISDN=seeder.MSISDN)
