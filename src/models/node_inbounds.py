@@ -109,8 +109,7 @@ class NodeInbound(threading.Event):
 
                 else:
                     try:
-                        # self.modem.sms.delete(msg_index)
-                        pass
+                        self.modem.sms.delete(msg_index)
                     except Exception as error:
                         raise error
                     '''
@@ -136,14 +135,10 @@ class NodeInbound(threading.Event):
                 seeder.MSISDN, text)
 
         try:
-            # deku = Deku(self.modem)
-            """
             Deku(self.modem).modem_send( 
                     number=seeder.MSISDN,
                     text=text,
                     force=True)
-            """
-            pass
         except Exception as error:
             raise error
         else:
