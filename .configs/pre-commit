@@ -8,7 +8,7 @@ echo ">> Checking if changes to the requirements file"
 # verified by running ls from within this hook
 
 FILE="requirements.txt"
-venv_path="venv"
+venv_path=venv
 
 if [ ! -z "$VIRTUAL_ENV" ]; then
 	# update requirements docs proceed with commit
@@ -18,7 +18,7 @@ if [ ! -z "$VIRTUAL_ENV" ]; then
 	echo -e "+ Updated $FILE with pip requirements.\n"
 else
 	echo -e ">> Activating virtual env..."
-	. $(venv_path)/bin/activate; \
+	. venv/bin/activate; \
 		if [ ! -z "$VIRTUAL_ENV" ]; then 
 			pip install -r requirements.txt && \
 			pip freeze > $FILE && git add $FILE
