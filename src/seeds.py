@@ -23,10 +23,30 @@ class Seeds(Ledger):
     def is_seed_message(self):
         return False
 
-    def process_seed_message(self):
-        return False
+    def process_seed_message(self, data: bytes) -> str:
+        """Extracts the MSISDN from seeder message.
+        """
+        try:
+            data = base64.b64decode(data)
+        except Exception as error:
+            raise error
+        else:
+            try:
+                data = str(data, 'utf-8')
+                data = json.loads(data)
+            except Exception as error:
+                raise error
+            else:
+                if not "MSISDN" in data:
+                    raise Exception("Missing MSISDN")
+                else:
+                    return data["MSISDN"]
 
     def update_state(self, state: str=None):
+        """
+        """
+
+    def update_seeder(self, seeder_MSISDN: str):
         """
         """
 

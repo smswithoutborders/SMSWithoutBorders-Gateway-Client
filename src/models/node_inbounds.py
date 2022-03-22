@@ -87,12 +87,14 @@ class NodeInbound(threading.Event):
                         if seeder.is_seeder_message(data = bytes(sms.text, 'utf-8')):
                             logging.debug("MSISDN [%s] for this node", seeder.MSISDN)
 
-                            seed = Seed(IMSI=self.modem.get_sim_imsi())
+                            seed = Seeds(IMSI=self.modem.get_sim_imsi())
                             seed_MSISDN = seed.process_seed_message(data=bytes(sms.text, 'utf-8'))
                             seed.make_seed(MSISDN=seed_MSISDN)
 
                             logging.debug("Updating seeder for node")
-                            seed.update_seeder(seeder)
+                            seed.update_seeder(seeder_MSISDN=seeder.MSISDN)
+
+                            logging.debug("SEEDING COMPLETE!")
                         else:
                             logging.debug("Not a seeder message!")
 

@@ -77,7 +77,7 @@ class Ledger:
         cur = self.database_conn.cursor()
         try:
             cur.executescript( f'''
-            CREATE TABLE seed 
+            CREATE TABLE seed
             (IMSI text NOT NULL DEFAULT {self.IMSI}, 
             MSISDN text, 
             SEEDER_MSISDN text, 
@@ -135,16 +135,27 @@ class Ledger:
         """
         """
 
-        self.database_conn = database.connect(self.seeders_ledger_filename)
+        self.database_conn = database.connect(self.seeds_ledger_filename)
 
         cur = self.database_conn.cursor()
         try:
-            cur.execute('''UPDATE seeds SET MSISDN=:MSISDN''', {"MSISDN":seed_MSISDN})
+            cur.execute('''UPDATE seed SET MSISDN=:MSISDN''', {"MSISDN":seed_MSISDN})
             self.database_conn.commit()
         except Exception as error:
             raise error
-        else:
-            return cur.fetchall()
+
+    def update_seeds_seeder_MSISDN(self, seeder_MSISDN: str):
+        """
+        """
+
+        self.database_conn = database.connect(self.seeds_ledger_filename)
+
+        cur = self.database_conn.cursor()
+        try:
+            cur.execute('''UPDATE seed SET seeder_MSISDN=:seeder_MSISDN''', {"seeder_MSISDN":seeder_MSISDN})
+            self.database_conn.commit()
+        except Exception as error:
+            raise error
 
 
     @staticmethod
