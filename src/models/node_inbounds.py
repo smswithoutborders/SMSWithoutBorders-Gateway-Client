@@ -69,31 +69,33 @@ class NodeInbound(threading.Event):
                             blocked_connection_timeout=60,
                             durable=True)
 
-            inbound_messages = self.modem.SMS.list('received')
+            inbound_messages = self.modem.sms.list('received')
+            logging.debug("# of inbound messasges = %d", len(inbound_messages))
+
             for msg_index in inbound_messages:
                 sms=Modem.SMS(index=msg_index)
                 logging.debug("Number:%s, Text:%s", 
                         sms.number, sms.text)
 
                 try:
-                    data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
-                    """
-                    Checks if record exist in ledger (ledger already exist)
-                    If not exist, check if inbound is for ledger
-                    If for ledger insert record in ledger and continue (Number has been acquired)
-                    """
-                    logging.debug("checking if data is ledger")
+                    # data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
 
-                    ledger = Ledger(['clients'])
+                    seeder = Seeders(MSISDN=sms.number)
+                    if seeder.is_seeder():
+                        logging.debug("request made from seeder [%s]", seeder.MSISDN)
 
-                    if not ledger.client_record_exist(data=data):
-                        if self.is_ledger_request(data):
-                            ledger.insert_client_record(data)
-                            logging.debug("Created new ledger")
+                        if seeder.is_seeder_message(data = bytes(sms.text, 'utf-8')):
+                            logging.debug("MSISDN [%s] for this node", seeder.MSISDN)
+
+                            seed = Seed(IMSI=self.modem.get_sim_imsi())
+                            seed_MSISDN = seed.process_seed_message(data=bytes(sms.text, 'utf-8'))
+                            seed.make_seed(MSISDN=seed_MSISDN)
+
+                            logging.debug("Updating seeder for node")
+                            seed.update_seeder(seeder)
                         else:
-                            logging.debug("Not a ledger command")
-                    else:
-                        logging.debug("record exist, continuing to publish")
+                            logging.debug("Not a seeder message!")
+
                 except Exception as error:
                     logging.exception(error)
                 
@@ -105,7 +107,8 @@ class NodeInbound(threading.Event):
 
                 else:
                     try:
-                        self.modem.SMS.delete(msg_index)
+                        # self.modem.sms.delete(msg_index)
+                        pass
                     except Exception as error:
                         raise error
                     '''
@@ -132,15 +135,18 @@ class NodeInbound(threading.Event):
 
         try:
             # deku = Deku(self.modem)
+            """
             Deku(self.modem).modem_send( 
                     number=seeder.MSISDN,
                     text=text,
                     force=True)
+            """
+            pass
         except Exception as error:
             raise error
         else:
             try:
-                seeder.update_state('requested')
+                self.seed.update_state('requested')
                 logging.debug("Seeder %s state changed to requested", seeder.MSISDN)
             except Exception as error:
                 raise error
@@ -164,7 +170,7 @@ class NodeInbound(threading.Event):
 
         try:
             IMSI= self.modem.get_sim_imsi()
-            self.seed = Seeds(IMSI=IMSI, seeder=seeder)
+            self.seed = Seeds(IMSI=IMSI)
             if not self.seed.is_seed():
                 seeder = None
                 logging.debug("[%s] is not a seed... fetching remote seeders", self.seed.IMSI)
@@ -176,6 +182,12 @@ class NodeInbound(threading.Event):
                     seeders = Seeders.request_hardcoded_seeders()
                 else:
                     logging.debug("%d remote seeders found", len(seeders))
+
+                    try:
+                        Seeders.record_seeders(seeders)
+                    except Exception as error:
+                        logging.exception(error)
+                        logging.error("Failed to record seeders")
 
                 filtered_seeders = Seeders._filter(seeders, 
                         {"country":helpers.get_modem_operator_country(self.modem),
