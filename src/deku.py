@@ -214,6 +214,7 @@ class Deku(Modem):
                     status, lock_type, lock_file)
 
             if status and lock_type == 'BUSY':
+                logging.debug("Removed BUSY lock from modem")
                 os.remove(lock_file)
 
 

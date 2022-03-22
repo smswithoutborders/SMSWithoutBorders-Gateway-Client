@@ -28,6 +28,9 @@ class Ledger:
                     try:
                         self.__create_seeds_ledger_file__()
                         logging.info("Created seed's ledger for %s", self.IMSI)
+
+                        self.__populate_seed_ledger_file__()
+                        logging.info("Populated seed ledger for %s", self.IMSI)
                     except Exception as error:
                         raise error
                 else:
@@ -76,13 +79,22 @@ class Ledger:
 
         cur = self.database_conn.cursor()
         try:
-            cur.executescript( f'''
+            cur.execute( f'''
             CREATE TABLE seed
-            (IMSI text NOT NULL DEFAULT {self.IMSI}, 
+            (IMSI text NOT NULL, 
             MSISDN text, 
             SEEDER_MSISDN text, 
-            date DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL);
-            ''')
+            date DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL) ''')
+            self.database_conn.commit()
+        except Exception as error:
+            raise error
+    
+    def __populate_seed_ledger_file__(self)->None:
+        self.database_conn = database.connect(self.seeds_ledger_filename)
+
+        cur = self.database_conn.cursor()
+        try:
+            cur.execute(f"INSERT INTO seed (IMSI) VALUES ({self.IMSI})")
             self.database_conn.commit()
         except Exception as error:
             raise error
@@ -139,10 +151,13 @@ class Ledger:
 
         cur = self.database_conn.cursor()
         try:
-            cur.execute('''UPDATE seed SET MSISDN=:MSISDN''', {"MSISDN":seed_MSISDN})
+            cur.execute('''UPDATE seed SET MSISDN=:MSISDN WHERE IMSI=:IMSI''', 
+                    {"MSISDN":seed_MSISDN, "IMSI":self.IMSI})
             self.database_conn.commit()
         except Exception as error:
             raise error
+        else:
+            return cur.rowcount
 
     def update_seeds_seeder_MSISDN(self, seeder_MSISDN: str):
         """

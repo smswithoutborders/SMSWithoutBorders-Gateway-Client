@@ -2,26 +2,52 @@
 
 import base64
 import json
+import logging
 
 from ledger import Ledger
 
 class Seeds(Ledger):
+
     def __init__(self, IMSI: str):
         super().__init__(IMSI=IMSI)
         self.IMSI = IMSI
+
 
     def is_seed(self) -> bool:
         """Checks if current node can seed.
         In other to seed, an MSISDN and IMSI should be present in local db.
         """
         result = self.find_seed()
+        logging.debug(result)
         if len(result) > 0:
             return True
 
         return False
 
-    def is_seed_message(self):
+
+    def is_seed_message(data: bytes) -> bool:
+        """
+        """
+        try:
+            data = base64.b64decode(data)
+
+        except Exception as error:
+            return False
+
+        else:
+            try:
+                data = str(data, 'utf-8')
+                data = json.loads(data)
+
+            except Exception as error:
+                return False
+
+            else:
+                if "IMSI" in data:
+                    return True
+
         return False
+
 
     def process_seed_message(self, data: bytes) -> str:
         """Extracts the MSISDN from seeder message.
@@ -57,7 +83,9 @@ class Seeds(Ledger):
         """Updates the ledger record for current IMSI with MSISDN.
         """
         try:
-            self.update_seed_MSISDN(seed_MSISDN=MSISDN)
+            logging.debug("updating seed with MSISDN: %s", MSISDN)
+            rowcount = self.update_seed_MSISDN(seed_MSISDN=MSISDN)
+            logging.info("Making seed rowcount: %d", rowcount)
         except Exception as error:
             raise error
 

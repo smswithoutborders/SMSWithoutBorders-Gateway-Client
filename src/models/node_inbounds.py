@@ -53,8 +53,51 @@ class NodeInbound(threading.Event):
         except Exception as error:
             raise error
 
+    def process_seeder_response(self, sms: SMS, seeder: Seeders):
+        logging.debug("+ Response made from seeder [%s]", seeder.MSISDN)
+
+        if seeder.is_seeder_message(data = bytes(sms.text, 'utf-8')):
+            logging.debug("MSISDN [%s] for this node", seeder.MSISDN)
+
+            seed = Seeds(IMSI=self.modem.get_sim_imsi())
+            seed_MSISDN = seed.process_seed_message(data=bytes(sms.text, 'utf-8'))
+
+            logging.info("Updating seed record with: %s", seed_MSISDN)
+            seed.make_seed(MSISDN=seed_MSISDN)
+
+            logging.debug("Updating seeder for node")
+            seed.update_seeder(seeder_MSISDN=seeder.MSISDN)
+
+            logging.info("SEEDING COMPLETE!")
+        else:
+            logging.debug("Not a seeder message!")
+
+
+    def process_seed_request(self, sms: SMS):
+        """Responds back to seed with MSISDN.
+        """
+        logging.debug("+ Responding request made from seed [%s]", sms.number)
+        text = str(base64.b64encode(bytes(json.dumps({"MSISDN": sms.number}), 'utf-8')), 'utf-8')
+        try:
+            Deku(self.modem).modem_send( 
+                    number=sms.number,
+                    text=text,
+                    force=True)
+        except Exception as error:
+            raise error
+        else:
+            time.sleep(self.daemon_sleep_time)
+            logging.info("SEED RESPONSE COMPLETE")
+
 
     def listen_for_sms_inbound(self, publish_url:str='localhost', queue_name:str='inbound.route.route' )->None:
+        """Checks for all incoming messages.
+        Before processing the messages - checks if:
+            - Is a seed request (critical to do this before messages get deleted).
+            - Is a seeder response.
+        """
+        logging.info("[*] Listening for inbound messages...")
+
         while True:
             if ( not hasattr(self, 'publish_connection') or 
                     self.publish_connection.is_closed):
@@ -81,22 +124,14 @@ class NodeInbound(threading.Event):
                     # data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
 
                     seeder = Seeders(MSISDN=sms.number)
-                    if seeder.is_seeder():
-                        logging.debug("request made from seeder [%s]", seeder.MSISDN)
 
-                        if seeder.is_seeder_message(data = bytes(sms.text, 'utf-8')):
-                            logging.debug("MSISDN [%s] for this node", seeder.MSISDN)
+                    if Seeds.is_seed_message(data=bytes(sms.text, 'utf-8')):
+                        logging.info("[*] Seeding request present")
+                        self.process_seed_request(sms)
 
-                            seed = Seeds(IMSI=self.modem.get_sim_imsi())
-                            seed_MSISDN = seed.process_seed_message(data=bytes(sms.text, 'utf-8'))
-                            seed.make_seed(MSISDN=seed_MSISDN)
-
-                            logging.debug("Updating seeder for node")
-                            seed.update_seeder(seeder_MSISDN=seeder.MSISDN)
-
-                            logging.debug("SEEDING COMPLETE!")
-                        else:
-                            logging.debug("Not a seeder message!")
+                    elif seeder.is_seeder():
+                        logging.info("[*] Seeder response present")
+                        self.process_seeder_response(sms=sms, seeder=seeder)
 
                 except Exception as error:
                     logging.exception(error)
@@ -145,6 +180,8 @@ class NodeInbound(threading.Event):
             try:
                 self.seed.update_state('requested')
                 logging.debug("Seeder %s state changed to requested", seeder.MSISDN)
+
+                time.sleep(self.daemon_sleep_time)
             except Exception as error:
                 raise error
 
@@ -169,6 +206,7 @@ class NodeInbound(threading.Event):
             IMSI= self.modem.get_sim_imsi()
             self.seed = Seeds(IMSI=IMSI)
             if not self.seed.is_seed():
+                logging.info("[*] Node is not a seed!")
                 seeder = None
                 logging.debug("[%s] is not a seed... fetching remote seeders", self.seed.IMSI)
                 seeders = Seeders.request_remote_seeders()
