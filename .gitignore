@@ -10,3 +10,4 @@ tmp/*
 installer/files/*
 *.dump
 tmp/*
+src/bins/*
