@@ -18,27 +18,17 @@ from seeds import Seeds
 from seeders import Seeders
 import helpers
 
-class NodeInbound(threading.Event):
+class NodeInbound(threading.Event, Seeds):
     locked_modems = True
 
     def __init__(self, modem:Modem, 
             daemon_sleep_time:int=3)->None:
 
         super().__init__()
+        Seeds.__init__(self, IMSI=modem.get_sim_imsi(), ping=True)
+
         self.modem = modem
         self.daemon_sleep_time = daemon_sleep_time
-
-    @staticmethod
-    def init(modem:Modem, daemon_sleep_time:int=3)->NodeOutgoing:
-        """Create an instance of :cls:NodeOutgoing.
-
-            Args:
-                modem: Instanstiates a node for this modem.
-                daemon_sleep_time: Sleep time for each modem.
-                active_nodes: from :cls:ModemManager to manage active nodes.
-        """
-        nodeIncoming = NodeInbound(modem, daemon_sleep_time)
-        return nodeIncoming
 
     def __publish_to_broker__(self, sms:str, queue_name:str)->None:
         try:
@@ -181,7 +171,7 @@ class NodeInbound(threading.Event):
             raise error
         else:
             try:
-                self.seed.update_state('requested')
+                self.update_state('requested')
                 logging.debug("Seeder %s state changed to requested", seeder.MSISDN)
 
                 time.sleep(self.daemon_sleep_time)
@@ -189,7 +179,7 @@ class NodeInbound(threading.Event):
                 raise error
 
     def __seed__(self) -> None:
-        logging.debug("[%s] is not a seed... fetching remote seeders", self.seed.IMSI)
+        logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
 
         seeder = None
 
@@ -254,14 +244,12 @@ class NodeInbound(threading.Event):
 
         try:
             IMSI= self.modem.get_sim_imsi()
-            self.seed = Seeds(IMSI=IMSI)
 
             #  Checcks of current node is a seed (has MSISDN and IMSI in ledger)
-            if not self.seed.is_seed():
+            if not self.is_seed():
                 logging.info("[*] Node is not a seed!")
                 self.__seed__()
             else:
-                # TODO should check here for seeder and begin functioning as one
                 logging.info("Node is valid seed!")
 
         except Exception as error:

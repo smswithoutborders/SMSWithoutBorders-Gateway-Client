@@ -143,9 +143,8 @@ class ModemManager:
                 modems += locked_modems
 
             for modem in modems:
-                model = _model.init(modem=modem)
                 if modem.imei in self.active_nodes and \
-                        model.__class__.__name__ in self.active_nodes[modem.imei]:
+                        _model.__name__ in self.active_nodes[modem.imei]:
                     """
                     if not Deku.modem_ready(modem) or (
                             hasattr(_model, 'locked_modems') and not _model.locked_modems):
@@ -156,6 +155,7 @@ class ModemManager:
 
                     continue
 
+                model = _model(modem=modem)
                 logging.debug("initializing modem for %s %s", 
                         modem.imei, _model)
 

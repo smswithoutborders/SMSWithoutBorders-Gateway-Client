@@ -9,13 +9,11 @@ import subprocess
 from ledger import Ledger
 
 class Seeders(Ledger):
-    def __init__(self, MSISDN: str, _id: str = None, seeder: bool = False,
-            ping_servers: list=[]):
+    def __init__(self, MSISDN: str, _id: str = None, seeder: bool = False):
         super().__init__(MSISDN=MSISDN)
         self._id = _id
         self.seeder = seeder
         self.MSISDN = MSISDN
-        self.ping_servers = ping_servers
 
     @staticmethod
     def _filter(seeders: list, filters: dict) -> list:
@@ -82,12 +80,6 @@ class Seeders(Ledger):
             self.add_seeders(seeders=seeders)
         except Exception as error:
             raise error
-
-
-    def __ping__(self) -> None:
-        """Informs the Gateway server that seeder is present.
-        This is blocking so best to run as a thread.
-        """
 
 
     def is_seeder(self) -> bool:

@@ -26,19 +26,6 @@ resources:
 
 class NodeOutbounds(threading.Event):
 
-    @staticmethod
-    def init(modem:Modem, daemon_sleep_time:int=3)->NodeOutbounds:
-        """Create an instance of :cls:NodeOutbounds.
-
-            Args:
-                modem: Instanstiates a node for this modem.
-                daemon_sleep_time: Sleep time for each modem.
-                active_nodes: from :cls:ModemManager to manage active nodes.
-        """
-
-        nodeOutgoing = NodeOutbounds(modem, daemon_sleep_time)
-        return nodeOutgoing
-
     def __init__(self, 
             modem:Modem, 
             daemon_sleep_time:int=3,

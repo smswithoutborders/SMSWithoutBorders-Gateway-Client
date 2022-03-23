@@ -2,16 +2,40 @@
 
 import base64
 import json
+import time
 import logging
+import threading
 
 from ledger import Ledger
 
 class Seeds(Ledger):
 
-    def __init__(self, IMSI: str):
+    def __init__(self, IMSI: str, ping: bool=False):
         super().__init__(IMSI=IMSI)
         self.IMSI = IMSI
+        self.ping = ping
 
+        if ping:
+            self.__ping__()
+
+    def __ping_request__(self):
+        try:
+            MSISDN = self.get_MSISDN()
+        except Exception as error:
+            raise error
+        else:
+            while True:
+                if MSISDN is not None:
+                    logging.debug("Sending ping request for [%s]", MSISDN)
+                else:
+                    MSISDN = self.get_MSISDN()
+                time.sleep(4)
+
+    
+    def __ping__(self):
+        logging.debug("[*] Starting ping session")
+        ping_thread = threading.Thread(target=self.__ping_request__, daemon=True)
+        ping_thread.start()
 
     def is_seed(self) -> bool:
         """Checks if current node can seed.
@@ -75,9 +99,6 @@ class Seeds(Ledger):
         """
         """
 
-    def ping(self):
-        return False
-
     def make_seed(self, MSISDN: str) -> int:
         """Updates the ledger record for current IMSI with MSISDN.
         """
@@ -102,4 +123,10 @@ class Seeds(Ledger):
         else:
             if len(seed) < 1:
                 return None
+
+            """
+            seed[0][0] = IMSI
+            seed[0][1] = MSISDN
+            """
+            return seed[0][1]
             
