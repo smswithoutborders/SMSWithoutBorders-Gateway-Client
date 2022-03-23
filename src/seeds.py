@@ -93,3 +93,13 @@ class Seeds(Ledger):
         """Deletes the seed record for node.
         """
 
+    def get_MSISDN(self) -> str:
+        """Fetches seeds MSISDN from ledger"""
+        try:
+            seed = self.find_seed()
+        except Exception as error:
+            raise error
+        else:
+            if len(seed) < 1:
+                return None
+            

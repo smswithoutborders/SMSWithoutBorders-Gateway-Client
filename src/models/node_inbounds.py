@@ -188,71 +188,80 @@ class NodeInbound(threading.Event):
             except Exception as error:
                 raise error
 
-    def main(self, seeder=False) -> None:
+    def __seed__(self) -> None:
+        logging.debug("[%s] is not a seed... fetching remote seeders", self.seed.IMSI)
 
+        seeder = None
+
+        """Ask remote server for seeders"""
+        seeders = Seeders.request_remote_seeders()
+        if len(seeders) < 1:
+            logging.debug("No remote seeders found, checking for hardcoded")
+
+            """Important: Should never be empty"""
+            seeders = Seeders.request_hardcoded_seeders()
+        else:
+            logging.debug("%d remote seeders found", len(seeders))
+
+            """Store seeders in local ledger so no need to fetch them over"""
+            try:
+                """FEATURE: should ping this seeders later if they're still alive"""
+                """FEATURE: would use this in case seeders fail to be reached"""
+                Seeders.record_seeders(seeders)
+            except Exception as error:
+                logging.exception(error)
+                logging.error("Failed to record seeders")
+
+        filtered_seeders = Seeders._filter(seeders, 
+                {"country":helpers.get_modem_operator_country(self.modem),
+                    "operator_name":helpers.get_modem_operator_name(self.modem)})
+
+        if not filtered_seeders:
+            logging.debug("No seeders found for filter, trying with lesser filters")
+            filtered_seeders = Seeders._filter(seeders, 
+                    {"country":helpers.get_modem_operator_country(self.modem)})
+        else:
+            logging.debug("%d filtered seeders found!", len(filtered_seeders))
+
+        if len(filtered_seeders) > 0:
+            logging.debug("%d filtered seeders found!", len(filtered_seeders))
+            seeder = filtered_seeders[0]
+        else:
+            logging.debug("no seeders found, falling back to hardcoded ones")
+            seeder = seeders[0]
+
+        try:
+            logging.debug("making seeder request [%s]", seeder.MSISDN)
+            self.make_seeder_request(seeder=seeder)
+        except Exception as error:
+            raise error
+        else:
+            logging.info("Seed request made successfully!")
+
+
+
+    def main(self, __seeder=False) -> None:
         """Monitors modems for inbound messages and publishes.
-
         This is process is blocking.
+        All seed(er)s make a ping request to the servers to inform of their presence
 
-            Args:
-                publish_url:
-                    url of local rabbitmq broker.
-
-                queue_name:
-                    name of queue on rabbitmq where messages for routing
-                    should routed to.
+        TODO:
+            - Ping body (IMSI: str, MSISDN: str, seeder: bool)
         """
 
+        self.__seeder = __seeder
         logging.debug("monitoring inbound messages")
 
         try:
             IMSI= self.modem.get_sim_imsi()
             self.seed = Seeds(IMSI=IMSI)
+
+            #  Checcks of current node is a seed (has MSISDN and IMSI in ledger)
             if not self.seed.is_seed():
                 logging.info("[*] Node is not a seed!")
-                seeder = None
-                logging.debug("[%s] is not a seed... fetching remote seeders", self.seed.IMSI)
-                seeders = Seeders.request_remote_seeders()
-                if len(seeders) < 1:
-                    logging.debug("No remote seeders found, checking for hardcoded")
-
-                    # Important: Should never be empty
-                    seeders = Seeders.request_hardcoded_seeders()
-                else:
-                    logging.debug("%d remote seeders found", len(seeders))
-
-                    try:
-                        Seeders.record_seeders(seeders)
-                    except Exception as error:
-                        logging.exception(error)
-                        logging.error("Failed to record seeders")
-
-                filtered_seeders = Seeders._filter(seeders, 
-                        {"country":helpers.get_modem_operator_country(self.modem),
-                            "operator_name":helpers.get_modem_operator_name(self.modem)})
-
-                if not filtered_seeders:
-                    logging.debug("No seeders found for filter, trying with lesser filters")
-                    filtered_seeders = Seeders._filter(seeders, 
-                            {"country":helpers.get_modem_operator_country(self.modem)})
-                else:
-                    logging.debug("%d filtered seeders found!", len(filtered_seeders))
-
-                if len(filtered_seeders) > 0:
-                    logging.debug("%d filtered seeders found!", len(filtered_seeders))
-                    seeder = filtered_seeders[0]
-                else:
-                    logging.debug("no seeders found, falling back to hardcoded ones")
-                    seeder = seeders[0]
-
-                try:
-                    logging.debug("making seeder request [%s]", seeder.MSISDN)
-                    self.make_seeder_request(seeder=seeder)
-                except Exception as error:
-                    raise error
-                else:
-                    logging.info("Seed request made successfully!")
+                self.__seed__()
             else:
+                # TODO should check here for seeder and begin functioning as one
                 logging.info("Node is valid seed!")
 
         except Exception as error:
