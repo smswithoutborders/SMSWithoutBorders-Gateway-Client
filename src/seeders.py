@@ -9,7 +9,12 @@ import subprocess
 from ledger import Ledger
 
 class Seeders(Ledger):
-    def __init__(self, MSISDN: str, _id: str = None, seeder: bool = False):
+    def __init__(self, 
+            MSISDN: str, 
+            _id: str = None, 
+            seeder: bool = False) -> None:
+
+
         super().__init__(MSISDN=MSISDN)
         self._id = _id
         self.seeder = seeder

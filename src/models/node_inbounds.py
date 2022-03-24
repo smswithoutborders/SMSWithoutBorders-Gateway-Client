@@ -21,14 +21,17 @@ import helpers
 class NodeInbound(threading.Event, Seeds):
     locked_modems = True
 
-    def __init__(self, modem:Modem, 
-            daemon_sleep_time:int=3)->None:
+    def __init__(self, 
+            modem:Modem, 
+            daemon_sleep_time:int=3, 
+            __confs: configparser.ConfigParser=None)->None:
 
         super().__init__()
         Seeds.__init__(self, IMSI=modem.get_sim_imsi(), ping=True)
 
         self.modem = modem
         self.daemon_sleep_time = daemon_sleep_time
+        self.__confs = __confs
 
     def __publish_to_broker__(self, sms:str, queue_name:str)->None:
         try:

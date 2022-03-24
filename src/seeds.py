@@ -4,38 +4,56 @@ import base64
 import json
 import time
 import logging
+import requests
 import threading
 
 from ledger import Ledger
+from seeders import Seeders
 
 class Seeds(Ledger):
 
-    def __init__(self, IMSI: str, ping: bool=False):
+    def __init__(self, 
+            IMSI: str, 
+            ping: bool=False, 
+            ping_servers: list=[]) -> None:
+
         super().__init__(IMSI=IMSI)
         self.IMSI = IMSI
         self.ping = ping
+        self.ping_servers = ping_servers
 
         if ping:
             self.__ping__()
 
-    def __ping_request__(self):
+    def __ping_request__(self) -> None:
         try:
-            MSISDN = self.get_MSISDN()
+            while True:
+                MSISDN = self.get_MSISDN()
+                if MSISDN is not None:
+                    seeder = Seeders(MSISDN=MSISDN)
+                    logging.debug("Sending ping request for [%s]", MSISDN)
+
+                    ping_data = { 
+                            "IMSI":self.IMSI,
+                            "MSISDN":MSISDN,
+                            "seeder":seeder.is_seeder()}
+                    logging.debug("Ping data: %s", ping_data)
+
+                    for ping_server in self.ping_servers:
+                        results = requests.post(ping_server, json=ping_data)
+
+                        logging.debug("Ping results: %s", results.text)
+
+                    # TODO: Configuration goes here to determine ping time
+                time.sleep(4)
         except Exception as error:
             raise error
-        else:
-            while True:
-                if MSISDN is not None:
-                    logging.debug("Sending ping request for [%s]", MSISDN)
-                else:
-                    MSISDN = self.get_MSISDN()
-                time.sleep(4)
 
     
-    def __ping__(self):
+    def __ping__(self) -> None:
         logging.debug("[*] Starting ping session")
-        ping_thread = threading.Thread(target=self.__ping_request__, daemon=True)
-        ping_thread.start()
+        self.ping_thread = threading.Thread(target=self.__ping_request__, daemon=True)
+        self.ping_thread.start()
 
     def is_seed(self) -> bool:
         """Checks if current node can seed.
