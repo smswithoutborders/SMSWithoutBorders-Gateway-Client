@@ -29,10 +29,25 @@ class Seeders(Ledger):
 
     @staticmethod
     def request_remote_seeders() -> list:
+        """Checks with the remote Gateway servers for remote seeders.
         """
-        """
-        seeders = []
-        return seeders
+        try:
+            for gateway_server in self.gateway_servers:
+                logging.debug("Requesting remote seeders from: %s", gateway_server)
+                try:
+                    results = requests.post(gateway_server, json={})
+
+                    if not results.status_code == 200:
+                        results.raise_for_status()
+
+                    results_json = results.json
+                except Exception as error:
+                    raise error
+                else:
+                    return results_json
+
+        except Exception as error:
+            raise error
     
     @staticmethod
     def record_seeders(seeders: list):

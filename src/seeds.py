@@ -128,9 +128,6 @@ class Seeds(Ledger):
         else:
             return rowcount
 
-    def remote_seed(self):
-        """Deletes the seed record for node.
-        """
 
     def get_MSISDN(self) -> str:
         """Fetches seeds MSISDN from ledger"""
