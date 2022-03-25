@@ -229,7 +229,7 @@ class NodeInbound(threading.Event, Seeds):
             logging.debug("%d filtered seeders found!", len(filtered_seeders))
             seeder = filtered_seeders[0]
         else:
-            logging.debug("no seeders found, falling back to hardcoded ones")
+            logging.debug("no seeders found, falling back to unfiltered ones")
             seeder = seeders[0]
 
         try:
