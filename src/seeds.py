@@ -50,6 +50,29 @@ class Seeds(Ledger):
                 # TODO: Configuration goes here to determine ping time
             time.sleep(4)
 
+    def remote_search(self, remote_gateway_servers) -> str:
+        """Checks with the remote Gateway servers for MSISDN.
+        """
+        try:
+            for gateway_server in remote_gateway_servers:
+                logging.debug("Requesting remote seeders from: %s", gateway_server)
+                try:
+                    results = requests.get(gateway_server % (self.IMSI), json={})
+                    logging.debug(results.text)
+
+                    if not results.status_code == 200:
+                        results.raise_for_status()
+
+                except Exception as error:
+                    raise error
+                else:
+                    if not results.text == '':
+                        return results.text
+
+            return ''
+        except Exception as error:
+            raise error
+
     
     def __ping__(self) -> None:
         logging.debug("[*] Starting ping session")

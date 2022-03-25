@@ -19,8 +19,7 @@ def main(modemManager:ModemManager)->None:
     logging.debug("Gateway incoming initializing...")
 
     try:
-        __configs = configparser.ConfigParser()
-
+        __configs = configparser.ConfigParser(interpolation=None)
         __configs.read(
                 os.path.join(os.path.dirname(__file__), 
                     '../.configs', 'config.ini'))

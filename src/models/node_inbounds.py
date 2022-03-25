@@ -214,6 +214,8 @@ class NodeInbound(threading.Event, Seeds):
 
             """Store seeders in local ledger so no need to fetch them over"""
 
+        filtered_seeders = []
+        """
         filtered_seeders = Seeders._filter(seeders, 
                 {"country":helpers.get_modem_operator_country(self.modem),
                     "operator_name":helpers.get_modem_operator_name(self.modem)})
@@ -224,6 +226,7 @@ class NodeInbound(threading.Event, Seeds):
                     {"country":helpers.get_modem_operator_country(self.modem)})
         else:
             logging.debug("%d filtered seeders found!", len(filtered_seeders))
+        """
 
         if len(filtered_seeders) > 0:
             logging.debug("%d filtered seeders found!", len(filtered_seeders))
@@ -259,7 +262,22 @@ class NodeInbound(threading.Event, Seeds):
             #  Checcks of current node is a seed (has MSISDN and IMSI in ledger)
             if not self.is_seed():
                 logging.info("[*] Node is not a seed!")
-                self.__seed__()
+
+                remote_gateway_servers = self.configs__['NODES']['SEEDERS_PROBE_URL']
+                remote_gateway_servers = [s.strip() for s in remote_gateway_servers.split(',')]
+                MSISDN = self.remote_search(remote_gateway_servers)
+
+                if MSISDN == '':
+                    logging.debug("Seed not found on remote servers...")
+                    self.__seed__()
+                else:
+                    logging.info("Updating seed record with: %s", MSISDN)
+                    rowcount = self.make_seed(MSISDN=MSISDN)
+
+                    if rowcount < 1:
+                        logging.error("Failed to update seed record!")
+                    else:
+                        logging.debug("[*] MSISDN - %s found remotely!", MSISDN)
             else:
                 logging.info("Node is valid seed!")
 
