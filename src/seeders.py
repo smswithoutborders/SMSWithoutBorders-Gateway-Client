@@ -5,6 +5,7 @@ import logging
 import json
 import base64
 import subprocess
+import requests
 
 from ledger import Ledger
 
@@ -28,31 +29,31 @@ class Seeders(Ledger):
         return seeders
 
     @staticmethod
-    def request_remote_seeders() -> list:
+    def request_remote_seeders(remote_gateway_servers: list) -> list:
         """Checks with the remote Gateway servers for remote seeders.
         """
         try:
-            for gateway_server in self.gateway_servers:
+            seeders = set()
+            for gateway_server in remote_gateway_servers:
                 logging.debug("Requesting remote seeders from: %s", gateway_server)
                 try:
-                    results = requests.post(gateway_server, json={})
+                    results = requests.get(gateway_server, json={})
+                    logging.debug(results.json())
 
                     if not results.status_code == 200:
                         results.raise_for_status()
 
-                    results_json = results.json
+                    results_json = results.json()
                 except Exception as error:
                     raise error
                 else:
-                    return results_json
+                    for result in results_json:
+                        seeders.add(result['MSISDN'])
 
+            seeders = [Seeders(MSISDN=MSISDN) for MSISDN in seeders]
+            return seeders
         except Exception as error:
             raise error
-    
-    @staticmethod
-    def record_seeders(seeders: list):
-        """
-        """
 
     @staticmethod
     def request_hardcoded_seeders() -> list:

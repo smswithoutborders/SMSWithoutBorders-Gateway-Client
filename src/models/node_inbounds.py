@@ -33,7 +33,7 @@ class NodeInbound(threading.Event, Seeds):
         self.configs__ = configs__
 
         ping_servers = configs__['NODES']['SEED_PING_URL']
-        ping_servers = [server.rstrip() for server in ping_servers.split(',')]
+        ping_servers = [server.strip() for server in ping_servers.split(',')]
 
         Seeds.__init__(self, 
                 IMSI=modem.get_sim_imsi(), 
@@ -191,10 +191,19 @@ class NodeInbound(threading.Event, Seeds):
     def __seed__(self) -> None:
         logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
 
-        seeder = None
+        seeders = []
+        remote_gateway_servers = self.configs__['NODES']['SEEDERS_PROBE_URL']
 
         """Ask remote server for seeders"""
-        seeders = Seeders.request_remote_seeders()
+        remote_gateway_servers = [s.strip() for s in remote_gateway_servers.split(',')]
+        logging.debug("Remote Gateways servers: %s", remote_gateway_servers)
+
+        try:
+            seeders = Seeders.request_remote_seeders(remote_gateway_servers)
+            logging.info("[*] Available seeders: %s", [seeder for seeder in seeders])
+        except Exception as error:
+            logging.exception(error)
+
         if len(seeders) < 1:
             logging.debug("No remote seeders found, checking for hardcoded")
 
@@ -204,13 +213,6 @@ class NodeInbound(threading.Event, Seeds):
             logging.debug("%d remote seeders found", len(seeders))
 
             """Store seeders in local ledger so no need to fetch them over"""
-            try:
-                """FEATURE: should ping this seeders later if they're still alive"""
-                """FEATURE: would use this in case seeders fail to be reached"""
-                Seeders.record_seeders(seeders)
-            except Exception as error:
-                logging.exception(error)
-                logging.error("Failed to record seeders")
 
         filtered_seeders = Seeders._filter(seeders, 
                 {"country":helpers.get_modem_operator_country(self.modem),
@@ -239,7 +241,6 @@ class NodeInbound(threading.Event, Seeds):
             logging.info("Seed request made successfully!")
 
 
-
     def main(self, __seeder=False) -> None:
         """Monitors modems for inbound messages and publishes.
         This is process is blocking.
@@ -263,7 +264,7 @@ class NodeInbound(threading.Event, Seeds):
                 logging.info("Node is valid seed!")
 
         except Exception as error:
-            raise error
+            logging.error(error)
         else:
             try:
                 logging.info("[%s | %s] starting incoming listener", 
