@@ -3,6 +3,7 @@
 import logging
 import threading
 import time
+import configparser
 from deku import Deku
 
 from common.mmcli_python.modem import Modem
@@ -17,8 +18,9 @@ class ModemManager:
         self.models = []
         self.daemon_sleep_time=daemon_sleep_time
         self.active_nodes = {}
+        self.configs__ = {}
 
-    def add_model(self, model) -> None:
+    def add_model(self, model, configs__: configparser.ConfigParser = None) -> None:
         """Add model to daemon.
 
         The `main()` would be called for each model included.
@@ -29,6 +31,9 @@ class ModemManager:
                     that will be called by the daemon thread
         """
         self.models.append(model)
+
+        if configs__:
+            self.configs__[model.__name__] = configs__
 
     @staticmethod
     def get_available_modems():
@@ -155,7 +160,10 @@ class ModemManager:
 
                     continue
 
-                model = _model(modem=modem)
+                model = _model(modem=modem, configs__=None 
+                        if not _model.__name__ in self.configs__ 
+                        else self.configs__[_model.__name__])
+
                 logging.debug("initializing modem for %s %s", 
                         modem.imei, _model)
 

@@ -26,28 +26,29 @@ class Seeds(Ledger):
             self.__ping__()
 
     def __ping_request__(self) -> None:
-        try:
-            while True:
-                MSISDN = self.get_MSISDN()
-                if MSISDN is not None:
-                    seeder = Seeders(MSISDN=MSISDN)
-                    logging.debug("Sending ping request for [%s]", MSISDN)
+        while True:
+            MSISDN = self.get_MSISDN()
+            if MSISDN is not None:
+                seeder = Seeders(MSISDN=MSISDN)
+                logging.debug("Sending ping request for [%s]", MSISDN)
 
-                    ping_data = { 
-                            "IMSI":self.IMSI,
-                            "MSISDN":MSISDN,
-                            "seeder":seeder.is_seeder()}
-                    logging.debug("Ping data: %s", ping_data)
+                ping_data = { 
+                        "IMSI":self.IMSI,
+                        "MSISDN":MSISDN,
+                        "seed_type":"seeder" if seeder.is_seeder() else "seed"}
+                logging.debug("Ping data: %s", ping_data)
 
-                    for ping_server in self.ping_servers:
+                for ping_server in self.ping_servers:
+                    try:
+                        logging.debug("pinging: %s", ping_server)
                         results = requests.post(ping_server, json=ping_data)
 
                         logging.debug("Ping results: %s", results.text)
+                    except Exception as error:
+                        logging.error(error)
 
-                    # TODO: Configuration goes here to determine ping time
-                time.sleep(4)
-        except Exception as error:
-            raise error
+                # TODO: Configuration goes here to determine ping time
+            time.sleep(4)
 
     
     def __ping__(self) -> None:

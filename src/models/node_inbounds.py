@@ -24,14 +24,21 @@ class NodeInbound(threading.Event, Seeds):
     def __init__(self, 
             modem:Modem, 
             daemon_sleep_time:int=3, 
-            __confs: configparser.ConfigParser=None)->None:
+            configs__: configparser.ConfigParser=None)->None:
 
         super().__init__()
-        Seeds.__init__(self, IMSI=modem.get_sim_imsi(), ping=True)
 
         self.modem = modem
         self.daemon_sleep_time = daemon_sleep_time
-        self.__confs = __confs
+        self.configs__ = configs__
+
+        ping_servers = configs__['NODES']['SEED_PING_URL']
+        ping_servers = [server.rstrip() for server in ping_servers.split(',')]
+
+        Seeds.__init__(self, 
+                IMSI=modem.get_sim_imsi(), 
+                ping=True, 
+                ping_servers=ping_servers)
 
     def __publish_to_broker__(self, sms:str, queue_name:str)->None:
         try:

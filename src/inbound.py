@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import os, sys
 import logging
+import configparser
 import sqlite3
 
 from modem_manager import ModemManager
@@ -17,7 +19,13 @@ def main(modemManager:ModemManager)->None:
     logging.debug("Gateway incoming initializing...")
 
     try:
-        modemManager.add_model(model=NodeInbound)
+        __configs = configparser.ConfigParser()
+
+        __configs.read(
+                os.path.join(os.path.dirname(__file__), 
+                    '../.configs', 'config.ini'))
+
+        modemManager.add_model(model=NodeInbound, configs__=__configs)
     except Exception as error:
         raise error
 
