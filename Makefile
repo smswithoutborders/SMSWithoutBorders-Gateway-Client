@@ -57,7 +57,7 @@ init_systemd:
 	@sudo systemctl daemon-reload
 
 install:requirements.txt init_systemd rabbitmq_checks start_rabbitmq
-	@$(python) -m virtualenv $(venv_path)
+	@$(python) -m venv $(venv_path)
 	@( \
 		. $(venv_path)/bin/activate; \
 		$(pip) install -r requirements.txt \
