@@ -18,9 +18,17 @@ sudo pacman -S erlang
 ##### Ubuntu 20.04
 ```bash
 sudo apt install wget
+```
+```bash
 wget -O- https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
+```
+```bash
 echo "deb https://packages.erlang-solutions.com/ubuntu focal contrib" | sudo tee /etc/apt/sources.list.d/erlang-solution.list
+```
+```bash
 sudo apt update
+```
+```bash
 sudo apt-get install -y erlang-base \
                         erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
                         erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
@@ -32,8 +40,14 @@ sudo apt-get install -y erlang-base \
 #### Build and install
 ```bash
 git clone https://github.com/smswithoutborders/SMSWithoutBorders-Gateway-Client.git
+```
+```bash
 cd SMSWithoutBorders-Gateway-Client
+```
+```bash
 make
+```
+```bash
 make install
 ```
 
@@ -41,7 +55,7 @@ make install
 <p>
 Your clusters require a server to communicate with, and you will need to point to this in your configuration files.</p>
 
-- Edit `.config/config.ini` ref:[link to example config file](.configs/example.config.ini)
+- Edit `.configs/config.ini` ref:[link to example config file](.configs/example.config.ini)
 ```ini
 [NODE]
 api_id=<insert your server username here (same as an Afkanerd developer Auth ID)
@@ -53,14 +67,14 @@ There are 2 types of events (FAILED, SUCCESS). For each event, an array of ACTIO
 Each event can be configured to trigger an event when certain values are met. \
 **Important** Event rules are not ISP specific and would be triggered regardless of modem's ISP \
 
-- Edit `.config/events/rules.ini` ref:[link to example rules](.configs/events/example.rules.ini)
+- Edit `.configs/events/rules.ini` ref:[link to example rules](.configs/events/example.rules.ini)
 
 ##### configure transmissions for events
 Transmissions provide a means of externally receiving the states/results of triggered events. \
 The means of transmission can be customized to third-party platforms you prefer e.g Telegram (default). \
 \
 To automatically enable transmissions, provide the required authentication details for whichever platforms you intend to use as a means for transmission.
-- Edit `.config/extensions/platforms/telegram.ini` ref:[link Telegram config file](.configs/extensions/platforms/example.telegram.ini) \
+- Edit `.configs/extensions/platforms/telegram.ini` ref:[link Telegram config file](.configs/extensions/platforms/example.telegram.ini) \
 All other supported platforms are placed in `.configs/extensions/platforms/
 
 #### Running as system service
