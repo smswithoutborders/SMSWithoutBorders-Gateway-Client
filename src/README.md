@@ -18,9 +18,17 @@ sudo pacman -S erlang
 ##### Ubuntu 20.04
 ```bash
 sudo apt install wget
+```
+```bash
 wget -O- https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
+```
+```bash
 echo "deb https://packages.erlang-solutions.com/ubuntu focal contrib" | sudo tee /etc/apt/sources.list.d/erlang-solution.list
+```
+```bash
 sudo apt update
+```
+```bash
 sudo apt-get install -y erlang-base \
                         erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
                         erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
@@ -32,9 +40,17 @@ sudo apt-get install -y erlang-base \
 #### Build and install
 ```bash
 pip3 install virtualenv
+```
+```bash
 git clone https://github.com/smswithoutborders/SMSWithoutBorders-Gateway-Client.git
-cd Deku
+```
+```bash
+cd SMSWithoutBorders-Gateway-Client
+```
+```bash
 make
+```
+```bash
 make install
 ```
 
@@ -42,7 +58,7 @@ make install
 <p>
 Your clusters require a server to communicate with, and you will need to point to this in your configuration files.</p>
 
-- Edit `.config/config.ini` ref:[link to example config file](.configs/example.config.ini)
+- Edit `.configs/config.ini` ref:[link to example config file](.configs/example.config.ini)
 ```ini
 [NODE]
 api_id=<insert your server username here (same as an Afkanerd developer Auth ID)
