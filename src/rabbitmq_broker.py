@@ -25,8 +25,7 @@ class RabbitMQBroker:
             heartbeat=600, 
             blocked_connection_timeout=None, 
             username='guest', 
-            password='guest', 
-            retry_delay=10) -> None:
+            password='guest') -> None:
 
         credentials=pika.PlainCredentials(username, password)
         try:
@@ -35,7 +34,6 @@ class RabbitMQBroker:
                     connection_port, 
                     '/',
                     credentials,
-                    retry_delay=retry_delay,
                     heartbeat=heartbeat
                     )
 

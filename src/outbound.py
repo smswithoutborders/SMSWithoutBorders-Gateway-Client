@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import os
 import logging
+import configparser
 
 from modem_manager import ModemManager
 from models.node_outbounds import NodeOutbounds
@@ -24,10 +26,13 @@ def main(modemManager:ModemManager)->None:
     except Exception as error:
         raise error
     """
-
     try:
-        modemManager.add_model(model=NodeOutbounds)
-        # modemManager.daemon()
+        __configs = configparser.ConfigParser()
+        __configs.read(
+                os.path.join(os.path.dirname(__file__), 
+                    '../.configs', 'config.ini'))
+
+        modemManager.add_model(model=NodeOutbounds, configs__=__configs)
     except Exception as error:
         raise error
 

@@ -1,59 +1,28 @@
 #!/usr/bin/env python3
 
 import configparser
-import re
 import os 
 import sys 
 import time 
-import queue 
 import json
-import traceback 
 import logging
 import argparse
-import configparser, threading
+import configparser
 import subprocess
-import phonenumbers
-
-from datetime import datetime
-from phonenumbers import geocoder, carrier
 
 from common.mmcli_python.modem import Modem
-
+import helpers
 
 class Deku(Modem):
 
     def __init__(self, modem:Modem=None)->None:
         self.modem = modem
 
-    class NoMatchOperator(Exception):
-        def __init__(self, number, message=None):
-            self.number=number
-            self.message=message or 'no match operator'
-            super().__init__(self.message)
-
-    class InvalidNumber(Exception):
-        def __init__(self, number, message=None):
-            self.number=number
-            self.message=message or 'invalid number'
-            super().__init__(self.message)
-
     class InvalidText(Exception):
         def __init__(self, text=None, message=None):
             self.text=text
             self.message=message or 'invalid text'
             super().__init__(self.message)
-
-    class BadFormNumber(Exception):
-        def __init__(self, number, message=None):
-            self.number=number
-            self.message=message or 'badly formed number'
-            super().__init__(self.message)
-
-    class NoAvailableModem(Exception):
-        def __init__(self, message=None):
-            self.message=message or 'no available modem'
-            super().__init__(self.message)
-
 
     def modem_locked(self, remove_lock=True):
         try:
@@ -156,25 +125,27 @@ class Deku(Modem):
         if not force:
             is_locked, hw_active_state = self.modem_available()
             if is_locked or not hw_active_state:
-                raise Deku.NoAvailableModem()
+                raise helpers.NoAvailableModem()
         else:
             logging.debug("Using force not checking for locks")
 
         # validate number
         try:
             if match_operator:
-                country, operator_name = Deku.validate_MSISDN(number)
+                country, operator_name = helpers.validate_MSISDN(number)
                 logging.debug("Matching operator...")
-                modem_operator = Deku.get_modem_operator_name(self.modem)
+
+                modem_operator = helpers.get_modem_operator_name(self.modem)
                 logging.debug("operator name: %s, modem operator: %s", 
                         operator_name, modem_operator)
-                if not operator_name == modem_operator:
-                    raise Deku.NoMatchOperator(number)
 
-        except Deku.InvalidNumber as error:
+                if not operator_name == modem_operator:
+                    raise helpers.NoMatchOperator(number)
+
+        except helpers.InvalidNumber as error:
             raise error
 
-        except Deku.BadFormNumber as error:
+        except helpers.BadFormNumber as error:
             raise error
 
         except Exception as error:
@@ -215,6 +186,9 @@ class Deku(Modem):
 
             if status and lock_type == 'BUSY':
                 logging.debug("Removed BUSY lock from modem")
+
+                """TODO: check if lockfile exist before removing to avoid 
+                raising an exception here"""
                 os.remove(lock_file)
 
 
@@ -311,7 +285,7 @@ if __name__ == "__main__":
         config_isp_operators = configreader.read('.configs/isp/operators.ini')
 
     except Exception as error:
-        logging.critical(traceback.format_exc())
+        logging.critical(error)
 
     modem_index=None
     if args.modem == None:
@@ -347,5 +321,5 @@ if __name__ == "__main__":
             try:
                 sms_output=Deku.send(text=sms_text, number=sms_number, modem_index=modem_index)
             except Exception as error:
-                print(traceback.format_exc())
+                logging.exception(error)
                 exit(1)

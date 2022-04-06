@@ -18,6 +18,7 @@ from enum import Enum
 from deku import Deku
 from common.mmcli_python.modem import Modem
 from rabbitmq_broker import RabbitMQBroker
+import helpers
 
 '''
 resources:
@@ -31,8 +32,8 @@ class NodeOutbounds(threading.Event):
             daemon_sleep_time:int=3,
             prefetch_count:int=1,
             durable:bool=True,
-            active_nodes:dict=None
-            )->None:
+            active_nodes:dict=None,
+            configs__: configparser.ConfigParser=None)->None:
 
         super().__init__()
         self.modem = modem
@@ -40,17 +41,20 @@ class NodeOutbounds(threading.Event):
         self.prefetch_count = prefetch_count
         self.daemon_sleep_time = daemon_sleep_time
 
+        """
         config_filepath = os.path.join(
                 os.path.dirname(__file__), 
-                '../../.configs', 'config.ini')
+                '../../.configs', 'configs__.ini')
 
         # logging.debug("%s", config_filepath)
         config = configparser.ConfigParser()
-        config.read(config_filepath)
+        configs__.read(config_filepath)
+        """
+        self.configs__ = configs__
 
-        self.username=config['OUTGOING']['API_ID']
-        self.queue_name = config['OUTGOING']['QUEUE_NAME']
-        self.modem_operator = Deku.get_modem_operator_name(self.modem)
+        self.username=configs__['OPENAPI']['API_ID']
+        self.queue_name = configs__['OPENAPI']['QUEUE_NAME']
+        self.modem_operator = helpers.get_modem_operator_name(self.modem)
 
         logging.debug("%s", self.modem_operator)
 
@@ -60,7 +64,7 @@ class NodeOutbounds(threading.Event):
         (API_ID_QUEUE_NAME_OPERATOR_NAME)
         (username_QUEUE_NAME_OPERATOR_NAME)
         """
-        self.queue_name=config['OUTGOING']['QUEUE_NAME'] + '_' + self.modem_operator
+        self.queue_name=configs__['OPENAPI']['QUEUE_NAME'] + '_' + self.modem_operator
 
         """
         format: binding_key
@@ -68,17 +72,17 @@ class NodeOutbounds(threading.Event):
         (API_ID_QUEUE_NAME.OPERATOR_NAME)
         (username_QUEUE_NAME.OPERATOR_NAME)
         """
-        self.binding_key=config['OUTGOING']['QUEUE_NAME'] + '.' + self.modem_operator
+        self.binding_key=configs__['OPENAPI']['QUEUE_NAME'] + '.' + self.modem_operator
         
         logging.debug("binding key: %s", self.binding_key)
 
         self.callback=self.__get_published__
 
-        self.connection_url=config['OUTGOING']['CONNECTION_URL']
-        self.password=config['OUTGOING']['API_KEY']
+        self.connection_url=configs__['OPENAPI']['CONNECTION_URL']
+        self.password=configs__['OPENAPI']['API_KEY']
 
-        self.exchange_name=config['OUTGOING']['EXCHANGE_NAME']
-        self.exchange_type=config['OUTGOING']['EXCHANGE_TYPE']
+        self.exchange_name=configs__['OPENAPI']['EXCHANGE_NAME']
+        self.exchange_type=configs__['OPENAPI']['EXCHANGE_TYPE']
 
 
     def __get_published__(self, ch, method, properties, body):
@@ -99,16 +103,10 @@ class NodeOutbounds(threading.Event):
 
         else:
             try:
-                number=self.__validate_repair_request__(number, method)
-            except Exception as error:
-                self.outgoing_connection.sleep(self.daemon_sleep_time)
-                return
 
-            try:
                 logging.debug("sending: [%s]%s %s", 
-                        Deku.get_modem_operator_name(self.modem), 
+                        helpers.get_modem_operator_name(self.modem), 
                         self.modem.imei, body)
-
                 deku = Deku(modem=self.modem)
                 if deku.modem_ready():
                     deku.modem_send(
@@ -119,12 +117,25 @@ class NodeOutbounds(threading.Event):
                     logging.debug("Modem not ready!")
                     raise Exception("modem not ready")
 
-            except Deku.NoMatchOperator as error:
+            except helpers.InvalidNumber as error:
+                logging.debug("invalid number, dumping message")
+                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+
+            except helpers.InvalidNumber as error:
+                logging.error("invalid number, dumping message")
+                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+
+            except helpers.BadFormNumber as error:
+                logging.error("badly formed number, dumping message")
+                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+
+
+            except helpers.NoMatchOperator as error:
                 ''' could either choose to republish to right operator or dump '''
                 logging.error("no match operator, dumping message")
                 self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
 
-            except Deku.NoAvailableModem as error:
+            except helpers.NoAvailableModem as error:
                 logging.warning("no available modem while trying to send")
                 self.outgoing_channel.basic_reject(
                         delivery_tag=method.delivery_tag, 
@@ -137,9 +148,16 @@ class NodeOutbounds(threading.Event):
                         delivery_tag=method.delivery_tag, requeue=True)
 
             except Exception as error:
-                self.outgoing_channel.basic_reject(
-                        delivery_tag=method.delivery_tag, requeue=True)
+                self.outgoing_connection.sleep(self.daemon_sleep_time)
                 logging.exception(error)
+
+                if error.args[0] == helpers.INVALID_COUNTRY_CODE_EXCEPTION:
+                    logging.warning("[-] MESSAGE SHALL NOT PASS!!")
+
+                else:
+                    self.outgoing_channel.basic_reject(
+                            delivery_tag=method.delivery_tag, requeue=True)
+            
             else:
                 self.outgoing_channel.basic_ack(
                         delivery_tag=method.delivery_tag)
