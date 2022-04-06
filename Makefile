@@ -93,6 +93,7 @@ clear:
 clean:
 	@#rm -rf $(venv_path)
 	@rm -f $(path_rabbitmq)/*.sh
+	@rm -f src/services/logs/service.log
 
 remove:
 	@echo "Stopping services..."
