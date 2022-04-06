@@ -120,7 +120,7 @@ def validate_MSISDN(MSISDN:str)->bool:
         _number = phonenumbers.parse(MSISDN, 'en')
 
         if not phonenumbers.is_valid_number(_number):
-            raise InvalidNumber(number)
+            raise InvalidNumber(MSISDN)
 
         return \
                 phonenumbers.geocoder.description_for_number(_number, 'en'), \
