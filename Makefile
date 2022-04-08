@@ -38,6 +38,20 @@ gen_configs:
 	@mkdir -p src/bins
 	@gcc src/seeders.c -o src/bins/seeders.bin 
 	@echo "Done configuration"
+
+ubuntu:
+	@echo "[*] Installing wget"
+	@sudo apt install wget
+	@echo "[*] Adding key.."
+	@wget -O- https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
+	@echo "deb https://packages.erlang-solutions.com/ubuntu focal contrib" | sudo tee /etc/apt/sources.list.d/erlang-solution.list
+	@sudo apt update
+	@echo "[*] Installing erlang dependencies"
+	@sudo apt-get install -y erlang-base \
+                        erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
+                        erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
+                        erlang-runtime-tools erlang-snmp erlang-ssl \
+                        erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
 	
 
 rabbitmq_checks:deps/rabbitmq/version.lock deps/rabbitmq/init.sh
