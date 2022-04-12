@@ -79,6 +79,8 @@ class NodeOutbounds(threading.Event):
         self.callback=self.__get_published__
 
         self.connection_url=configs__['OPENAPI']['CONNECTION_URL']
+        self.connection_port=configs__['OPENAPI']['CONNECTION_PORT']
+
         self.password=configs__['OPENAPI']['API_KEY']
 
         self.exchange_name=configs__['OPENAPI']['EXCHANGE_NAME']
@@ -187,6 +189,7 @@ class NodeOutbounds(threading.Event):
         try:
             self.outgoing_connection, self.outgoing_channel = RabbitMQBroker.create_channel(
                     connection_url=self.connection_url,
+                    connection_port=self.connection_port,
                     queue_name=self.queue_name,
                     username=self.username,
                     password=self.password,
