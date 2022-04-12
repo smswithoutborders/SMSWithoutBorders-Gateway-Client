@@ -69,13 +69,13 @@ def generate_systemd():
         # distro_systemd_schemas_gateway[dist]['Unit']['BindsTo'] = "deku_rabbitmq.service"
         distro_systemd_schemas_gateway[dist]['Unit']['Wants'] = "ModemManager.service"
         distro_systemd_schemas_gateway[dist]['Service']['ExecStart'] = \
-                f"+{path_venv}/bin/python3 {path_main} --log=INFO --module=outbound"
+                f"+{path_venv}/bin/python3 {path_main} --log=INFO --module=inbound"
 
     for dist in distro_systemd_schemas_cluster:
         distro_systemd_schemas_cluster[dist]['Unit']['Description'] = "SMSWithoutBorders Gateway service - Incoming"
         distro_systemd_schemas_cluster[dist]['Unit']['BindsTo'] = "ModemManager.service"
         distro_systemd_schemas_cluster[dist]['Service']['ExecStart'] = \
-                f"+{path_venv}/bin/python3 {path_main} --log=INFO --module=inbound"
+                f"+{path_venv}/bin/python3 {path_main} --log=INFO --module=outbound"
 
     def write_schema(schema, systemd_filepath):
         fd_schema = open(systemd_filepath, 'w')
