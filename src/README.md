@@ -1,11 +1,4 @@
-### <a name="cluster_outgoing_sms"></a> Installation and Configuration
-[insert full description of Clusters and how they work]
-
-##### node
-[insert description]
-##### server
-[insert description]
-
+## <a name="cluster_outgoing_sms"></a> Installation and Configuration
 
 ### Installation
 #### Installing required Dependencies
@@ -38,15 +31,24 @@ sudo apt-get install -y erlang-base \
 ```
 
 #### Build and install
+
+<p>Clone the repository</p>
+
 ```bash
 git clone https://github.com/smswithoutborders/SMSWithoutBorders-Gateway-Client.git
 ```
 ```bash
 cd SMSWithoutBorders-Gateway-Client
 ```
+
+<p>Create your config files</p>
+
 ```bash
 make
 ```
+
+<p>Install more dependencies</p>
+
 ```bash
 make install
 ```
@@ -56,10 +58,13 @@ make install
 Your clusters require a server to communicate with, and you will need to point to this in your configuration files.</p>
 
 - Edit `.configs/config.ini` ref:[link to example config file](.configs/example.config.ini)
+
+- Follow [these steps](https://smswithoutborders.github.io/docs/developers/getting-started) in order to get your Auth ID and Auth key
+
 ```ini
-[NODE]
-api_id=<insert your server username here (same as an Afkanerd developer Auth ID)
-api_key=<insert your server password here (same as an Afkanerd develper Auth Key)
+[OPENAPI]
+API_ID=<insert your server username here (same as an Afkanerd developer Auth ID)>
+API_KEY=<insert your server password here (same as an Afkanerd develper Auth Key)>
 ```
 
 ##### configure events
@@ -95,9 +100,15 @@ tail -f src/services/logs/service.log
 #### Running manually
 ##### Linux
 - To run the outgoing (send out SMS messages)
-```bash
-python3 src/main.py --log=DEBUG --module=outgoing
-```
+    - Plug in your USB modem
+    - Activate your virtual environment
+    ```bash
+    source venv/bin/activate
+    ```
+    - And:
+    ```bash
+    python3 src/main.py --log=DEBUG --module=outbound
+    ```
 - To run the incoming (receive and process incoming messages)
 ```bash
 python3 src/main.py --log=DEBUG --module=inbound
