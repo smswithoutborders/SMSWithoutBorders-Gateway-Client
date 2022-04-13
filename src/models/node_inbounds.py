@@ -71,7 +71,7 @@ class NodeInbound(threading.Event, Seeds):
             logging.debug("Updating seeder for node")
             seed.update_seeder(seeder_MSISDN=seeder.MSISDN)
 
-            logging.info("SEEDING COMPLETE!")
+            logging.info("[*] SEEDING COMPLETE!")
         else:
             logging.debug("Not a seeder message!")
 
