@@ -266,7 +266,7 @@ class NodeInbound(threading.Event, Seeds):
             if not self.is_seed():
                 logging.info("[*] Node is not a seed!")
 
-                remote_gateway_servers = self.configs__['NODES']['SEEDERS_PROBE_URL']
+                remote_gateway_servers = self.configs__['NODES']['SEEDS_PROBE_URL']
                 remote_gateway_servers = [s.strip() for s in remote_gateway_servers.split(',')]
                 MSISDN = self.remote_search(remote_gateway_servers)
 

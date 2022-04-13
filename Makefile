@@ -100,6 +100,10 @@ restart:
 	@sudo systemctl restart swob_outbound.service
 	@systemctl is-active swob_outbound.service
 
+clear_ledger:
+	@sudo rm -f src/.db/nodes/*.db
+	@sudo rm -f src/.db/seeders/*.db
+
 clear:
 	@rm -f src/services/locks/*.lock
 	@rm -f src/services/status/*.ini
@@ -107,7 +111,7 @@ clear:
 clean:
 	@#rm -rf $(venv_path)
 	@rm -f $(path_rabbitmq)/*.sh
-	@rm -f src/services/logs/service.log
+	@sudo rm -f src/services/logs/service.log
 
 remove:
 	@echo "Stopping services..."
@@ -144,7 +148,7 @@ remove:
 update:
 	@git submodule update --recursive --remote
 
-fuckit:remove clean
+fuckit:clear remove clean clear_ledger
 	@echo "Alright developer, have a go at it!"
 
 now:gen_configs install
