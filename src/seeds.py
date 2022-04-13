@@ -53,25 +53,25 @@ class Seeds(Ledger):
     def remote_search(self, remote_gateway_servers) -> str:
         """Checks with the remote Gateway servers for MSISDN.
         """
-        try:
-            for gateway_server in remote_gateway_servers:
-                logging.debug("Requesting remote seeders from: %s", gateway_server)
-                try:
-                    results = requests.get(gateway_server % (self.IMSI), json={})
-                    logging.debug(results.text)
+        logging.info("[*] Searching for current seed on remote servers...")
 
-                    if not results.status_code == 200:
-                        results.raise_for_status()
+        for gateway_server in remote_gateway_servers:
+            gateway_server = gateway_server % (self.IMSI)
+            logging.debug("-> searching server: %s", gateway_server )
 
-                except Exception as error:
-                    raise error
-                else:
-                    if not results.text == '':
-                        return results.text
+            try:
+                results = requests.get(gateway_server, json={})
+                logging.debug(results.text)
 
-            return ''
-        except Exception as error:
-            raise error
+            except Exception as error:
+                # logging.exception(error)
+                logging.error(error)
+
+            else:
+                if not results.text == '':
+                    return results.text
+
+        return ''
 
     
     def __ping__(self) -> None:

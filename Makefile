@@ -12,9 +12,9 @@ systemd_path=/etc/systemd/system
 path_rabbitmq=deps/rabbitmq
 path_rabbitmq_builds=deps/rabbitmq/builds
 
-gateway_state=$(shell systemctl is-active deku_gateway.service)
-cluster_state=$(shell systemctl is-active deku_cluster.service)
-rabbitmq_state=$(shell systemctl is-active deku_rabbitmq.service)
+inbound_state=$(shell systemctl is-active swob_inbound.service)
+outbound_state=$(shell systemctl is-active swob_outbound.service)
+rabbitmq_state=$(shell systemctl is-active swob_rabbitmq.service)
 
 gen_configs:
 	@echo "Copying config files..."
@@ -62,22 +62,22 @@ init_rabbitmq:
 
 start_rabbitmq:init_rabbitmq
 	@echo "+ Starting rabbitmq service"
-	@sudo systemctl start deku_rabbitmq.service
+	@sudo systemctl start swob_rabbitmq.service
 
 enable_rabbitmq:
-	@sudo systemctl enable deku_rabbitmq.service
+	@sudo systemctl enable swob_rabbitmq.service
 	@echo "+ Enabling rabbitmq service"
 
 enable:enable_rabbitmq
-	@sudo systemctl enable deku_gateway.service
+	@sudo systemctl enable swob_inbound.service
 	@echo "+ Starting gateway service..."
-	@sudo systemctl enable deku_cluster.service
+	@sudo systemctl enable swob_outbound.service
 	@echo "+ Starting cluster service..."
 
 start:
-	@sudo systemctl start deku_gateway.service
+	@sudo systemctl start swob_inbound.service
 	@echo "+ Starting gateway service..."
-	@sudo systemctl start deku_cluster.service
+	@sudo systemctl start swob_outbound.service
 	@echo "+ Starting cluster service..."
 
 init_systemd:
@@ -95,10 +95,10 @@ install:requirements.txt init_systemd rabbitmq_checks start_rabbitmq
 	@echo "completed successfully"
 
 restart:
-	@sudo systemctl restart deku_gateway.service
-	@systemctl is-active deku_gateway.service
-	@sudo systemctl restart deku_cluster.service
-	@systemctl is-active deku_cluster.service
+	@sudo systemctl restart swob_inbound.service
+	@systemctl is-active swob_inbound.service
+	@sudo systemctl restart swob_outbound.service
+	@systemctl is-active swob_outbound.service
 
 clear:
 	@rm -f src/services/locks/*.lock
@@ -111,29 +111,29 @@ clean:
 
 remove:
 	@echo "Stopping services..."
-	@if [ "$(gateway_state)" = "active" ]; then \
+	@if [ "$(inbound_state)" = "active" ]; then \
 		echo "- gateway"; \
-		sudo systemctl kill deku_gateway.service; \
+		sudo systemctl kill swob_inbound.service; \
 	fi
-	@if [ "$(cluster_state)" = "active" ]; then \
+	@if [ "$(outbound_state)" = "active" ]; then \
 		echo "- cluster"; \
-		sudo systemctl kill deku_cluster.service; \
+		sudo systemctl kill swob_outbound.service; \
 	fi
 	@if [ "$(rabbitmq_state)" = "active" ]; then \
 		echo "- rabbitmq"; \
-		sudo systemctl kill deku_rabbitmq.service; \
+		sudo systemctl kill swob_rabbitmq.service; \
 	fi
 	@echo "Disabling services..."
-	@if [ "$(systemctl is-enabled deku_gateway.service)" = "enabled" ]; then \
-		sudo systemctl disable deku_gateway.service; \
+	@if [ "$(systemctl is-enabled swob_inbound.service)" = "enabled" ]; then \
+		sudo systemctl disable swob_inbound.service; \
 	fi
-	@if [ "$(systemctl is-enabled deku_cluster.service)" = "enabled" ]; then \
-		sudo systemctl disable deku_cluster.service; \
+	@if [ "$(systemctl is-enabled swob_outbound.service)" = "enabled" ]; then \
+		sudo systemctl disable swob_outbound.service; \
 	fi
-	@if [ "$(systemctl is-enabled deku_rabbitmq.service)" = "enabled" ]; then \
-		sudo systemctl disable deku_rabbitmq.service; \
+	@if [ "$(systemctl is-enabled swob_rabbitmq.service)" = "enabled" ]; then \
+		sudo systemctl disable swob_rabbitmq.service; \
 	fi
-	@sudo rm -fv $(systemd_path)/deku_*.service
+	@sudo rm -fv $(systemd_path)/swob_*.service
 	@rm -rfv $(build_path)
 	@rm -rfv $(path_rabbitmq_builds)
 	@rm -f $(path_rabbitmq)/*.sh

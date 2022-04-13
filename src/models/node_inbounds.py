@@ -169,7 +169,7 @@ class NodeInbound(threading.Event, Seeds):
 
         text = str(base64.b64encode(str.encode(text)), 'utf-8')
 
-        logging.debug("+ making request to seeder: %s %s", 
+        logging.info("[*] Making request to seeder: %s %s", 
                 seeder.MSISDN, text)
 
         try:
@@ -188,9 +188,8 @@ class NodeInbound(threading.Event, Seeds):
             except Exception as error:
                 raise error
 
-    def __seed__(self) -> None:
-        logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
 
+    def __seed__(self) -> None:
         seeders = []
         remote_gateway_servers = self.configs__['NODES']['SEEDERS_PROBE_URL']
 
@@ -200,19 +199,23 @@ class NodeInbound(threading.Event, Seeds):
 
         try:
             seeders = Seeders.request_remote_seeders(remote_gateway_servers)
-            logging.info("[*] Available seeders: %s", [seeder for seeder in seeders])
+
         except Exception as error:
             logging.exception(error)
 
-        if len(seeders) < 1:
-            logging.debug("No remote seeders found, checking for hardcoded")
-
-            """Important: Should never be empty"""
-            seeders = Seeders.request_hardcoded_seeders()
         else:
-            logging.debug("%d remote seeders found", len(seeders))
+            if len(seeders) > 0:
+                logging.info("[*] Available seeders: %s", [seeder for seeder in seeders])
+            else:
+                logging.debug("No remote seeders found, checking for hardcoded")
 
-            """Store seeders in local ledger so no need to fetch them over"""
+
+        if len(seeders) < 1:
+            """Important: Should never be empty"""
+            logging.info("[*] Falling back to hardcoded seeders")
+            seeders = Seeders.request_hardcoded_seeders()
+
+        logging.debug("Acquired seeders: %s", [seeder.MSISDN for seeder in seeders])
 
         filtered_seeders = []
         """
@@ -268,7 +271,7 @@ class NodeInbound(threading.Event, Seeds):
                 MSISDN = self.remote_search(remote_gateway_servers)
 
                 if MSISDN == '':
-                    logging.debug("Seed not found on remote servers...")
+                    logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
                     self.__seed__()
                 else:
                     logging.info("Updating seed record with: %s", MSISDN)
@@ -282,7 +285,8 @@ class NodeInbound(threading.Event, Seeds):
                 logging.info("Node is valid seed!")
 
         except Exception as error:
-            logging.error(error)
+            # logging.error(error)
+            logging.exception(error)
         else:
             try:
                 logging.info("[%s | %s] starting incoming listener", 

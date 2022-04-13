@@ -1,5 +1,5 @@
 [Unit]
-Description = [Maintained by Afkanerd] SMSWithoutBorders Gateway serviceSMSWithoutBorders Gateway service
+Description = [Maintained by Afkanerd] SMSWithoutBorders Gateway service
 After = ModemManager.service
 Wants = ModemManager.service
 StartLimitIntervalSec = 60

@@ -47,34 +47,34 @@ def generate_systemd():
     # print(distro_systemd_schemas)
 
     # Distro init
-    distro_systemd_schemas_gateway = copy.deepcopy(distro_systemd_schemas)
+    distro_systemd_schemas_inbound = copy.deepcopy(distro_systemd_schemas)
 
-    distro_systemd_schemas_cluster = copy.deepcopy(distro_systemd_schemas)
+    distro_systemd_schemas_outbound = copy.deepcopy(distro_systemd_schemas)
 
-    # print(id(distro_systemd_schemas_gateway))
-    # print(id(distro_systemd_schemas_cluster))
+    # print(id(distro_systemd_schemas_inbound))
+    # print(id(distro_systemd_schemas_outbound))
 
-    default_schema_gateway = distro_systemd_schemas_gateway.pop('default')
-    default_schema_cluster = distro_systemd_schemas_cluster.pop('default')
+    default_schema_gateway = distro_systemd_schemas_inbound.pop('default')
+    default_schema_cluster = distro_systemd_schemas_outbound.pop('default')
 
     for dist in SUPPORTED_DISTROS_GATEWAY:
-        distro_systemd_schemas_gateway[dist] = default_schema_gateway
+        distro_systemd_schemas_inbound[dist] = default_schema_gateway
 
     for dist in SUPPORTED_DISTROS_CLUSTER:
-        distro_systemd_schemas_cluster[dist] = default_schema_cluster
+        distro_systemd_schemas_outbound[dist] = default_schema_cluster
 
     # cluster bindings
-    for dist in distro_systemd_schemas_gateway:
-        distro_systemd_schemas_gateway[dist]['Unit']['Description'] = "SMSWithoutBorders Gateway service - Outgoing"
-        # distro_systemd_schemas_gateway[dist]['Unit']['BindsTo'] = "deku_rabbitmq.service"
-        distro_systemd_schemas_gateway[dist]['Unit']['Wants'] = "ModemManager.service"
-        distro_systemd_schemas_gateway[dist]['Service']['ExecStart'] = \
+    for dist in distro_systemd_schemas_inbound:
+        distro_systemd_schemas_inbound[dist]['Unit']['Description'] = "SMSWithoutBorders Gateway service - Incoming SMS (inbound)"
+        # distro_systemd_schemas_inbound[dist]['Unit']['BindsTo'] = "swob_rabbitmq.service"
+        distro_systemd_schemas_inbound[dist]['Unit']['Wants'] = "ModemManager.service"
+        distro_systemd_schemas_inbound[dist]['Service']['ExecStart'] = \
                 f"+{path_venv}/bin/python3 {path_main} --log=INFO --module=inbound"
 
-    for dist in distro_systemd_schemas_cluster:
-        distro_systemd_schemas_cluster[dist]['Unit']['Description'] = "SMSWithoutBorders Gateway service - Incoming"
-        distro_systemd_schemas_cluster[dist]['Unit']['BindsTo'] = "ModemManager.service"
-        distro_systemd_schemas_cluster[dist]['Service']['ExecStart'] = \
+    for dist in distro_systemd_schemas_outbound:
+        distro_systemd_schemas_outbound[dist]['Unit']['Description'] = "SMSWithoutBorders Gateway service - Outgoing SMS (outbound)"
+        distro_systemd_schemas_outbound[dist]['Unit']['BindsTo'] = "ModemManager.service"
+        distro_systemd_schemas_outbound[dist]['Service']['ExecStart'] = \
                 f"+{path_venv}/bin/python3 {path_main} --log=INFO --module=outbound"
 
     def write_schema(schema, systemd_filepath):
@@ -88,37 +88,37 @@ def generate_systemd():
         return _cp
 
     # generates only for required distro
-    systemd_filepath_gateway = os.path.join(
-            os.path.dirname(__file__), 'files', 'deku_gateway.service')
+    systemd_filepath_inbound = os.path.join(
+            os.path.dirname(__file__), 'files', 'swob_inbound.service')
 
-    systemd_filepath_cluster = os.path.join(
-            os.path.dirname(__file__), 'files', 'deku_cluster.service')
+    systemd_filepath_outbound = os.path.join(
+            os.path.dirname(__file__), 'files', 'swob_outbound.service')
 
     dist = distro.like()
     print(f"configuring for distro: [{dist}]")
 
     if dist in SUPPORTED_DISTROS_GATEWAY:
-        schema = distro_systemd_schemas_gateway[dist]
+        schema = distro_systemd_schemas_inbound[dist]
         """
         for section in schema:
             print(f"Gateway[{section}]:")
             print([values for values in schema[section]])
         """
         try:
-            write_schema(populate_config(schema), systemd_filepath_gateway)
+            write_schema(populate_config(schema), systemd_filepath_inbound)
         except Exception as error:
             print(error)
             exit(1)
 
     if dist in SUPPORTED_DISTROS_CLUSTER:
-        schema = distro_systemd_schemas_cluster[dist]
+        schema = distro_systemd_schemas_outbound[dist]
         """
         for section in schema:
             print(f"Cluster[{section}]:")
             print([values for values in schema[section]])
         """
         try:
-            write_schema(populate_config(schema), systemd_filepath_cluster)
+            write_schema(populate_config(schema), systemd_filepath_outbound)
         except Exception as error:
             print(error)
     else:
@@ -173,7 +173,7 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
     rmq_template.read(path_rabbitmq_template)
 
     path_rabbitmq_service =os.path.join(
-            os.path.dirname(__file__), 'files', 'deku_rabbitmq.service')
+            os.path.dirname(__file__), 'files', 'swob_rabbitmq.service')
 
     rmq_template['Service']['User'] = getpass.getuser()
     rmq_template['Service']['Group'] = str(os.getegid())
