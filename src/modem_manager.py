@@ -94,9 +94,10 @@ class ModemManager:
             except Exception as error:
                 raise error
 
-    def __refresh_nodes__(self, available_modems)->None:
+    def __refresh_hardware_nodes__(self, available_modems)->None:
         """Checks HW available modems against active running nodes
         """
+        logging.debug("Refreshing hardware nodes...")
         modems = [modem.imei for modem in available_modems]
         active_nodes = self.active_nodes.keys()
         not_active = list(set(active_nodes).difference(modems))
@@ -104,10 +105,31 @@ class ModemManager:
 
         for modem_imei in not_active:
             try:
-                for thread_thread, thread_model in self.active_nodes[modem_imei].items():
-                    thread_model[1].set()
+                for model_name, thread_thread_model in self.active_nodes[modem_imei].items():
+                    thread_thread_model[1].set()
                 del self.active_nodes[modem_imei]
                 logging.debug("removed modem %s", modem_imei)
+            except Exception as error:
+                logging.exception(error)
+        logging.debug("refreshed nodes")
+
+    def __refresh_software_nodes__(self, available_modems)->None:
+        """Checks HW available modems against active running nodes
+        """
+        logging.debug("Refreshing software nodes...")
+        modems = [modem.imei for modem in available_modems]
+        active_nodes = self.active_nodes.keys()
+
+        for modem_imei in active_nodes:
+            try:
+                for model_name, thread_thread_model in self.active_nodes[modem_imei].items():
+                    if not thread_thread_model[0].is_alive():
+                        """ restart node """
+                        del self.active_nodes[modem_imei]
+                        logging.debug("removed modem software %s", modem_imei)
+
+                        # Returning here because the size of the active_nodes changes
+                        return
             except Exception as error:
                 logging.exception(error)
         logging.debug("refreshed nodes")
@@ -128,7 +150,8 @@ class ModemManager:
                 try:
                     self.__add_nodes__(modems=available_modems, 
                             locked_modems=locked_modems)
-                    self.__refresh_nodes__(available_modems + locked_modems)
+                    self.__refresh_hardware_nodes__(available_modems + locked_modems)
+                    self.__refresh_software_nodes__(available_modems + locked_modems)
                 except Exception as error:
                     raise error
 

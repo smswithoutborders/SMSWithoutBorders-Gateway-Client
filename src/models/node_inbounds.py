@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import configparser
 import logging 
 import pika
@@ -287,6 +288,7 @@ class NodeInbound(threading.Event, Seeds):
         except Exception as error:
             # logging.error(error)
             logging.exception(error)
+            sys.exit()
         else:
             try:
                 logging.info("[%s | %s] starting incoming listener", 
