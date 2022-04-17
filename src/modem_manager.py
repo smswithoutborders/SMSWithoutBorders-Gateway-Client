@@ -111,28 +111,23 @@ class ModemManager:
                 logging.debug("removed modem %s", modem_imei)
             except Exception as error:
                 logging.exception(error)
-        logging.debug("refreshed nodes")
 
-    def __refresh_software_nodes__(self, available_modems)->None:
+    def __refresh_software_nodes__(self)->None:
         """Checks HW available modems against active running nodes
+        - Recursive changes the size of the active modems and deletes inactive
+        modems.
         """
         logging.debug("Refreshing software nodes...")
-        modems = [modem.imei for modem in available_modems]
-        active_nodes = self.active_nodes.keys()
 
-        for modem_imei in active_nodes:
-            try:
-                for model_name, thread_thread_model in self.active_nodes[modem_imei].items():
-                    if not thread_thread_model[0].is_alive():
-                        """ restart node """
-                        del self.active_nodes[modem_imei]
-                        logging.debug("removed modem software %s", modem_imei)
+        deletion_list = []
+        for modem_imei, model_threads in self.active_nodes.items():
+            for model_name, threads_models in model_threads.items():
+                if not threads_models[0].is_alive():
+                    deletion_list.append([modem_imei, model_name])
 
-                        # Returning here because the size of the active_nodes changes
-                        return
-            except Exception as error:
-                logging.exception(error)
-        logging.debug("refreshed nodes")
+        for item in deletion_list:
+            del self.active_nodes[item[0]][item[1]]
+            logging.debug("Removed %s in %s during software refresh", item[0], item[1])
 
 
     def __daemon_hardware_state__(self) -> None:
@@ -151,7 +146,7 @@ class ModemManager:
                     self.__add_nodes__(modems=available_modems, 
                             locked_modems=locked_modems)
                     self.__refresh_hardware_nodes__(available_modems + locked_modems)
-                    self.__refresh_software_nodes__(available_modems + locked_modems)
+                    self.__refresh_software_nodes__()
                 except Exception as error:
                     raise error
 

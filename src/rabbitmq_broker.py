@@ -54,6 +54,10 @@ class RabbitMQBroker:
                         on_message_callback=callback)
 
             return connection, channel
+
+        except pika.exceptions.AMQPConnectionError as error:
+            raise error
+
         except Exception as error:
             raise error
 

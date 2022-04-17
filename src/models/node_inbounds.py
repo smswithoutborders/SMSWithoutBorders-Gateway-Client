@@ -83,6 +83,7 @@ class NodeInbound(threading.Event, Seeds):
         logging.debug("+ Responding request made from seed [%s]", sms.number)
         text = str(base64.b64encode(bytes(json.dumps({"MSISDN": sms.number}), 'utf-8')), 'utf-8')
         try:
+            logging.info("[*] Responding with SMS to seed request")
             Deku(self.modem).modem_send( 
                     number=sms.number,
                     text=text,
@@ -91,7 +92,7 @@ class NodeInbound(threading.Event, Seeds):
             raise error
         else:
             time.sleep(self.daemon_sleep_time)
-            logging.info("SEED RESPONSE COMPLETE")
+            logging.info("[*] SEED RESPONSE COMPLETE")
 
 
     def listen_for_sms_inbound(self, publish_url:str='localhost', queue_name:str='inbound.route.route' )->None:
@@ -103,18 +104,29 @@ class NodeInbound(threading.Event, Seeds):
         logging.info("[*] Listening for inbound messages...")
 
         while True:
-            if ( not hasattr(self, 'publish_connection') or 
-                    self.publish_connection.is_closed):
+            if(
+                    not hasattr(self, 'publish_connection') or self.publish_connection.is_closed):
 
-                logging.debug("creating new connection for publishing")
+                logging.info("[*] Creating new connection for publishing")
 
-                self.publish_connection, self.publish_channel = \
-                        RabbitMQBroker.create_channel(
-                            connection_url=publish_url,
-                            queue_name=queue_name,
-                            heartbeat=600,
-                            blocked_connection_timeout=60,
-                            durable=True)
+                try:
+                    self.publish_connection, self.publish_channel = \
+                            RabbitMQBroker.create_channel(
+                                connection_url=publish_url,
+                                queue_name=queue_name,
+                                heartbeat=600,
+                                blocked_connection_timeout=60,
+                                durable=True)
+                except pika.exceptions.AMQPConnectionError as error:
+                    logging.error(error)
+
+                    """sleep and retry the connection"""
+                    time.sleep(self.daemon_sleep_time)
+                    continue
+                
+                except Exception as error:
+                    logging.exception(error)
+                    raise error
 
             inbound_messages = self.modem.sms.list('received')
             logging.debug("# of inbound messasges = %d", len(inbound_messages))
@@ -129,10 +141,12 @@ class NodeInbound(threading.Event, Seeds):
 
                     seeder = Seeders(MSISDN=sms.number)
 
+                    # Seeder receiving request to make seed from IMSI
                     if Seeds.is_seed_message(data=bytes(sms.text, 'utf-8')):
                         logging.info("[*] Seeding request present")
                         self.process_seed_request(sms)
 
+                    # Seed receiving response from seeder with MSISDN
                     elif seeder.is_seeder():
                         logging.info("[*] Seeder response present")
                         self.process_seeder_response(sms=sms, seeder=seeder)
@@ -191,6 +205,7 @@ class NodeInbound(threading.Event, Seeds):
 
 
     def __seed__(self) -> None:
+        # raise Exception("--> raising this for testing purposes")
         seeders = []
         remote_gateway_servers = self.configs__['NODES']['SEEDERS_PROBE_URL']
 
@@ -275,7 +290,7 @@ class NodeInbound(threading.Event, Seeds):
                     logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
                     self.__seed__()
                 else:
-                    logging.info("Updating seed record with: %s", MSISDN)
+                    logging.debug("Updating seed record with: %s", MSISDN)
                     rowcount = self.make_seed(MSISDN=MSISDN)
 
                     if rowcount < 1:
