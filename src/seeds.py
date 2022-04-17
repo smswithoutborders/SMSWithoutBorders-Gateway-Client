@@ -12,15 +12,23 @@ from seeders import Seeders
 
 class Seeds(Ledger):
 
+    class InvalidSeedState(Exception):
+        def __init__(self):
+            self.message = "Invalid seed state"
+            super().__init__(self.message)
+
+
     def __init__(self, 
             IMSI: str, 
             ping: bool=False, 
+            seeder_timeout: float=300.0,
             ping_servers: list=[]) -> None:
 
         super().__init__(IMSI=IMSI)
         self.IMSI = IMSI
         self.ping = ping
         self.ping_servers = ping_servers
+        self.__seeder_timeout = seeder_timeout
 
         if ping:
             self.__ping__()
@@ -133,9 +141,24 @@ class Seeds(Ledger):
                 else:
                     return data["MSISDN"]
 
-    def update_state(self, state: str=None):
+    def update_state(self, seeder_MSISDN: str, state: str='requested'):
         """
         """
+        try:
+            states = ['requested', 'confirmed']
+            logging.debug("updating seed with state: %s", state)
+
+            if state in states:
+                rowcount = self.update_seed_state(seeder_MSISDN=seeder_MSISDN, state=state)
+
+            else:
+                raise Seeds.InvalidSeedState()
+
+        except Exception as error:
+            raise error
+        else:
+            return rowcount
+
 
     def update_seeder(self, seeder_MSISDN: str):
         """
@@ -166,6 +189,40 @@ class Seeds(Ledger):
             """
             seed[0][0] = IMSI
             seed[0][1] = MSISDN
+            seed[0][2] = SEEDER_MSISDN
+            seed[0][3] = state
+            seed[0][4] = date (datetime)
             """
             return seed[0][1]
             
+    def can_request_MSISDN(self) -> bool:
+        """Checks if seed can request for MSISDN from seeder
+
+        Returns:
+            bool
+        """
+        try:
+            seed = self.find_seed_record()
+            logging.debug("%s", seed)
+
+        except Exception as error:
+            raise error
+
+        else:
+            if len(seed) < 1:
+                return True
+
+            if seed[0][3] == "requested":
+
+                """checks if timeout has reached"""
+                state_time = float(seed[0][4])
+                now_time = time.time()
+                
+                if now_time <= (state_time + self.__seeder_timeout):
+                    """ """
+                    logging.debug("Request has not expired: %d seconds remaining", 
+                            (state_time + self.__seeder_timeout) - now_time)
+
+                    return False
+
+        return True

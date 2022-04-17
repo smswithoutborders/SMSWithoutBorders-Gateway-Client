@@ -2,6 +2,7 @@
 
 import os
 import logging
+import time
 import sqlite3 as database
 
 class Ledger:
@@ -84,18 +85,21 @@ class Ledger:
             (IMSI text NOT NULL, 
             MSISDN text, 
             SEEDER_MSISDN text, 
+            state text,
+            state_time text,
             date DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL) ''')
             self.database_conn.commit()
         except Exception as error:
             raise error
     
     def __populate_seed_ledger_file__(self)->None:
-        self.database_conn = database.connect(self.seeds_ledger_filename)
+        database_conn = database.connect(self.seeds_ledger_filename)
 
-        cur = self.database_conn.cursor()
+        cur = database_conn.cursor()
         try:
-            cur.execute(f"INSERT INTO seed (IMSI) VALUES ({self.IMSI})")
-            self.database_conn.commit()
+            cur.execute(f"INSERT INTO seed VALUES (?, ?, ?, ?, ?, datetime('now','localtime'))", 
+                    (self.IMSI, None, None, None, None))
+            database_conn.commit()
         except Exception as error:
             raise error
 
@@ -115,9 +119,33 @@ class Ledger:
         except Exception as error:
             raise error
 
+    def find_seed_record(self) -> list:
+        """Finds the fields
+            seed[0][0] = IMSI
+            seed[0][1] = MSISDN
+            seed[0][2] = SEEDER_MSISDN
+            seed[0][3] = state
+            seed[0][4] = date (datetime)
+        """
+        database_conn = database.connect(self.seeds_ledger_filename)
+        cur = database_conn.cursor()
+
+        try:
+            """Because there will always be just one seed. More than one seed and there's a problem"""
+            cur.execute('''SELECT * FROM seed''')
+        except Exception as error:
+            raise error
+        else:
+            return cur.fetchall()
+
     
     def find_seed(self) -> list:
-        """Finds the fields
+        """Finds the fields when MSISDN is not NULL
+            seed[0][0] = IMSI
+            seed[0][1] = MSISDN
+            seed[0][2] = SEEDER_MSISDN
+            seed[0][3] = state
+            seed[0][4] = date (datetime)
         """
         self.database_conn = database.connect(self.seeds_ledger_filename)
 
@@ -154,6 +182,32 @@ class Ledger:
             cur.execute('''UPDATE seed SET MSISDN=:MSISDN WHERE IMSI=:IMSI''', 
                     {"MSISDN":seed_MSISDN, "IMSI":self.IMSI})
             self.database_conn.commit()
+        except Exception as error:
+            raise error
+        else:
+            return cur.rowcount
+
+    def update_seed_state(self, seeder_MSISDN: str, state: str):
+        """Changes the state of the request for the seed.
+        Seeds states can either be:
+            - NULL
+            - Requested
+            - Confirmed
+        """
+        database_conn = database.connect(self.seeds_ledger_filename)
+
+        cur = database_conn.cursor()
+        try:
+            state_time = str(time.time())
+
+            cur.execute(''' UPDATE seed SET 
+                    state=:state, 
+                    SEEDER_MSISDN=:seeder_MSISDN, 
+                    state_time=:state_time 
+                    WHERE IMSI=:IMSI''', 
+                    {"state":state, "seeder_MSISDN":seeder_MSISDN, "state_time":state_time, "IMSI":self.IMSI})
+
+            database_conn.commit()
         except Exception as error:
             raise error
         else:

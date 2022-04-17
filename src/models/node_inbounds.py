@@ -36,9 +36,15 @@ class NodeInbound(threading.Event, Seeds):
         ping_servers = configs__['NODES']['SEED_PING_URL']
         ping_servers = [server.strip() for server in ping_servers.split(',')]
 
+        self.__seeder_timeout = configs__['NODES']['SEEDER_TIMEOUT']
+
+        # defaults __seeder_timeout to 160.0 seconds
+        self.__seeder_timeout = float(self.__seeder_timeout) if self.__seeder_timeout != '' else 300.0
+
         Seeds.__init__(self, 
                 IMSI=modem.get_sim_imsi(), 
                 ping=True, 
+                seeder_timeout=self.__seeder_timeout,
                 ping_servers=ping_servers)
 
     def __publish_to_broker__(self, sms:str, queue_name:str)->None:
@@ -184,9 +190,10 @@ class NodeInbound(threading.Event, Seeds):
 
         text = str(base64.b64encode(str.encode(text)), 'utf-8')
 
+        """Checks if state requested has expired, then goes ahead to make request if yes"""
+
         logging.info("[*] Making request to seeder: %s %s", 
                 seeder.MSISDN, text)
-
         try:
             Deku(self.modem).modem_send( 
                     number=seeder.MSISDN,
@@ -196,10 +203,13 @@ class NodeInbound(threading.Event, Seeds):
             raise error
         else:
             try:
-                self.update_state('requested')
+                self.update_state(seeder_MSISDN=seeder.MSISDN, state='requested')
                 logging.debug("Seeder %s state changed to requested", seeder.MSISDN)
-
                 time.sleep(self.daemon_sleep_time)
+
+            except Seeds.InvalidSeedState as error:
+                raise error
+
             except Exception as error:
                 raise error
 
@@ -282,21 +292,30 @@ class NodeInbound(threading.Event, Seeds):
             if not self.is_seed():
                 logging.info("[*] Node is not a seed!")
 
-                remote_gateway_servers = self.configs__['NODES']['SEEDS_PROBE_URL']
-                remote_gateway_servers = [s.strip() for s in remote_gateway_servers.split(',')]
-                MSISDN = self.remote_search(remote_gateway_servers)
+                try:
+                    if not self.can_request_MSISDN():
+                        logging.info("[*] MSISDN request still pending expiring... waiting")
+                        return
 
-                if MSISDN == '':
-                    logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
-                    self.__seed__()
+                except Exception as error:
+                    logging.exception(error)
+                    sys.exit()
                 else:
-                    logging.debug("Updating seed record with: %s", MSISDN)
-                    rowcount = self.make_seed(MSISDN=MSISDN)
+                    remote_gateway_servers = self.configs__['NODES']['SEEDS_PROBE_URL']
+                    remote_gateway_servers = [s.strip() for s in remote_gateway_servers.split(',')]
+                    MSISDN = self.remote_search(remote_gateway_servers)
 
-                    if rowcount < 1:
-                        logging.error("Failed to update seed record!")
+                    if MSISDN == '':
+                        logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
+                        self.__seed__()
                     else:
-                        logging.debug("[*] MSISDN - %s found remotely!", MSISDN)
+                        logging.debug("Updating seed record with: %s", MSISDN)
+                        rowcount = self.make_seed(MSISDN=MSISDN)
+
+                        if rowcount < 1:
+                            logging.error("Failed to update seed record!")
+                        else:
+                            logging.debug("[*] MSISDN - %s found remotely!", MSISDN)
             else:
                 logging.info("Node is valid seed!")
 
