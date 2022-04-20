@@ -17,7 +17,6 @@ outbound_state=$(shell systemctl is-active swob_outbound.service)
 rabbitmq_state=$(shell systemctl is-active swob_rabbitmq.service)
 
 gen_configs:
-	@echo "Copying config files..."
 	@cp -nv .configs/example.config.ini .configs/config.ini
 	@cp -nv .configs/events/example.rules.ini .configs/events/rules.ini
 	@cp -nv .configs/isp/example.operators.ini .configs/isp/operators.ini
@@ -26,18 +25,19 @@ gen_configs:
 	@cp -nv .configs/extensions/example.labels.ini .configs/extensions/labels.ini
 	@cp -nv .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
 	@cp -nv .configs/remote_control/example.remote_control_auth.ini .configs/remote_control/remote_control_auth.ini
-	# @ln -s -f ../../.configs/pre-commit .git/hooks/pre-commit
+	@# @ln -s -f ../../.configs/pre-commit .git/hooks/pre-commit
+	@echo "[*] Copied config files..."
 	
-	@echo "Creating deps build path $(build_path)"
 	@mkdir -p $(build_path)
-	@echo "Creating rabbitmq build path $(path_rabbitmq_builds)"
+	@echo "[*] Created dependencies build path $(build_path)"
 	@mkdir -p $(path_rabbitmq_builds)
-	@echo "Generating service files"
+	@echo "[*] Created RabbitMQ build path $(path_rabbitmq_builds)"
 	@$(python) installer/generate.py
-	@echo "Compiling binaries..."
+	@echo "[*] Generated service files"
 	@mkdir -p src/bins
 	@gcc src/seeders.c -o src/bins/seeders.bin 
-	@echo "Done configuration"
+	@echo "[*] Compiled binaries..."
+	@echo "[*] Done configuration"
 
 ubuntu:
 	@echo "[*] Installing wget"
@@ -55,13 +55,13 @@ ubuntu:
 	
 
 rabbitmq_checks:deps/rabbitmq/version.lock deps/rabbitmq/init.sh
-	@echo "rabbitmq checks passed"
+	@echo "[*] RabbitMQ checks passed"
 
 init_rabbitmq:
 	@$(path_rabbitmq)/init.sh
 
 start_rabbitmq:init_rabbitmq
-	@echo "+ Starting rabbitmq service"
+	@echo "[*] Starting rabbitmq service"
 	@sudo systemctl start swob_rabbitmq.service
 
 enable_rabbitmq:
@@ -81,9 +81,9 @@ start:
 	@echo "+ Starting cluster service..."
 
 init_systemd:
-	@echo "copying service files to $(systemd_path)"
 	@sudo ln -s $(build_path)/*.service $(systemd_path)/
 	@sudo systemctl daemon-reload
+	@echo "[*] Copied service files to $(systemd_path)"
 
 install:requirements.txt init_systemd rabbitmq_checks start_rabbitmq
 	@$(python) -m venv $(venv_path)
@@ -92,7 +92,7 @@ install:requirements.txt init_systemd rabbitmq_checks start_rabbitmq
 		$(pip) install -r requirements.txt \
 	)
 	@git submodule update --init --recursive
-	@echo "completed successfully"
+	@echo "[*] Installation completed successfully"
 
 restart:
 	@sudo systemctl restart swob_inbound.service
