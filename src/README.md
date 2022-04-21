@@ -67,6 +67,12 @@ API_ID=<insert your server username here (same as an Afkanerd developer Auth ID)
 API_KEY=<insert your server password here (same as an Afkanerd develper Auth Key)>
 ```
 
+- Be sure to set your connection URL to point to the [RabbitMQ server](https://developers.smswithoutborders.com:15671).
+```ini
+CONNECTION_URL=developers.smswithoutborders.com
+```
+
+
 ##### configure events
 There are 2 types of events (FAILED, SUCCESS). For each event, an array of ACTIONS can be listed. \
 Each event can be configured to trigger an event when certain values are met. \
@@ -118,6 +124,10 @@ python3 src/main.py --log=DEBUG --module=inbound
 ```bash
 tail -f src/services/logs/service.log
 ```
+
+### Sending out SMS messages Using OpenAPI
+<p>With [<b>OpenAPI</b>](https://smswithoutborders-openapi.readthedocs.io/en/latest/overview.html), you can send out single and bulk SMS messages through the Gateway Client. After the gateway client as a system service or manually, you are good to start sending out SMS messages.</p>
+
 
 ### Setting up on Raspberry pi (tested on 4B)
 #### Ubuntu Server
