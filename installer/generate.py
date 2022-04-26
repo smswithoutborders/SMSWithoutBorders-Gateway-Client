@@ -9,6 +9,7 @@ import distro
 import stat
 import pathlib
 import configparser
+import logging
 
 '''resources:
     - https://www.freedesktop.org/software/systemd/man/systemd.unit.html#
@@ -69,13 +70,13 @@ def generate_systemd():
         # distro_systemd_schemas_inbound[dist]['Unit']['BindsTo'] = "swob_rabbitmq.service"
         distro_systemd_schemas_inbound[dist]['Unit']['Wants'] = "ModemManager.service"
         distro_systemd_schemas_inbound[dist]['Service']['ExecStart'] = \
-                f"+{path_venv}/bin/python3 {path_main} --log=INFO --module=inbound"
+                f"+{path_venv}/bin/python3 {path_main} --log=DEBUG --module=inbound"
 
     for dist in distro_systemd_schemas_outbound:
         distro_systemd_schemas_outbound[dist]['Unit']['Description'] = "SMSWithoutBorders Gateway service - Outgoing SMS (outbound)"
         distro_systemd_schemas_outbound[dist]['Unit']['BindsTo'] = "ModemManager.service"
         distro_systemd_schemas_outbound[dist]['Service']['ExecStart'] = \
-                f"+{path_venv}/bin/python3 {path_main} --log=INFO --module=outbound"
+                f"+{path_venv}/bin/python3 {path_main} --log=DEBUG --module=outbound"
 
     def write_schema(schema, systemd_filepath):
         fd_schema = open(systemd_filepath, 'w')
@@ -140,6 +141,8 @@ def generate_deps():
                 os.path.dirname(__file__), '../deps/rabbitmq', 'version.lock')
         path_rabbitmq_init_script =os.path.join(
                 os.path.dirname(__file__), '../deps/rabbitmq', 'init.sh')
+        path_rabbitmq_plugin_script =os.path.join(
+                os.path.dirname(__file__), '../deps/rabbitmq', 'plugin.sh')
 
         versioning_info=None
         with open(path_rabbitmq_versions_lock, 'r') as fd_rabbitmq:
@@ -152,11 +155,18 @@ def generate_deps():
         ''' rabbitmq_server-3.9.9'''
         path_rabbitmq_instance = f'{path_rabbitmq_builds}rabbitmq_server-{version}'
 
+        logging.info("[*] Generating rabbitmq init script")
         # write init script
         data = "#!/usr/bin/bash\n"
         data += f'tar -xf {path_rabbitmq}{version_fullpath} -C {path_rabbitmq_builds}\n'
         write_scripts(data, path_rabbitmq_init_script)
         chmodx_scripts(path_rabbitmq_init_script)
+
+        logging.info("[*] Enabling rabbitmq user plugins")
+        data = "#!/usr/bin/bash\n"
+        data += f'{path_rabbitmq_instance}/sbin/rabbitmq-plugins enable rabbitmq_management'
+        write_scripts(data, path_rabbitmq_plugin_script)
+        chmodx_scripts(path_rabbitmq_plugin_script)
 
         return str(
                 pathlib.Path(path_rabbitmq_instance).resolve()), str(
@@ -227,6 +237,7 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
 
 if __name__ == "__main__":
     global path_rabbitmq, path_rabbitmq_builds
+    logging.basicConfig(level='DEBUG')
 
     path_rabbitmq=os.path.join(
             os.path.dirname(__file__), '../deps/rabbitmq', '')

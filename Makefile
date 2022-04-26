@@ -54,11 +54,12 @@ ubuntu:
                         erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
 	
 
-rabbitmq_checks:deps/rabbitmq/version.lock deps/rabbitmq/init.sh
+rabbitmq_checks:deps/rabbitmq/version.lock deps/rabbitmq/init.sh deps/rabbitmq/plugin.sh
 	@echo "[*] RabbitMQ checks passed"
 
 init_rabbitmq:
 	@$(path_rabbitmq)/init.sh
+	@$(path_rabbitmq)/plugin.sh
 
 start_rabbitmq:init_rabbitmq
 	@echo "[*] Starting rabbitmq service"

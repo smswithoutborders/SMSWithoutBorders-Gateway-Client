@@ -37,6 +37,7 @@ class NodeInbound(threading.Event, Seeds):
         ping_servers = [server.strip() for server in ping_servers.split(',')]
 
         self.__seeder_timeout = configs__['NODES']['SEEDER_TIMEOUT']
+        self.__seed_fail_timeout = configs__['NODES']['SEED_REQUEST_FAILED_TIMEOUT']
 
         # defaults __seeder_timeout to 160.0 seconds
         self.__seeder_timeout = float(self.__seeder_timeout) if self.__seeder_timeout != '' else 300.0
@@ -200,6 +201,8 @@ class NodeInbound(threading.Event, Seeds):
                     text=text,
                     force=True)
         except Exception as error:
+            """Sleep before sending this because it stops the entire daemon"""
+            time.sleep(self.__seed_fail_timeout)
             raise error
         else:
             try:
