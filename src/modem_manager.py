@@ -107,8 +107,13 @@ class ModemManager:
             try:
                 for model_name, thread_thread_model in self.active_nodes[modem_imei].items():
                     thread_thread_model[1].set()
+
                 del self.active_nodes[modem_imei]
-                logging.debug("removed modem %s", modem_imei)
+
+                logging.debug("REMOVED MODEM %s", modem_imei)
+                logging.debug(self.active_nodes)
+                logging.debug(threading.enumerate())
+
             except Exception as error:
                 logging.exception(error)
 
@@ -120,6 +125,7 @@ class ModemManager:
         logging.debug("Refreshing software nodes...")
 
         deletion_list = []
+        """
         for modem_imei, model_threads in self.active_nodes.items():
             for model_name, threads_models in model_threads.items():
                 if not threads_models[0].is_alive():
@@ -128,7 +134,21 @@ class ModemManager:
         for item in deletion_list:
             del self.active_nodes[item[0]][item[1]]
             logging.debug("Removed %s in %s during software refresh", item[0], item[1])
+        """
+        list_threads = []
+        for modem_imei, model_threads in self.active_nodes.items():
+            for modem_imei, model_threads in self.active_nodes.items():
+                for model_name, threads_models in model_threads.items():
+                    list_threads.append((modem_imei, model_name, threads_models[0]))
 
+        active_threads = threading.enumerate()
+
+        for thread_items in list_threads:
+            list_thread = thread_items[2]
+            if not list_thread in active_threads:
+                del self.active_nodes[thread_items[0]][thread_items[1]]
+                logging.debug("Removed %s in %s during software refresh", 
+                        thread_items[0], thread_items[1])
 
     def __daemon_hardware_state__(self) -> None:
         while True:
@@ -189,6 +209,7 @@ class ModemManager:
                         target=model.main)
 
                 try:
+                    logging.debug("Starting modem....!!")
                     modem_thread.start()
                 except Exception as error:
                     logging.exception(error)

@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
     log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
     logging.basicConfig(
-            format='%(asctime)s|[%(levelname)s] [%(module)s] %(message)s',
+            format='%(asctime)s|[%(levelname)s] [%(thread)s] [%(module)s] %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[
                 logging.FileHandler(log_file_path),
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
             if args.module == "outbound" or args.module == "all":
                 thread_outbound = threading.Thread(target=outbound.main, 
-                        args=(modemManager,))
+                        args=(modemManager,), daemon=True)
 
                 thread_outbound.start()
                 if not args.module == "all":
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
             if args.module == "inbound" or args.module == "all":
                 thread_outbound = threading.Thread(target=inbound.main, 
-                        args=(modemManager,))
+                        args=(modemManager,), daemon=True)
 
                 thread_outbound.start()
                 thread_outbound.join()

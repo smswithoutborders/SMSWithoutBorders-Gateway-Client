@@ -19,7 +19,7 @@ from seeds import Seeds
 from seeders import Seeders
 import helpers
 
-class NodeInbound(threading.Event, Seeds):
+class NodeInbound(Seeds):
     locked_modems = True
 
     def __init__(self, 
@@ -27,14 +27,12 @@ class NodeInbound(threading.Event, Seeds):
             daemon_sleep_time:int=3, 
             configs__: configparser.ConfigParser=None)->None:
 
-        super().__init__()
+        # super().__init__()
 
         self.modem = modem
         self.daemon_sleep_time = daemon_sleep_time
         self.configs__ = configs__
 
-        ping_servers = configs__['NODES']['SEED_PING_URL']
-        ping_servers = [server.strip() for server in ping_servers.split(',')]
 
         self.__seeder_timeout = configs__['NODES']['SEEDER_TIMEOUT']
         self.__seed_fail_timeout = configs__['NODES']['SEED_REQUEST_FAILED_TIMEOUT']
@@ -42,11 +40,16 @@ class NodeInbound(threading.Event, Seeds):
         # defaults __seeder_timeout to 160.0 seconds
         self.__seeder_timeout = float(self.__seeder_timeout) if self.__seeder_timeout != '' else 300.0
 
+        """
         Seeds.__init__(self, 
                 IMSI=modem.get_sim_imsi(), 
                 ping=True, 
                 seeder_timeout=self.__seeder_timeout,
                 ping_servers=ping_servers)
+        """
+        Seeds.__init__(self, IMSI=modem.get_sim_imsi(), 
+                seeder_timeout=self.__seeder_timeout)
+                
 
     def __publish_to_broker__(self, sms:str, queue_name:str)->None:
         try:
@@ -102,13 +105,17 @@ class NodeInbound(threading.Event, Seeds):
             logging.info("[*] SEED RESPONSE COMPLETE")
 
 
-    def listen_for_sms_inbound(self, publish_url:str='localhost', queue_name:str='inbound.route.route' )->None:
+    def listen_for_sms_inbound(self, 
+            publish_url:str='localhost', 
+            queue_name:str='inbound.route.route' )->None:
         """Checks for all incoming messages.
         Before processing the messages - checks if:
             - Is a seed request (critical to do this before messages get deleted).
             - Is a seeder response.
         """
-        logging.info("[*] Listening for inbound messages...")
+
+        logging.info("[*] [%s | %s]: Starting incoming listener", 
+                self.modem.imei, helpers.get_modem_operator_name(self.modem))
 
         while True:
             if(
@@ -275,20 +282,13 @@ class NodeInbound(threading.Event, Seeds):
         else:
             logging.info("Seed request made successfully!")
 
-
-    def main(self, __seeder=False) -> None:
-        """Monitors modems for inbound messages and publishes.
-        This is process is blocking.
-        All seed(er)s make a ping request to the servers to inform of their presence
-
-        TODO:
-            - Ping body (IMSI: str, MSISDN: str, seeder: bool)
+    def daemon_seed_checker(self) -> None:
         """
-
-        self.__seeder = __seeder
-        logging.debug("monitoring inbound messages")
-
+        """
         try:
+            logging.info("[*] [%s | %s]: Starting daemon seed checker", 
+                    self.modem.imei, helpers.get_modem_operator_name(self.modem))
+
             IMSI= self.modem.get_sim_imsi()
 
             #  Checcks of current node is a seed (has MSISDN and IMSI in ledger)
@@ -302,7 +302,6 @@ class NodeInbound(threading.Event, Seeds):
 
                 except Exception as error:
                     logging.exception(error)
-                    sys.exit()
                 else:
                     remote_gateway_servers = self.configs__['NODES']['SEEDS_PROBE_URL']
                     remote_gateway_servers = [s.strip() for s in remote_gateway_servers.split(',')]
@@ -325,27 +324,45 @@ class NodeInbound(threading.Event, Seeds):
         except Exception as error:
             # logging.error(error)
             logging.exception(error)
-            sys.exit()
-        else:
-            try:
-                logging.info("[%s | %s] starting incoming listener", 
-                        self.modem.imei, helpers.get_modem_operator_name(self.modem))
-                inbound_thread = threading.Thread(
-                        target=self.listen_for_sms_inbound, 
-                        daemon=True)
-                inbound_thread.start()
 
-                self.wait()
-                logging.debug("stopping inbound listener")
+    def main(self) -> None:
+        """Monitors modems for inbound messages and publishes.
+        This is process is blocking.
+        All seed(er)s make a ping request to the servers to inform of their presence
 
-            except Modem.MissingModem as error:
-                logging.exception(error)
+        TODO:
+            - Ping body (IMSI: str, MSISDN: str, seeder: bool)
+        """
 
-            except Modem.MissingIndex as error:
-                logging.exception(error)
+        logging.info("[*] BEGAN MAIN FOR MODULE: ")
+        try:
+            daemon_seed_checker_thread = threading.Thread(target=self.daemon_seed_checker,
+                    daemon=True)
+            daemon_seed_checker_thread.start()
+        except Exception as error:
+            logging.exception(error)
+            time.sleep(self.daemon_sleep_time)
 
-            except Exception as error:
-                logging.exception(error)
 
-            finally:
-                time.sleep(self.daemon_sleep_time)
+        try:
+            ping_servers = self.configs__['NODES']['SEED_PING_URL']
+            ping_servers = [server.strip() for server in ping_servers.split(',')]
+
+            self.start_pinging(ping_servers = ping_servers, ping_duration=10.0)
+            logging.debug("passed it")
+
+            inbound_thread = threading.Thread(
+                    target=self.listen_for_sms_inbound, 
+                    daemon=True)
+            
+            inbound_thread.start()
+
+            self.wait()
+            self.kill_seed_ping = True
+            logging.debug("stopping inbound listener")
+
+        except Exception as error:
+            logging.exception(error)
+            sys.exit(1)
+
+

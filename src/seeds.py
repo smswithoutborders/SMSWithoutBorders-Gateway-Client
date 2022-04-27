@@ -10,7 +10,7 @@ import threading
 from ledger import Ledger
 from seeders import Seeders
 
-class Seeds(Ledger):
+class Seeds(threading.Event, Ledger):
 
     class InvalidSeedState(Exception):
         def __init__(self):
@@ -20,43 +20,13 @@ class Seeds(Ledger):
 
     def __init__(self, 
             IMSI: str, 
-            ping: bool=False, 
-            seeder_timeout: float=300.0,
-            ping_servers: list=[]) -> None:
+            seeder_timeout: float=300.0) -> None:
 
-        super().__init__(IMSI=IMSI)
+        Ledger.__init__(self, IMSI=IMSI)
+        super().__init__()
+
         self.IMSI = IMSI
-        self.ping = ping
-        self.ping_servers = ping_servers
         self.__seeder_timeout = seeder_timeout
-
-        if ping:
-            self.__ping__()
-
-    def __ping_request__(self) -> None:
-        while True:
-            MSISDN = self.get_MSISDN()
-            if MSISDN is not None:
-                seeder = Seeders(MSISDN=MSISDN)
-                logging.debug("Sending ping request for [%s]", MSISDN)
-
-                ping_data = { 
-                        "IMSI":self.IMSI,
-                        "MSISDN":MSISDN,
-                        "seed_type":"seeder" if seeder.is_seeder() else "seed"}
-                logging.debug("Ping data: %s", ping_data)
-
-                for ping_server in self.ping_servers:
-                    try:
-                        logging.debug("pinging: %s", ping_server)
-                        results = requests.post(ping_server, json=ping_data)
-
-                        logging.debug("Ping results: %s", results.text)
-                    except Exception as error:
-                        logging.error(error)
-
-                # TODO: Configuration goes here to determine ping time
-            time.sleep(4)
 
     def remote_search(self, remote_gateway_servers) -> str:
         """Checks with the remote Gateway servers for MSISDN.
@@ -81,11 +51,47 @@ class Seeds(Ledger):
 
         return ''
 
+    def ping_keepalive(self, ping_servers: list, 
+            ping_duration: float, IMSI: str, MSISDN: str) -> None:
+
+        self.kill_seed_ping = False
+        while True and not self.kill_seed_ping:
+            if MSISDN is not None:
+                seeder = Seeders(MSISDN=MSISDN)
+                logging.debug("Sending ping request for [%s]", MSISDN)
+
+                ping_data = { 
+                        "IMSI":IMSI,
+                        "MSISDN":MSISDN,
+                        "seed_type":"seeder" if seeder.is_seeder() else "seed"}
+                logging.debug("Ping data: %s", ping_data)
+
+                for ping_server in ping_servers:
+                    try:
+                        logging.debug("pinging: %s", ping_server)
+                        results = requests.post(ping_server, json=ping_data)
+
+                        logging.debug("Ping results: %s", results.text)
+                    except Exception as error:
+                        logging.error(error)
+
+                # TODO: Configuration goes here to determine ping time
+            time.sleep(ping_duration)
+
     
-    def __ping__(self) -> None:
+    def start_pinging(self, ping_servers: list = [], ping_duration: float = 30.0):
+        """Initializing ping request to requested server"""
+
         logging.debug("[*] Starting ping session")
-        self.ping_thread = threading.Thread(target=self.__ping_request__, daemon=True)
-        self.ping_thread.start()
+        try:
+            ping_thread = threading.Thread(
+                    target=self.ping_keepalive, 
+                    args=(ping_servers, ping_duration, self.IMSI, self.get_MSISDN(),),
+                    daemon=True)
+            ping_thread.start()
+
+        except Exception as error:
+            raise error
 
     def is_seed(self) -> bool:
         """Checks if current node can seed.
