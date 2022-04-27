@@ -27,6 +27,7 @@ class Seeds(threading.Event, Ledger):
 
         self.IMSI = IMSI
         self.__seeder_timeout = seeder_timeout
+        self.kill_seed_ping = False
 
     def remote_search(self, remote_gateway_servers) -> str:
         """Checks with the remote Gateway servers for MSISDN.
@@ -54,7 +55,6 @@ class Seeds(threading.Event, Ledger):
     def ping_keepalive(self, ping_servers: list, 
             ping_duration: float, IMSI: str, MSISDN: str) -> None:
 
-        self.kill_seed_ping = False
         while True and not self.kill_seed_ping:
             if MSISDN is not None:
                 seeder = Seeders(MSISDN=MSISDN)
@@ -78,11 +78,19 @@ class Seeds(threading.Event, Ledger):
                 # TODO: Configuration goes here to determine ping time
             time.sleep(ping_duration)
 
+
+    def stop_ping(self) -> None:
+        """
+        """
+        logging.debug("[*] Stopping ping session")
+
+        self.kill_seed_ping = True
     
     def start_pinging(self, ping_servers: list = [], ping_duration: float = 30.0):
-        """Initializing ping request to requested server"""
-
+        """Initializing ping request to requested server.
+        """
         logging.debug("[*] Starting ping session")
+
         try:
             ping_thread = threading.Thread(
                     target=self.ping_keepalive, 

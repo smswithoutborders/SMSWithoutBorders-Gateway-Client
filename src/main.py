@@ -30,14 +30,12 @@ if __name__ == "__main__":
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
     log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
     logging.basicConfig(
-            format='%(asctime)s|[%(levelname)s] [%(thread)s] [%(module)s] %(message)s',
+            format='%(asctime)s|[%(levelname)s] [%(module)s] %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[
                 logging.FileHandler(log_file_path),
                 logging.StreamHandler(sys.stdout) ],
             level=args.log.upper())
-
-    formatter = logging.Formatter('%(asctime)s|[%(levelname)s] %(pathname)s %(lineno)d|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
     try:
         modemManager = ModemManager()

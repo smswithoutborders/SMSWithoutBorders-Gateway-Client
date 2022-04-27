@@ -378,7 +378,7 @@ class NodeInbound(Seeds):
                     logging.info("[*] Routing %s -> %s", json_body, routing_url)
 
                     router = Router(url=routing_url)
-                    router.route_online(data=json_body)
+                    router.route_online(data=json_data)
             except Exception as error:
                 logging.exception(error)
                 # self.router_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
@@ -386,8 +386,6 @@ class NodeInbound(Seeds):
             else:
                 # self.router_channel.basic_ack( delivery_tag=method.delivery_tag, requeue=True)
                 ch.basic_ack( delivery_tag=method.delivery_tag, requeue=True)
-            finally:
-                time.sleep(self.daemon_sleep_time)
 
 
     def main(self) -> None:
