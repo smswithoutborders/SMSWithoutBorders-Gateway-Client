@@ -16,7 +16,6 @@ class Router:
         """
         """
         try:
-
             # route_results = requests.post(self.url, json=data, verify=True, cert=ssl)
             route_results = requests.post(self.url, json=data, verify=False)
             route_results.raise_for_status()
