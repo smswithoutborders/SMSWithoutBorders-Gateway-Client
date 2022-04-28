@@ -92,7 +92,7 @@ install:requirements.txt init_systemd rabbitmq_checks start_rabbitmq
 		. $(venv_path)/bin/activate; \
 		$(pip) install -r requirements.txt \
 	)
-	@git submodule update --init --recursive
+	@git submodule update --init --recursive --remote
 	@echo "[*] Installation completed successfully"
 
 restart:
