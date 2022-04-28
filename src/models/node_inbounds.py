@@ -382,10 +382,10 @@ class NodeInbound(Seeds):
             except Exception as error:
                 logging.exception(error)
                 # self.router_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
-                ch.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
+                ch.basic_reject( delivery_tag=method.delivery_tag)
             else:
-                # self.router_channel.basic_ack( delivery_tag=method.delivery_tag, requeue=True)
-                ch.basic_ack( delivery_tag=method.delivery_tag, requeue=True)
+                # self.router_channel.basic_ack( delivery_tag=method.delivery_tag)
+                ch.basic_ack( delivery_tag=method.delivery_tag)
             finally:
                 time.sleep(self.daemon_sleep_time)
 

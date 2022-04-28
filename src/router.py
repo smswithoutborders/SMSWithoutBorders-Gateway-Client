@@ -16,8 +16,11 @@ class Router:
         """
         """
         try:
+
             # route_results = requests.post(self.url, json=data, verify=True, cert=ssl)
             route_results = requests.post(self.url, json=data, verify=False)
+            route_results.raise_for_status()
+
         except ConnectionError as error:
             """In the event of a network problem (e.g. DNS failure, refused connection, etc).
             Requests will raise a ConnectionError exception.
