@@ -9,6 +9,7 @@ import distro
 import stat
 import pathlib
 import configparser
+import logging
 
 '''resources:
     - https://www.freedesktop.org/software/systemd/man/systemd.unit.html#
@@ -30,16 +31,13 @@ def generate_systemd():
                 "Unit": {
                     "Description" : "",
                     "After" : "ModemManager.service",
-                    "StartLimitIntervalSec" : "120",
-                    "StartLimitBurst" : "5",
-                    # "StartLimitAction" : "systemctl reboot"
                     },
                 "Service": {
                     "Type" : "simple",
-                    "ExecStart": f"+{path_venv}/bin/python3 {path_main}",
-                    "TimeoutStartSec" : "3600",
+                    "ExecStart": "",
                     "Restart" : "on-failure",
-                    "RestartSec" : "10s"
+                    "RestartSec": "1",
+                    "User":"root",
                     },
                 "Install": {
                     "WantedBy" : "multi-user.target"
@@ -50,76 +48,78 @@ def generate_systemd():
     # print(distro_systemd_schemas)
 
     # Distro init
-    distro_systemd_schemas_gateway = copy.deepcopy(distro_systemd_schemas)
+    distro_systemd_schemas_inbound = copy.deepcopy(distro_systemd_schemas)
 
-    distro_systemd_schemas_cluster = copy.deepcopy(distro_systemd_schemas)
+    distro_systemd_schemas_outbound = copy.deepcopy(distro_systemd_schemas)
 
-    # print(id(distro_systemd_schemas_gateway))
-    # print(id(distro_systemd_schemas_cluster))
+    # print(id(distro_systemd_schemas_inbound))
+    # print(id(distro_systemd_schemas_outbound))
 
-    default_schema_gateway = distro_systemd_schemas_gateway.pop('default')
-    default_schema_cluster = distro_systemd_schemas_cluster.pop('default')
+    default_schema_gateway = distro_systemd_schemas_inbound.pop('default')
+    default_schema_cluster = distro_systemd_schemas_outbound.pop('default')
 
     for dist in SUPPORTED_DISTROS_GATEWAY:
-        distro_systemd_schemas_gateway[dist] = default_schema_gateway
+        distro_systemd_schemas_inbound[dist] = default_schema_gateway
 
     for dist in SUPPORTED_DISTROS_CLUSTER:
-        distro_systemd_schemas_cluster[dist] = default_schema_cluster
+        distro_systemd_schemas_outbound[dist] = default_schema_cluster
 
     # cluster bindings
-    for dist in distro_systemd_schemas_gateway:
-        distro_systemd_schemas_gateway[dist]['Unit']['Description'] += "SMSWithoutBorders Gateway service"
-        # distro_systemd_schemas_gateway[dist]['Unit']['BindsTo'] = "deku_rabbitmq.service"
-        distro_systemd_schemas_gateway[dist]['Unit']['Wants'] = "ModemManager.service"
-        distro_systemd_schemas_gateway[dist]['Service']['ExecStart'] += " --log=INFO --module=gateway"
+    for dist in distro_systemd_schemas_inbound:
+        distro_systemd_schemas_inbound[dist]['Unit']['Description'] = "SMSWithoutBorders Gateway service - Incoming SMS (inbound)"
+        # distro_systemd_schemas_inbound[dist]['Unit']['BindsTo'] = "swob_rabbitmq.service"
+        distro_systemd_schemas_inbound[dist]['Unit']['Wants'] = "ModemManager.service"
+        distro_systemd_schemas_inbound[dist]['Service']['ExecStart'] = \
+                f"+{path_venv}/bin/python3 {path_main} --log=DEBUG --module=inbound"
 
-    for dist in distro_systemd_schemas_cluster:
-        distro_systemd_schemas_cluster[dist]['Unit']['Description'] += "Deku Cluster service"
-        distro_systemd_schemas_cluster[dist]['Unit']['BindsTo'] = "ModemManager.service"
-        distro_systemd_schemas_cluster[dist]['Service']['ExecStart'] += " --log=INFO --module=cluster"
+    for dist in distro_systemd_schemas_outbound:
+        distro_systemd_schemas_outbound[dist]['Unit']['Description'] = "SMSWithoutBorders Gateway service - Outgoing SMS (outbound)"
+        distro_systemd_schemas_outbound[dist]['Unit']['BindsTo'] = "ModemManager.service"
+        distro_systemd_schemas_outbound[dist]['Service']['ExecStart'] = \
+                f"+{path_venv}/bin/python3 {path_main} --log=DEBUG --module=outbound"
 
     def write_schema(schema, systemd_filepath):
         fd_schema = open(systemd_filepath, 'w')
         schema.write(fd_schema)
 
     def populate_config(schema):
-        _cp = configparser.ConfigParser(strict=False)
+        _cp = configparser.ConfigParser(strict=False, interpolation=None)
         _cp.optionxform = lambda option: option
         _cp.read_dict(schema)
         return _cp
 
     # generates only for required distro
-    systemd_filepath_gateway = os.path.join(
-            os.path.dirname(__file__), 'files', 'deku_gateway.service')
+    systemd_filepath_inbound = os.path.join(
+            os.path.dirname(__file__), 'files', 'swob_inbound.service')
 
-    systemd_filepath_cluster = os.path.join(
-            os.path.dirname(__file__), 'files', 'deku_cluster.service')
+    systemd_filepath_outbound = os.path.join(
+            os.path.dirname(__file__), 'files', 'swob_outbound.service')
 
     dist = distro.like()
     print(f"configuring for distro: [{dist}]")
 
     if dist in SUPPORTED_DISTROS_GATEWAY:
-        schema = distro_systemd_schemas_gateway[dist]
+        schema = distro_systemd_schemas_inbound[dist]
         """
         for section in schema:
             print(f"Gateway[{section}]:")
             print([values for values in schema[section]])
         """
         try:
-            write_schema(populate_config(schema), systemd_filepath_gateway)
+            write_schema(populate_config(schema), systemd_filepath_inbound)
         except Exception as error:
             print(error)
             exit(1)
 
     if dist in SUPPORTED_DISTROS_CLUSTER:
-        schema = distro_systemd_schemas_cluster[dist]
+        schema = distro_systemd_schemas_outbound[dist]
         """
         for section in schema:
             print(f"Cluster[{section}]:")
             print([values for values in schema[section]])
         """
         try:
-            write_schema(populate_config(schema), systemd_filepath_cluster)
+            write_schema(populate_config(schema), systemd_filepath_outbound)
         except Exception as error:
             print(error)
     else:
@@ -138,9 +138,11 @@ def generate_deps():
 
     def rabbitmq():
         path_rabbitmq_versions_lock =os.path.join(
-                os.path.dirname(__file__), '../third_party/rabbitmq', 'version.lock')
+                os.path.dirname(__file__), '../deps/rabbitmq', 'version.lock')
         path_rabbitmq_init_script =os.path.join(
-                os.path.dirname(__file__), '../third_party/rabbitmq', 'init.sh')
+                os.path.dirname(__file__), '../deps/rabbitmq', 'init.sh')
+        path_rabbitmq_plugin_script =os.path.join(
+                os.path.dirname(__file__), '../deps/rabbitmq', 'plugin.sh')
 
         versioning_info=None
         with open(path_rabbitmq_versions_lock, 'r') as fd_rabbitmq:
@@ -153,11 +155,18 @@ def generate_deps():
         ''' rabbitmq_server-3.9.9'''
         path_rabbitmq_instance = f'{path_rabbitmq_builds}rabbitmq_server-{version}'
 
+        logging.info("[*] Generating rabbitmq init script")
         # write init script
         data = "#!/usr/bin/bash\n"
         data += f'tar -xf {path_rabbitmq}{version_fullpath} -C {path_rabbitmq_builds}\n'
         write_scripts(data, path_rabbitmq_init_script)
         chmodx_scripts(path_rabbitmq_init_script)
+
+        logging.info("[*] Enabling rabbitmq user plugins")
+        data = "#!/usr/bin/bash\n"
+        data += f'{path_rabbitmq_instance}/sbin/rabbitmq-plugins enable rabbitmq_management'
+        write_scripts(data, path_rabbitmq_plugin_script)
+        chmodx_scripts(path_rabbitmq_plugin_script)
 
         return str(
                 pathlib.Path(path_rabbitmq_instance).resolve()), str(
@@ -174,7 +183,7 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
     rmq_template.read(path_rabbitmq_template)
 
     path_rabbitmq_service =os.path.join(
-            os.path.dirname(__file__), 'files', 'deku_rabbitmq.service')
+            os.path.dirname(__file__), 'files', 'swob_rabbitmq.service')
 
     rmq_template['Service']['User'] = getpass.getuser()
     rmq_template['Service']['Group'] = str(os.getegid())
@@ -221,19 +230,20 @@ def customize_rabbitmq(path_rabbitmq_instance, path_rabbitmq_init_script):
     write_file(env_data, path_rmq_env_conf)
 
     path_rabbitmq_init_script =os.path.join(
-            os.path.dirname(__file__), '../third_party/rabbitmq', 'init.sh')
+            os.path.dirname(__file__), '../deps/rabbitmq', 'init.sh')
 
     cp_file_data = f'\ncp {path_rmq_env_conf} {rmq_template["Service"]["EnvironmentFile"]}'
     update_init_file(cp_file_data, path_rabbitmq_init_script)
 
 if __name__ == "__main__":
     global path_rabbitmq, path_rabbitmq_builds
+    logging.basicConfig(level='DEBUG')
 
     path_rabbitmq=os.path.join(
-            os.path.dirname(__file__), '../third_party/rabbitmq', '')
+            os.path.dirname(__file__), '../deps/rabbitmq', '')
 
     path_rabbitmq_builds=os.path.join(
-            os.path.dirname(__file__), '../third_party/rabbitmq/builds', '')
+            os.path.dirname(__file__), '../deps/rabbitmq/builds', '')
 
     generate_systemd()
     path_rabbitmq_instance, path_rabbitmq_init_script = generate_deps()

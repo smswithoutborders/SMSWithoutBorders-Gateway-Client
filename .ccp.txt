@@ -1,5 +1,0 @@
-.configs/config.ini
-.configs/isp/default.ini
-.configs/isp/operators.ini
-.configs/events/rules.ini
-.configs/extensions/platforms/telegram.ini

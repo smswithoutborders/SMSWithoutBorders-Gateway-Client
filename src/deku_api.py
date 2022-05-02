@@ -7,7 +7,6 @@ import subprocess
 import os
 import traceback
 
-from common.CustomConfigParser.customconfigparser import CustomConfigParser
 from common.mmcli_python.modem import Modem as Modems
 from flask_cors import CORS
 
@@ -68,7 +67,7 @@ def modem_send_sms(modem_index):
     number = data['number']
 
     try:
-        deku.send(text=text, number=number, modem_index=modem_index)
+        deku.modem_send(text=text, number=number, modem_index=modem_index)
         return 'sms sent', 200
     except subprocess.CalledProcessError as error:
         return "Failed to send", 408
