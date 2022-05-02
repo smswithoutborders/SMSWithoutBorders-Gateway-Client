@@ -24,47 +24,7 @@ class Deku(Modem):
             self.message=message or 'invalid text'
             super().__init__(self.message)
 
-<<<<<<< HEAD
-    class NoAvailableModem(Exception):
-        def __init__(self, message):
-            self.message=message
-            super().__init__(self.message)
-
-    class ISP:
-        @classmethod
-        def __init__(cls, config_isp_default, config_isp_operators):
-            cls.config_isp_default = config_isp_default
-            cls.config_isp_operators = config_isp_operators
-
-        @classmethod
-        def determine(cls, number, country, parsed_rules=None):
-            if number.find(cls.config_isp_default['country_codes'][country]) > -1:
-                number= number.replace(cls.config_isp_default['country_codes'][country], '')
-            for rules in cls.config_isp_default[country]:
-                for rule in cls.config_isp_default[country][rules].split(','):
-                    if re.search(rule, number):
-                        return rules
-
-            logging.error('could not determine rule')
-            return None
-
-        @staticmethod
-        def cleanup(number):
-            return number.replace(' ', '')
-
-        @classmethod
-        def modems(cls, country, operator_code):
-            for isp in cls.config_isp_operators[country]:
-                if cls.config_isp_operators[country][isp].lower() == operator_code.lower():
-                    return isp
-            return None
-
-        
-    @classmethod
-    def modem_locked(cls, modem_index, remove_lock=True):
-=======
     def modem_locked(self, remove_lock=True):
->>>>>>> alpha_stable
         try:
             lock_type=None
             start_time=None
