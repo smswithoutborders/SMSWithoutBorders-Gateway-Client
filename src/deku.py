@@ -1,48 +1,22 @@
 #!/usr/bin/env python3
 
-'''
-- making Deku and SMS manager
-- Deku runs in the terminal no place else
-'''
-
 import configparser
-import re
 import os 
 import sys 
 import time 
-import queue 
 import json
-import traceback 
 import logging
 import argparse
-import configparser, threading
+import configparser
 import subprocess
-import phonenumbers
-
-from datetime import datetime
-from phonenumbers import geocoder, carrier
 
 from common.mmcli_python.modem import Modem
-from common.CustomConfigParser.customconfigparser import CustomConfigParser
+import helpers
 
 class Deku(Modem):
 
-    @classmethod
-    def __init__(cls, config, config_isp_default, config_isp_operators):
-        cls.config = config
-        cls.config_isp_operators = config_isp_operators
-
-    class NoMatchOperator(Exception):
-        def __init__(self, number, message=None):
-            self.number=number
-            self.message=message or 'no match operator'
-            super().__init__(self.message)
-
-    class InvalidNumber(Exception):
-        def __init__(self, number, message=None):
-            self.number=number
-            self.message=message or 'invalid number'
-            super().__init__(self.message)
+    def __init__(self, modem:Modem=None)->None:
+        self.modem = modem
 
     class InvalidText(Exception):
         def __init__(self, text=None, message=None):
@@ -50,34 +24,13 @@ class Deku(Modem):
             self.message=message or 'invalid text'
             super().__init__(self.message)
 
-    class BadFormNumber(Exception):
-        def __init__(self, number, message=None):
-            self.number=number
-            self.message=message or 'badly formed number'
-            super().__init__(self.message)
-
-    class NoAvailableModem(Exception):
-        def __init__(self, message=None):
-            self.message=message or 'no available modem'
-            super().__init__(self.message)
-
-    @classmethod
-    def modem_operator(cls, modem:Modem, country):
-        operator_code = modem.operator_code
-        for operator in cls.config_isp_operators[country]:
-            if cls.config_isp_operators[country][operator].lower() == operator_code.lower():
-                return operator
-
-        return ''
-        
-
-    @classmethod
-    def modem_locked(cls, modem, remove_lock=True):
+    def modem_locked(self, remove_lock=True):
         try:
             lock_type=None
             start_time=None
             modem_state_filename = os.path.join(
-                    os.path.dirname(__file__), 'services/locks', f'{modem.imei}.lock')
+                    os.path.dirname(__file__), 
+                    'services/locks', f'{self.modem.imei}.lock')
 
             if os.path.isfile(modem_state_filename):
                 lock_config = configparser.ConfigParser()
@@ -87,10 +40,14 @@ class Deku(Modem):
                 lock_type = lock_config['LOCKS']['TYPE']
 
                 ''' how long should benchmarks last before expiring '''
-                benchmark_timelimit = int(cls.config['MODEMS']['failed_sleep'])
+                # benchmark_timelimit = int(cls.config['MODEMS']['failed_sleep'])
+                # benchmark_timelimit = cls.daemon_sleep_time
+                benchmark_timelimit = 20
 
                 ''' how long should benchmarks last before expiring if state is busy '''
-                busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
+                # busy_timelimit = int(cls.config['MODEMS']['busy_benchmark_limit'])
+                # busy_timelimit = cls.daemon_busy_timeout
+                busy_timelimit = 30
 
                 if remove_lock and (
                         (time.time() - start_time ) > benchmark_timelimit and \
@@ -103,18 +60,19 @@ class Deku(Modem):
                     return True, lock_type, modem_state_filename
 
         except Exception as error:
+            if os.path.isfile(modem_state_filename):
+                os.remove(modem_state_filename)
             raise error
 
         return False, lock_type, modem_state_filename
     
-    @staticmethod
-    def modem_ready(modem:Modem, index_only=False):
+    def modem_ready(self, index_only=False):
         try:
-            if modem.state == 'disabled' or modem.state == 'idle':
-                modem.enable()
-            if modem.state == 'failed':
+            if self.modem.state == 'disabled' or self.modem.state == 'idle':
+                self.modem.enable()
+            if self.modem.state == 'failed':
                 return False
-            operator_code = modem.operator_code
+            operator_code = self.modem.operator_code
 
         except NameError as error:
             raise error
@@ -122,12 +80,11 @@ class Deku(Modem):
             raise error
 
         if index_only:
-            return modem.index in Modem.list()
-        return modem.index in Modem.list() and operator_code != '--'
+            return self.modem.index in self.modem.list()
+        return self.modem.index in self.modem.list() and operator_code != '--'
 
 
-    @staticmethod
-    def __write_lock_file__(lock_file, status):
+    def __write_lock_file__(self,lock_file, status):
         with open(lock_file, 'w') as fd_lock_file:
             write_config = configparser.ConfigParser()
             write_config['LOCKS'] = {}
@@ -136,102 +93,59 @@ class Deku(Modem):
             write_config.write(fd_lock_file)
 
 
-    @classmethod
-    def __change_modem_state(cls, modem_imei, state):
+    def __change_modem_state(self, state):
         lock_file = os.path.join(os.path.dirname(__file__), 
-                'services/locks', f'{modem_imei}.lock')
-        Deku.__write_lock_file__(lock_file, 'BUSY')
+                'services/locks', f'{self.modem.imei}.lock')
+        self.__write_lock_file__(lock_file, state)
+
+    def modem_available(self):
+        is_locked,_,__ = self.modem_locked()
+
+        return is_locked, self.modem_ready()
 
 
-    @classmethod
-    def operator_send(cls, operator_name, text, number):
-        pass
-    
-    @classmethod
-    def number_send(cls, text, number):
-        pass
+    def modem_send(self,
+            text:str, 
+            number:int, 
+            timeout:int=20, 
+            force:bool=False,
+            match_operator:bool=False)->None:
+        """Send out SMS through specified modem.
 
+            Args:
+                modem (Modem): The :cls:Modem for outgoing SMS.
+                text (str): Text to be sent via SMS.
+                number (str): Number of SMS reciepient.
+                timeout (int): How long sending daemon should request to send 
+                before declaring a failure to send.
+                match_operator (bool): If True Modem's operator must match the
+                number's operator, else it fails to send
+        """
 
-    @classmethod
-    def modem_available(cls, modem:Modem ):
-        # check modem state
-        is_locked,_,__ = cls.modem_locked(modem=modem)
-
-        return is_locked, Deku.modem_ready(modem)
-
-    @classmethod
-    def get_available_modems(cls):
-        available_modems = []
-        locked_modems = []
-        hw_inactive_modems = []
-        for modem_index in Modem.list():
-            modem = Modem(index=modem_index)
-
-            is_locked, hw_active_state = cls.modem_available( modem )
-
-            if is_locked:
-                locked_modems.append(modem)
-            
-            if not hw_active_state:
-                hw_inactive_modems.append(modem)
-            
-            if not is_locked and hw_active_state:
-                available_modems.append(modem)
-
-        return available_modems, locked_modems, hw_inactive_modems
-
-
-    @staticmethod
-    def validate_number(number):
-        try:
-            _number = phonenumbers.parse(number, 'en')
-
-            if not phonenumbers.is_valid_number(_number):
-                raise Deku.InvalidNumber(number)
-
-            return \
-                    phonenumbers.geocoder.description_for_number(_number, 'en'), \
-                    phonenumbers.carrier.name_for_number(_number, 'en')
-
-        except phonenumbers.NumberParseException as error:
-            if error.error_type == phonenumbers.NumberParseException.INVALID_COUNTRY_CODE:
-                if number[0] == '+' or number[0] == '0':
-                    raise Deku.BadFormNumber( number, 'INVALID_COUNTRY_CODE')
-                else:
-                    raise Deku.BadFormNumber( number, 'MISSING_COUNTRY_CODE')
-
-            else:
-                raise error
-
-        except Exception as error:
-            raise error
-
-    @classmethod
-    def modem_send(cls, modem_index, text, number, timeout=20, match_operator=False):
-        ''' sends through specified modem '''
-
-        # check if modem is available
-        modem = Modem(index=modem_index)
-        is_locked, hw_active_state = cls.modem_available(modem)
-        if is_locked or not hw_active_state:
-            raise Deku.NoAvailableModem()
+        if not force:
+            is_locked, hw_active_state = self.modem_available()
+            if is_locked or not hw_active_state:
+                raise helpers.NoAvailableModem()
+        else:
+            logging.debug("Using force not checking for locks")
 
         # validate number
         try:
-            country_code, operator_name = Deku.validate_number(number)
-
             if match_operator:
+                country, operator_name = helpers.validate_MSISDN(number)
                 logging.debug("Matching operator...")
-                modem_operator = Deku.modem_operator(modem, cls.config['ISP']['country']) 
-                print("modem operator:", modem_operator.lower(), 
-                        " number operator", operator_name.lower())
-                if operator_name.lower().find(modem_operator.lower()) < 0:
-                    raise Deku.NoMatchOperator(number)
 
-        except Deku.InvalidNumber as error:
+                modem_operator = helpers.get_modem_operator_name(self.modem)
+                logging.debug("operator name: %s, modem operator: %s", 
+                        operator_name, modem_operator)
+
+                if not operator_name == modem_operator:
+                    raise helpers.NoMatchOperator(number)
+
+        except helpers.InvalidNumber as error:
             raise error
 
-        except Deku.BadFormNumber as error:
+        except helpers.BadFormNumber as error:
             raise error
 
         except Exception as error:
@@ -244,26 +158,37 @@ class Deku(Modem):
         # send through modem
         try:
             logging.debug("Sending SMS...")
-            SMS=modem.SMS.set(text=text, number=number)
-            SMS.send(timeout=timeout)
+            sms=self.modem.sms.set(text=text, number=number)
+
+            self.__change_modem_state(state='BUSY')
+            sms.send(timeout=timeout)
             logging.debug("SENT SMS!")
         
         except subprocess.CalledProcessError as error:
-            Deku.__change_modem_state(modem_imei=modem.imei, state='FAILED')
+            self.__change_modem_state(state='FAILED')
 
+            '''
             raise subprocess.CalledProcessError(cmd=error.cmd, 
                     output=error.output, returncode=error.returncode)
+            '''
+            # logging.exception(error)
+            logging.debug("%s", error.output)
+            raise error
 
         except Exception as error:
-            Deku.__change_modem_state(modem_imei=modem.imei, state='FAILED')
+            self.__change_modem_state(state='FAILED')
             raise error
 
         finally:
-            status, lock_type, lock_file = Deku.modem_locked(modem)
+            status, lock_type, lock_file = self.modem_locked()
             logging.debug("status %s, lock_type %s, lock_file %s", 
                     status, lock_type, lock_file)
 
             if status and lock_type == 'BUSY':
+                logging.debug("Removed BUSY lock from modem")
+
+                """TODO: check if lockfile exist before removing to avoid 
+                raising an exception here"""
                 os.remove(lock_file)
 
 
@@ -360,7 +285,7 @@ if __name__ == "__main__":
         config_isp_operators = configreader.read('.configs/isp/operators.ini')
 
     except Exception as error:
-        logging.critical(traceback.format_exc())
+        logging.critical(error)
 
     modem_index=None
     if args.modem == None:
@@ -396,5 +321,5 @@ if __name__ == "__main__":
             try:
                 sms_output=Deku.send(text=sms_text, number=sms_number, modem_index=modem_index)
             except Exception as error:
-                print(traceback.format_exc())
+                logging.exception(error)
                 exit(1)
