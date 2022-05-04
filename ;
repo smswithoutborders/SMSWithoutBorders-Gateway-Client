@@ -58,8 +58,8 @@ class Seeds(threading.Event, Ledger):
         while True and not self.kill_seed_ping:
             MSISDN = self.get_MSISDN()
             if MSISDN is not None:
-                seeder = Seeders(MSISDN=MSISDN)
-                logging.debug("Sending ping request for [%s]", MSISDN)
+                seeder = Seeders(MSISDN=self.MSISDN)
+                logging.debug("Sending ping request for [%s]", self.MSISDN)
 
                 ping_data = { 
                         "IMSI":self.IMSI,
