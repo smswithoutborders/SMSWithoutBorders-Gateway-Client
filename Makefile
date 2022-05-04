@@ -18,14 +18,6 @@ rabbitmq_state=$(shell systemctl is-active swob_rabbitmq.service)
 
 gen_configs:
 	@cp -nv .configs/example.config.ini .configs/config.ini
-	@cp -nv .configs/events/example.rules.ini .configs/events/rules.ini
-	@cp -nv .configs/isp/example.operators.ini .configs/isp/operators.ini
-	@# @cp -nv .configs/extensions/example.config.ini .configs/extensions/config.ini
-	@cp -nv .configs/extensions/example.authorize.ini .configs/extensions/authorize.ini
-	@cp -nv .configs/extensions/example.labels.ini .configs/extensions/labels.ini
-	@cp -nv .configs/extensions/platforms/example.telegram.ini .configs/extensions/platforms/telegram.ini
-	@cp -nv .configs/remote_control/example.remote_control_auth.ini .configs/remote_control/remote_control_auth.ini
-	@# @ln -s -f ../../.configs/pre-commit .git/hooks/pre-commit
 	@echo "[*] Copied config files..."
 	
 	@mkdir -p $(build_path)
