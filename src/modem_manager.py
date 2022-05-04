@@ -146,9 +146,13 @@ class ModemManager:
         for thread_items in list_threads:
             list_thread = thread_items[2]
             if not list_thread in active_threads:
-                del self.active_nodes[thread_items[0]][thread_items[1]]
-                logging.debug("Removed %s in %s during software refresh", 
-                        thread_items[0], thread_items[1])
+                self.active_nodes[thread_items[0]][thread_items[1]]
+                try:
+                    del self.active_nodes[thread_items[0]][thread_items[1]]
+                    logging.debug("Removed %s in %s during software refresh", 
+                            thread_items[0], thread_items[1])
+                except Exception as error:
+                    logging.exception(error)
 
     def __daemon_hardware_state__(self) -> None:
         while True:
