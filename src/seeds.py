@@ -56,27 +56,31 @@ class Seeds(threading.Event, Ledger):
             ping_duration: float) -> None:
 
         while True and not self.kill_seed_ping:
-            MSISDN = self.get_MSISDN()
-            if MSISDN is not None:
-                seeder = Seeders(MSISDN=MSISDN)
-                logging.debug("Sending ping request for [%s]", MSISDN)
+            try:
+                MSISDN = self.get_MSISDN()
+            except Exception as error:
+                logging.error(error)
+            else:
+                if MSISDN is not None:
+                    seeder = Seeders(MSISDN=MSISDN)
+                    logging.debug("Sending ping request for [%s]", MSISDN)
 
-                ping_data = { 
-                        "IMSI":self.IMSI,
-                        "MSISDN":MSISDN,
-                        "seed_type":"seeder" if seeder.is_seeder() else "seed"}
-                logging.debug("Ping data: %s", ping_data)
+                    ping_data = { 
+                            "IMSI":self.IMSI,
+                            "MSISDN":MSISDN,
+                            "seed_type":"seeder" if seeder.is_seeder() else "seed"}
+                    logging.debug("Ping data: %s", ping_data)
 
-                for ping_server in ping_servers:
-                    try:
-                        logging.debug("pinging: %s", ping_server)
-                        results = requests.post(ping_server, json=ping_data)
+                    for ping_server in ping_servers:
+                        try:
+                            logging.debug("pinging: %s", ping_server)
+                            results = requests.post(ping_server, json=ping_data)
 
-                        logging.debug("Ping results: %s", results.text)
-                    except Exception as error:
-                        logging.error(error)
+                            logging.debug("Ping results: %s", results.text)
+                        except Exception as error:
+                            logging.error(error)
 
-                # TODO: Configuration goes here to determine ping time
+                    # TODO: Configuration goes here to determine ping time
             time.sleep(ping_duration)
 
 
