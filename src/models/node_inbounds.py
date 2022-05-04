@@ -378,7 +378,11 @@ class NodeInbound(Seeds):
                     logging.info("[*] Routing %s -> %s", json_body, routing_url)
 
                     router = Router(url=routing_url)
-                    router.route_online(data=json_body)
+                    try:
+                        router.route_online(data=json_body)
+                    except Exception as error:
+                        logging.error(error)
+
             except Exception as error:
                 logging.exception(error)
                 # self.router_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
