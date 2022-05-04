@@ -110,9 +110,13 @@ class Seeds(threading.Event, Ledger):
         """Checks if current node can seed.
         In other to seed, an MSISDN and IMSI should be present in local db.
         """
-        result = self.find_seed()
-        if len(result) > 0:
-            return True
+        try:
+            result = self.find_seed()
+        except Exception as error:
+            logging.error(error)
+        else:
+            if len(result) > 0:
+                return True
 
         return False
 
