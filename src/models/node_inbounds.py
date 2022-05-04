@@ -34,8 +34,8 @@ class NodeInbound(Seeds):
         self.daemon_sleep_time = daemon_sleep_time
         self.configs__ = configs__
 
-        self.__seeder_timeout = configs__['NODES']['SEEDER_TIMEOUT']
-        self.__seed_fail_timeout = configs__['NODES']['SEED_REQUEST_FAILED_TIMEOUT']
+        self.__seeder_timeout = int(configs__['NODES']['SEEDER_TIMEOUT'])
+        self.__seed_fail_timeout = int(configs__['NODES']['SEED_REQUEST_FAILED_TIMEOUT'])
 
         # defaults __seeder_timeout to 160.0 seconds
         self.__seeder_timeout = float(self.__seeder_timeout) if self.__seeder_timeout != '' else 300.0
