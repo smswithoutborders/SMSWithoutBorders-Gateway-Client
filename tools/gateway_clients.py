@@ -31,7 +31,7 @@ def show_database(database_filepath):
 
     cur = database_conn.cursor()
     try:
-        cur.execute('''SELECT * FROM seeds''')
+        cur.execute('''SELECT * FROM seed''')
     except Exception as error:
         raise error
     else:
