@@ -159,27 +159,29 @@ class NodeInbound(Seeds):
 
                 except Exception as error:
                     logging.exception(error)
-                
-                try:
-                    self.__publish_to_broker__(sms=sms, queue_name=queue_name)
-                except Exception as error:
-                    # self.logging.critical(error)
-                    raise error
 
                 else:
                     try:
-                        self.modem.sms.delete(msg_index)
+                        self.__publish_to_broker__(sms=sms, queue_name=queue_name)
                     except Exception as error:
+                        # self.logging.critical(error)
                         raise error
-                    '''
+
                     else:
                         try:
-                            self.__exec_remote_control__(sms)
+                            self.modem.sms.delete(msg_index)
                         except Exception as error:
-                            # self.logging.exception(traceback.format_exc())
                             raise error
-                    '''
-            # inbound_messages=[]
+                        '''
+                        else:
+                            try:
+                                self.__exec_remote_control__(sms)
+                            except Exception as error:
+                                # self.logging.exception(traceback.format_exc())
+                                raise error
+                        '''
+
+
             time.sleep(self.daemon_sleep_time)
 
 
@@ -313,6 +315,7 @@ class NodeInbound(Seeds):
 
                 else:
                     logging.info("Node is valid seed!")
+                    break
 
             except Exception as error:
                 # logging.error(error)
@@ -320,11 +323,6 @@ class NodeInbound(Seeds):
 
                 """Sleep before sending this because it stops the entire daemon"""
                 time.sleep(self.__seed_fail_timeout)
-            else:
-                # time.sleep(self.daemon_sleep_time)
-                """Job well done"""
-                break
-
 
     def listen_for_routing_request(self, 
             callback_function,

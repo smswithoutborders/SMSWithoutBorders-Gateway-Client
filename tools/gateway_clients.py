@@ -56,8 +56,8 @@ if __name__ == "__main__":
                 seed[0][3] = state
                 seed[0][4] = date (datetime)
             """
-            logging.info(seed_content)
-            logging.info("\nIMSI: %s", seed_content[0][0])
+            logging.info("\n %s", seed_content)
+            logging.info("IMSI: %s", seed_content[0][0])
             logging.info("MSISDN: %s", seed_content[0][1])
             logging.info("SEEDER_MSISDN: %s", seed_content[0][2])
             logging.info("state: %s", seed_content[0][3])
