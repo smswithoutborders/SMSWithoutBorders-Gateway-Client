@@ -12,7 +12,7 @@ def list_databases() -> list:
     seeds = []
 
     database_filepaths = os.path.join(
-            os.path.dirname(__file__), 'src/.db/nodes')
+            os.path.dirname(__file__), '../src/.db/nodes')
 
     for root, dirs, files in os.walk(database_filepaths):
         for file in files:
