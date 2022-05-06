@@ -23,17 +23,17 @@ def list_databases() -> list:
             seeds.append(db_filepath)
     return seeds
 
-def show_database(database):
+def show_database(database_filepath):
     """
     """
     # logging.debug("db_filepath: %s", db_filepath)
-    database_conn = database.connect(database)
+    database_conn = database.connect(database_filepath)
 
     cur = database_conn.cursor()
     try:
         cur.execute('''SELECT * FROM seeds''')
     except Exception as error:
-        logging.exception(error)
+        raise error
     else:
         return cur.fetchall()
 
@@ -44,18 +44,23 @@ if __name__ == "__main__":
     """
 
     databases = list_databases()
+    logging.info("# of db files: %d", len(databases))
 
-    for database in databases:
-        seed_content = show_database(database)
-        """
-            seed[0][0] = IMSI
-            seed[0][1] = MSISDN
-            seed[0][2] = SEEDER_MSISDN
-            seed[0][3] = state
-            seed[0][4] = date (datetime)
-        """
-        logging.info("IMSI: %s", seed_content[0])
-        logging.info("MSISDN: %s", seed_content[1])
-        logging.info("SEEDER_MSISDN: %s", seed_content[2])
-        logging.info("state: %s", seed_content[3])
-        logging.info("date: %s\n", seed_content[4])
+    for database_filepath in databases:
+        try:
+            seed_content = show_database(database_filepath)
+            """
+                seed[0][0] = IMSI
+                seed[0][1] = MSISDN
+                seed[0][2] = SEEDER_MSISDN
+                seed[0][3] = state
+                seed[0][4] = date (datetime)
+            """
+            logging.info(seed_content)
+            logging.info("IMSI: %s", seed_content[0][0])
+            logging.info("MSISDN: %s", seed_content[0][1])
+            logging.info("SEEDER_MSISDN: %s", seed_content[0][2])
+            logging.info("state: %s", seed_content[0][3])
+            logging.info("date: %s\n", seed_content[0][4])
+        except Exception as error:
+            logging.exception(error)
