@@ -183,7 +183,7 @@ class NodeInbound(Seeds):
             time.sleep(self.daemon_sleep_time)
 
 
-    def make_seeder_request(self, seeder: Seeders) -> None:
+    def make_seed_request(self, seeder: Seeders) -> None:
         """Sends a request to the provided seeder.
         """
         text = json.dumps({"IMSI": self.modem.get_sim_imsi()})
@@ -200,14 +200,11 @@ class NodeInbound(Seeds):
                     text=text,
                     force=True)
         except Exception as error:
-            """Sleep before sending this because it stops the entire daemon"""
-            time.sleep(self.__seed_fail_timeout)
             raise error
         else:
             try:
                 self.update_state(seeder_MSISDN=seeder.MSISDN, state='requested')
                 logging.debug("Seeder %s state changed to requested", seeder.MSISDN)
-                time.sleep(self.daemon_sleep_time)
 
             except Seeds.InvalidSeedState as error:
                 raise error
@@ -268,54 +265,65 @@ class NodeInbound(Seeds):
 
         try:
             logging.debug("making seeder request [%s]", seeder.MSISDN)
-            self.make_seeder_request(seeder=seeder)
+            self.make_seed_request(seeder=seeder)
         except Exception as error:
             raise error
         else:
             logging.info("Seed request made successfully!")
 
     def daemon_seed_checker(self) -> None:
+        """TODO: make this a while loop.
         """
-        """
-        try:
-            logging.info("[*] [%s | %s]: Starting daemon seed checker", 
-                    self.modem.imei, helpers.get_modem_operator_name(self.modem))
+        while True:
+            try:
+                logging.info("[*] [%s | %s]: Starting daemon seed checker", 
+                        self.modem.imei, helpers.get_modem_operator_name(self.modem))
+                IMSI= self.modem.get_sim_imsi()
 
-            IMSI= self.modem.get_sim_imsi()
 
-            #  Checcks of current node is a seed (has MSISDN and IMSI in ledger)
-            if not self.is_seed():
-                logging.info("[*] Node is not a seed!")
+                #  Checcks of current node is a seed (has MSISDN and IMSI in ledger)
+                if not self.is_seed():
+                    logging.info("[*] Node is not a seed!")
 
-                try:
-                    if not self.can_request_MSISDN():
-                        logging.info("[*] MSISDN request still pending expiring... waiting")
-                        return
+                    try:
+                        if not self.can_request_MSISDN():
+                            logging.info("[*] MSISDN request still pending expiring... waiting")
+                            time.sleep(self.daemon_sleep_time)
+                            continue
 
-                except Exception as error:
-                    logging.exception(error)
-                else:
-                    remote_gateway_servers = self.configs__['NODES']['SEEDS_PROBE_URLS']
-                    remote_gateway_servers = [s.strip() for s in remote_gateway_servers.split(',')]
-                    MSISDN = self.remote_search(remote_gateway_servers)
+                    except Exception as error:
+                        logging.exception(error)
 
-                    if MSISDN == '':
-                        logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
-                        self.__seed__()
                     else:
-                        logging.debug("Updating seed record with: %s", MSISDN)
-                        rowcount = self.make_seed(MSISDN=MSISDN)
+                        remote_gateway_servers = self.configs__['NODES']['SEEDS_PROBE_URLS']
+                        remote_gateway_servers = [s.strip() for s in remote_gateway_servers.split(',')]
+                        MSISDN = self.remote_search(remote_gateway_servers)
 
-                        if rowcount < 1:
-                            logging.error("Failed to update seed record!")
+                        if MSISDN == '':
+                            logging.debug("[%s] is not a seed... fetching remote seeders", self.IMSI)
+                            self.__seed__()
                         else:
-                            logging.debug("[*] MSISDN - %s found remotely!", MSISDN)
-            else:
-                logging.info("Node is valid seed!")
+                            logging.debug("Updating seed record with: %s", MSISDN)
+                            rowcount = self.make_seed(MSISDN=MSISDN)
 
-        except Exception as error:
-            # logging.error(error)
-            logging.exception(error)
+                            if rowcount < 1:
+                                logging.error("Failed to update seed record!")
+                            else:
+                                logging.debug("[*] MSISDN - %s found remotely!", MSISDN)
+
+                else:
+                    logging.info("Node is valid seed!")
+
+            except Exception as error:
+                # logging.error(error)
+                logging.exception(error)
+
+                """Sleep before sending this because it stops the entire daemon"""
+                time.sleep(self.__seed_fail_timeout)
+            else:
+                # time.sleep(self.daemon_sleep_time)
+                """Job well done"""
+                break
 
 
     def listen_for_routing_request(self, 
