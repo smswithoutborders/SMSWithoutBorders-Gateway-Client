@@ -76,7 +76,7 @@ class Seeds(threading.Event, Ledger):
                             logging.debug("pinging: %s", ping_server)
                             results = requests.post(ping_server, json=ping_data)
 
-                            logging.debug("Ping results: %s", results.text)
+                            logging.debug("Ping results: [%s] %s", MSISDN, results.text)
                         except Exception as error:
                             logging.error(error)
 
