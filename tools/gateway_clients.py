@@ -57,10 +57,10 @@ if __name__ == "__main__":
                 seed[0][4] = date (datetime)
             """
             logging.info(seed_content)
-            logging.info("IMSI: %s", seed_content[0][0])
+            logging.info("\nIMSI: %s", seed_content[0][0])
             logging.info("MSISDN: %s", seed_content[0][1])
             logging.info("SEEDER_MSISDN: %s", seed_content[0][2])
             logging.info("state: %s", seed_content[0][3])
-            logging.info("date: %s\n", seed_content[0][4])
+            logging.info("date: %s", seed_content[0][4])
         except Exception as error:
             logging.exception(error)

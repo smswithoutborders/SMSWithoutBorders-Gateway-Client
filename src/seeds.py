@@ -113,7 +113,7 @@ class Seeds(threading.Event, Ledger):
         try:
             result = self.find_seed()
         except Exception as error:
-            logging.error(error)
+            logging.exception(error)
         else:
             if len(result) > 0:
                 return True
