@@ -17,6 +17,7 @@ class RabbitMQBroker:
             queue_name, 
             exchange_name=None, 
             exchange_type='topic', 
+            connection_name='sample_connection_name',
             durable=True, 
             binding_key=None, 
             callback=None, 
@@ -29,12 +30,15 @@ class RabbitMQBroker:
 
         credentials=pika.PlainCredentials(username, password)
         try:
+            client_properties = {'connection_name' : connection_name}
+
             parameters=pika.ConnectionParameters(
                     connection_url, 
                     connection_port, 
                     '/',
                     credentials,
-                    heartbeat=heartbeat
+                    heartbeat=heartbeat,
+                    client_properties=client_properties
                     )
 
             connection=pika.BlockingConnection(parameters=parameters)

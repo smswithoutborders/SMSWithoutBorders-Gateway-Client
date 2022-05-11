@@ -119,6 +119,7 @@ class NodeInbound(Seeds):
                     self.publish_connection, self.publish_channel = \
                             RabbitMQBroker.create_channel(
                                 connection_url=publish_url,
+                                connection_name='inbound_listener',
                                 queue_name=queue_name,
                                 heartbeat=600,
                                 blocked_connection_timeout=60,
@@ -132,7 +133,8 @@ class NodeInbound(Seeds):
                 
                 except Exception as error:
                     logging.exception(error)
-                    raise error
+                    time.sleep(self.daemon_sleep_time)
+                    continue
 
             inbound_messages = self.modem.sms.list('received')
             logging.debug("# of inbound messasges = %d", len(inbound_messages))
@@ -337,6 +339,7 @@ class NodeInbound(Seeds):
         try:
             self.router_connection, self.router_channel = RabbitMQBroker.create_channel( 
                     connection_url=publisher_connection_url,
+                    connection_name="inbound_router",
                     callback=callback_function,
                     queue_name=queue_name)
 
