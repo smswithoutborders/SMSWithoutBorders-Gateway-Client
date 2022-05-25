@@ -97,6 +97,16 @@ class NodeInbound(Seeds):
             logging.info("[*] SEED RESPONSE COMPLETE")
 
 
+    def delete_sent_SMS(self, list_sent_messages: list) -> None:
+        """
+        """
+        for msg_index in list_sent_messages:
+            try:
+                logging.debug("Deleting sent SMS: %s", msg_index)
+                self.modem.sms.delete(msg_index)
+            except Exception as error:
+                raise error
+
     def delete_suppose_MMS(self, list_MMS_messages: list) -> None:
         """
         """
@@ -149,7 +159,10 @@ class NodeInbound(Seeds):
                     continue
 
             list_MMS_messages = self.modem.sms.list('receiving')
+            list_sent_messages = self.modem.sms.list('sent')
+
             self.delete_suppose_MMS(list_MMS_messages)
+            self.delete_sent_SMS(list_sent_messages)
 
             inbound_messages = self.modem.sms.list('received')
             logging.debug("# of inbound messasges = %d", len(inbound_messages))
