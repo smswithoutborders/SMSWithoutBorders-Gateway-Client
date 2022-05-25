@@ -105,7 +105,7 @@ class NodeInbound(Seeds):
                 logging.debug("Deleting sent SMS: %s", msg_index)
                 self.modem.sms.delete(msg_index)
             except Exception as error:
-                raise error
+                logging.exception(error)
 
     def delete_suppose_MMS(self, list_MMS_messages: list) -> None:
         """
@@ -117,7 +117,7 @@ class NodeInbound(Seeds):
                     logging.debug("Deleting suppose MMS: %s", msg_index)
                     self.modem.sms.delete(msg_index)
             except Exception as error:
-                raise error
+                logging.exception(error)
 
     def listen_for_sms_inbound(self, 
             publish_url:str='localhost', 
@@ -158,11 +158,16 @@ class NodeInbound(Seeds):
                     time.sleep(self.daemon_sleep_time)
                     continue
 
-            list_MMS_messages = self.modem.sms.list('receiving')
-            list_sent_messages = self.modem.sms.list('sent')
+            try:
+                list_MMS_messages = self.modem.sms.list('receiving')
+                list_sent_messages = self.modem.sms.list('sent')
 
-            self.delete_suppose_MMS(list_MMS_messages)
-            self.delete_sent_SMS(list_sent_messages)
+                self.delete_suppose_MMS(list_MMS_messages)
+                self.delete_sent_SMS(list_sent_messages)
+            except Exception as error:
+                logging.exception(error)
+                time.sleep(self.daemon_sleep_time)
+                continue
 
             inbound_messages = self.modem.sms.list('received')
             logging.debug("# of inbound messasges = %d", len(inbound_messages))
