@@ -101,9 +101,11 @@ class NodeInbound(Seeds):
         """
         """
         for msg_index in list_MMS_messages:
-            logging.debug("Deleting suppose MMS: %s", msg_index)
             try:
-                self.modem.sms.delete(msg_index)
+                sms=Modem.SMS(index=msg_index)
+                if sms.text == "--":
+                    logging.debug("Deleting suppose MMS: %s", msg_index)
+                    self.modem.sms.delete(msg_index)
             except Exception as error:
                 raise error
 
