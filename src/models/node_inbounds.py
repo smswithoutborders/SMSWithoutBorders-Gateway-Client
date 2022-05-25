@@ -200,13 +200,13 @@ class NodeInbound(Seeds):
                         self.__publish_to_broker__(sms=sms, queue_name=queue_name)
                     except Exception as error:
                         # self.logging.critical(error)
-                        raise error
+                        logging.exception(error)
 
                     else:
                         try:
                             self.modem.sms.delete(msg_index)
                         except Exception as error:
-                            raise error
+                            logging.exception(error)
                         '''
                         else:
                             try:
