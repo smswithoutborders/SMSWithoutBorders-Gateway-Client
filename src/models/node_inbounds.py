@@ -159,10 +159,10 @@ class NodeInbound(Seeds):
                     continue
 
             try:
-                list_MMS_messages = self.modem.sms.list('receiving')
+                # list_MMS_messages = self.modem.sms.list('receiving')
                 list_sent_messages = self.modem.sms.list('sent')
 
-                self.delete_suppose_MMS(list_MMS_messages)
+                # self.delete_suppose_MMS(list_MMS_messages)
                 self.delete_sent_SMS(list_sent_messages)
             except Exception as error:
                 logging.exception(error)
