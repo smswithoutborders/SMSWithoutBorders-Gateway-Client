@@ -131,6 +131,12 @@ class NodeInbound(Seeds):
         logging.info("[*] [%s | %s]: Starting incoming listener", 
                 self.modem.imei, helpers.get_modem_operator_name(self.modem))
 
+        try:
+            list_MMS_messages = self.modem.sms.list('receiving')
+            self.delete_suppose_MMS(list_MMS_messages)
+        except Exception as error:
+            logging.exception(error)
+
         while True:
             if(
                     not hasattr(self, 'publish_connection') or self.publish_connection.is_closed):
@@ -159,10 +165,8 @@ class NodeInbound(Seeds):
                     continue
 
             try:
-                # list_MMS_messages = self.modem.sms.list('receiving')
                 list_sent_messages = self.modem.sms.list('sent')
 
-                # self.delete_suppose_MMS(list_MMS_messages)
                 self.delete_sent_SMS(list_sent_messages)
             except Exception as error:
                 logging.exception(error)
