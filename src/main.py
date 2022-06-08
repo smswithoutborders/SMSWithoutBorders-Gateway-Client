@@ -59,6 +59,7 @@ if __name__ == "__main__":
 
                 thread_outbound.start()
                 thread_outbound.join()
+
                 modemManager.daemon()
         except Exception as error:
             logging.debug(error)

@@ -6,7 +6,6 @@ import os
 import sys
 import configparser
 import logging 
-import pika
 import time
 import json
 import threading
@@ -17,7 +16,6 @@ from deku import Deku
 from rabbitmq_broker import RabbitMQBroker
 from seeds import Seeds
 from seeders import Seeders
-from router import Router
 import helpers
 
 class NodeInbound(Seeds):
@@ -363,83 +361,6 @@ class NodeInbound(Seeds):
                 """Sleep before sending this because it stops the entire daemon"""
                 time.sleep(self.__seed_fail_timeout)
 
-    def listen_for_routing_request(self, 
-            callback_function,
-            publisher_connection_url: str = 'localhost',
-            queue_name: str='inbound.route.route',
-            route_url: str = 'localhost') -> None:
-        """
-        """
-        logging.info("[*] [%s | %s]: Starting routing request listener", 
-                self.modem.imei, helpers.get_modem_operator_name(self.modem))
-
-        try:
-            self.router_connection, self.router_channel = RabbitMQBroker.create_channel( 
-                    connection_url=publisher_connection_url,
-                    connection_name="inbound_router",
-                    callback=callback_function,
-                    queue_name=queue_name)
-
-            routing_request_thread = threading.Thread(
-                    target=self.router_channel.start_consuming, daemon=True)
-
-            routing_request_thread.start()
-
-        except pika.exceptions.ConnectionClosedByBroker as error:
-            logging.exception(error)
-
-
-    def router_callback(self, ch, method, properties, body: bytes) -> None:
-        """
-        """
-        try:
-            decoded_body = body.decode('unicode_escape')
-            json_body = json.loads(decoded_body, strict=False)
-
-        except Exception as error:
-            """This most likely is not a request -> cus how did it get here if not JSON?"""
-            logging.exception(error)
-
-        else:
-            if not "text" in json_body:
-                """This most likely is not a request -> cus how did it get here if not contain text?"""
-                logging.error('poorly formed message - text missing')
-                # self.router_channel.basic_ack(delivery_tag=method.delivery_tag)
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                return
-
-            if not "MSISDN" in json_body:
-                """This most likely is not a request -> cus how did it get here if not contain phone number?"""
-                logging.error('poorly formed message - number missing')
-                # self.router_channel.basic_ack(delivery_tag=method.delivery_tag)
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                return
-
-            try:
-                """Routing online"""
-                routing_urls = self.configs__['NODES']['ROUTING_URLS']
-                routing_urls = [url.strip() for url in routing_urls.split(',')]
-
-                for routing_url in routing_urls:
-                    logging.info("[*] Routing %s -> %s", json_body, routing_url)
-
-                    router = Router(url=routing_url)
-                    try:
-                        router.route_online(data=json_body)
-                    except Exception as error:
-                        logging.error(error)
-
-            except Exception as error:
-                logging.exception(error)
-                # self.router_channel.basic_reject( delivery_tag=method.delivery_tag, requeue=True)
-                ch.basic_reject( delivery_tag=method.delivery_tag)
-            else:
-                # self.router_channel.basic_ack( delivery_tag=method.delivery_tag)
-                ch.basic_ack( delivery_tag=method.delivery_tag)
-            finally:
-                time.sleep(self.daemon_sleep_time)
-
-
     def main(self) -> None:
         """Monitors modems for inbound messages and publishes.
         This is process is blocking.
@@ -458,14 +379,12 @@ class NodeInbound(Seeds):
             logging.exception(error)
             time.sleep(self.daemon_sleep_time)
 
-
         try:
             ping_servers = self.configs__['NODES']['SEED_PING_URLS']
             ping_servers = [server.strip() for server in ping_servers.split(',')]
             self.start_pinging(ping_servers = ping_servers, ping_duration=10.0)
         except Exception as error:
             logging.exception(error)
-
 
         try:
             inbound_thread = threading.Thread(
@@ -474,17 +393,6 @@ class NodeInbound(Seeds):
             inbound_thread.start()
         except Exception as error:
             logging.exception(error)
-
-
-        try:
-            routing_thread = threading.Thread(
-                    target=self.listen_for_routing_request, 
-                    args=(self.router_callback,),
-                    daemon=True)
-            routing_thread.start()
-        except Exception as error:
-            logging.exception(error)
-
 
         try:
             self.wait()
