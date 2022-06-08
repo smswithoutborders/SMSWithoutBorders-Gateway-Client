@@ -6,6 +6,7 @@ import configparser
 import threading
 import json
 import time
+import pika
 
 from modem_manager import ModemManager
 from models.node_inbounds import NodeInbound

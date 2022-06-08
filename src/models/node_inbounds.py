@@ -10,6 +10,7 @@ import time
 import json
 import threading
 import base64
+import pika
 
 from common.mmcli_python.modem import Modem
 from deku import Deku
