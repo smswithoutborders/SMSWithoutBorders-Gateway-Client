@@ -54,6 +54,8 @@ class Seeds(threading.Event, Ledger):
 
     def ping_keepalive(self, ping_servers: list, 
             ping_duration: float) -> None:
+        """
+        """
 
         while True and not self.kill_seed_ping:
             try:
@@ -75,6 +77,7 @@ class Seeds(threading.Event, Ledger):
                         try:
                             logging.debug("pinging: %s", ping_server)
                             results = requests.post(ping_server, json=ping_data)
+                            results.raise_for_status()
 
                             logging.debug("Ping results: [%s] %s", MSISDN, results.text)
                         except Exception as error:

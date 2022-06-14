@@ -37,7 +37,8 @@ class NodeInbound(Seeds):
         self.__seed_fail_timeout = float(configs__['NODES']['SEED_REQUEST_FAILED_TIMEOUT'])
 
         # defaults __seeder_timeout to 160.0 seconds
-        self.__seeder_timeout = float(self.__seeder_timeout) if self.__seeder_timeout != '' else 300.0
+        self.__seeder_timeout = float(self.__seeder_timeout) if(
+                self.__seeder_timeout != '' else 300.0)
 
         Seeds.__init__(self, IMSI=modem.get_sim_imsi(), 
                 seeder_timeout=self.__seeder_timeout)
@@ -172,54 +173,57 @@ class NodeInbound(Seeds):
                 time.sleep(self.daemon_sleep_time)
                 continue
 
-            inbound_messages = self.modem.sms.list('received')
-            logging.debug("# of inbound messasges = %d", len(inbound_messages))
+            try:
+                inbound_messages = self.modem.sms.list('received')
+                logging.debug("# of inbound messages = %d", len(inbound_messages))
 
-            for msg_index in inbound_messages:
-                sms=Modem.SMS(index=msg_index)
-                logging.debug("MSISDN:%s, Text:%s", 
-                        sms.number, sms.text)
+                for msg_index in inbound_messages:
+                    sms=Modem.SMS(index=msg_index)
+                    logging.debug("MSISDN:%s, Text:%s", 
+                            sms.number, sms.text)
 
-                try:
-                    # data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
-
-                    seeder = Seeders(MSISDN=sms.number)
-
-                    # Seeder receiving request to make seed from IMSI
-                    if Seeds.is_seed_message(data=bytes(sms.text, 'utf-8')):
-                        logging.info("[*] Seeding request present")
-                        self.process_seed_request(sms)
-
-                    # Seed receiving response from seeder with MSISDN
-                    elif seeder.is_seeder():
-                        logging.info("[*] Seeder response present")
-                        self.process_seeder_response(sms=sms, seeder=seeder)
-
-                except Exception as error:
-                    logging.exception(error)
-
-                else:
                     try:
-                        self.__publish_to_broker__(sms=sms, queue_name=queue_name)
+                        # data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
+
+                        seeder = Seeders(MSISDN=sms.number)
+
+                        # Seeder receiving request to make seed from IMSI
+                        if Seeds.is_seed_message(data=bytes(sms.text, 'utf-8')):
+                            logging.info("[*] Seeding request present")
+                            self.process_seed_request(sms)
+
+                        # Seed receiving response from seeder with MSISDN
+                        elif seeder.is_seeder():
+                            logging.info("[*] Seeder response present")
+                            self.process_seeder_response(sms=sms, seeder=seeder)
+
                     except Exception as error:
-                        # self.logging.critical(error)
                         logging.exception(error)
 
                     else:
                         try:
-                            self.modem.sms.delete(msg_index)
+                            self.__publish_to_broker__(sms=sms, queue_name=queue_name)
                         except Exception as error:
+                            # self.logging.critical(error)
                             logging.exception(error)
-                        '''
+
                         else:
                             try:
-                                self.__exec_remote_control__(sms)
+                                self.modem.sms.delete(msg_index)
                             except Exception as error:
-                                # self.logging.exception(traceback.format_exc())
-                                raise error
-                        '''
+                                logging.exception(error)
+                            '''
+                            else:
+                                try:
+                                    self.__exec_remote_control__(sms)
+                                except Exception as error:
+                                    # self.logging.exception(traceback.format_exc())
+                                    raise error
+                            '''
+            except Exception as error:
+                logging.exception(error)
 
-
+            finally:
             time.sleep(self.daemon_sleep_time)
 
 
