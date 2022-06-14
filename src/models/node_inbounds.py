@@ -224,7 +224,7 @@ class NodeInbound(Seeds):
                 logging.exception(error)
 
             finally:
-            time.sleep(self.daemon_sleep_time)
+                time.sleep(self.daemon_sleep_time)
 
 
     def make_seed_request(self, seeder: Seeders) -> None:
