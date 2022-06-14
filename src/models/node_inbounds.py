@@ -37,8 +37,8 @@ class NodeInbound(Seeds):
         self.__seed_fail_timeout = float(configs__['NODES']['SEED_REQUEST_FAILED_TIMEOUT'])
 
         # defaults __seeder_timeout to 160.0 seconds
-        self.__seeder_timeout = float(self.__seeder_timeout) if(
-                self.__seeder_timeout != '' else 300.0)
+        self.__seeder_timeout = float(self.__seeder_timeout) \
+                if self.__seeder_timeout != '' else 300.0
 
         Seeds.__init__(self, IMSI=modem.get_sim_imsi(), 
                 seeder_timeout=self.__seeder_timeout)
