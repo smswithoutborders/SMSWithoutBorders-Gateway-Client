@@ -184,7 +184,6 @@ class NodeInbound(Seeds):
 
                     try:
                         # data = {"MSISDN":sms.number, "IMSI":self.modem.get_sim_imsi(), "text":sms.text}
-
                         seeder = Seeders(MSISDN=sms.number)
 
                         # Seeder receiving request to make seed from IMSI
