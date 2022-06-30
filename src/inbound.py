@@ -10,7 +10,6 @@ import pika
 
 from modem_manager import ModemManager
 from models.node_inbounds import NodeInbound
-from ledger import Ledger
 from router import Router
 from rabbitmq_broker import RabbitMQBroker
 
@@ -121,14 +120,14 @@ def main(modemManager:ModemManager = None)->None:
                     '../.configs', 'config.ini'))
 
         if modemManager:
-            modemManager.add_model(model=NodeInbound, configs__=__configs)
+            modemManager.add_model(model=NodeInbound, configs=__configs)
 
         try:
             routing_thread = threading.Thread(
                     target=listen_for_routing_request, 
                     args=(router_callback,),
                     daemon=True)
-            routing_thread.start()
+            # routing_thread.start()
         except Exception as error:
             logging.exception(error)
 

@@ -23,28 +23,17 @@ class ModemManager:
     def __init__(self)->None:
         """Initialize a modem manager instance.
         """
-        # refactoring began here
         self.active_modems = {}
+        self.active_models = [] # (models, kwargs)
 
 
-    def add_model(self, model, configs__: configparser.ConfigParser = None) -> None:
-        """Add model to daemon.
-
-        The `main()` would be called for each model included.
-
-            Args:
-                model: 
-                    DataType (any class) which has a method called `main`
-                    that will be called by the daemon thread
+    def add_model(self, model, **kwargs) -> None:
+        """Models are notified of modems.
         """
-        self.models.append(model)
-
-        if configs__:
-            self.configs__[model.__name__] = configs__
+        self.active_models.append((model, kwargs))
 
 
-
-    def __add_modem__(self, modem_path: str) -> None:
+    def __add_modem__(self, modem_path: str) -> Modem:
         """
         """
 
@@ -52,8 +41,6 @@ class ModemManager:
             modem = Modem(bus=self.bus, modem_path=modem_path)
 
         except Exception as error:
-            logging.exception(error)
-
             raise error
 
         else:
@@ -61,10 +48,16 @@ class ModemManager:
             logging.debug("Added modem at path: %s", modem_path)
 
 
+            return modem
+
+
     def __remove_modem__(self, modem_path: str) -> None:
         """
         """
         try:
+            """
+            - All the models using this modem would stop functioning at this point.
+            """
             self.active_modems[modem_path].remove()
         except Exception as error:
             logging.exception(error)
@@ -79,10 +72,28 @@ class ModemManager:
         """
         logging.info("New modem connected:\n\t%s", modem_path)
 
-        self.__add_modem__(modem_path)
+        try:
+            modem = self.__add_modem__(modem_path)
+        except Exception as error:
+            logging.exception(error)
+        else:
+            """
+            for _models_args in self.active_models:
+                _models = _models_args[0]
+                _kwargs = _models_args[1]
+                logging.debug("configuring modem for: %s", _models)
 
-        logging.debug("# Active modems: %d", len(self.active_modems))
+                try:
+                    if hasattr(_models, "handler_function_message_changed"):
+                        modem.add_handler_function_message_changed(
+                                handler_function= _models.handler_function_message_changed)
+                except Exception as error:
+                    logging.exception(error)
 
+            """
+
+            if modem.is_ready():
+                modem.check_available_messages()
 
 
     def modem_disconnected(self, modem_path):
