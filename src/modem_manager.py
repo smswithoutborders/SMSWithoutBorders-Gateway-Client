@@ -10,7 +10,7 @@ import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 
-from models.modem import Modem
+from modem import Modem
 
 from enum import Enum
 
@@ -24,14 +24,7 @@ class ModemManager:
         """Initialize a modem manager instance.
         """
         self.active_modems = {}
-        self.active_models = [] # (models, kwargs)
-
-
-    def add_model(self, model, **kwargs) -> None:
-        """Models are notified of modems.
-        """
-        self.active_models.append((model, kwargs))
-
+        self.modem_connected_handlers = []
 
     def __add_modem__(self, modem_path: str) -> Modem:
         """
@@ -74,24 +67,13 @@ class ModemManager:
 
         try:
             modem = self.__add_modem__(modem_path)
+
+            for modem_handler in self.modem_connected_handlers:
+                modem_handler(modem)
+
         except Exception as error:
             logging.exception(error)
         else:
-            """
-            for _models_args in self.active_models:
-                _models = _models_args[0]
-                _kwargs = _models_args[1]
-                logging.debug("configuring modem for: %s", _models)
-
-                try:
-                    if hasattr(_models, "handler_function_message_changed"):
-                        modem.add_handler_function_message_changed(
-                                handler_function= _models.handler_function_message_changed)
-                except Exception as error:
-                    logging.exception(error)
-
-            """
-
             if modem.is_ready():
                 modem.check_available_messages()
 
@@ -167,6 +149,11 @@ class ModemManager:
                 sender_keyword='sender')
 
         loop.run()
+
+    def add_modem_connected_handler(self, modem_connected_handler) -> None:
+        """
+        """
+        self.modem_connected_handlers.append(modem_connected_handler)
 
 
 if __name__ == '__main__':

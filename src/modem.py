@@ -39,23 +39,9 @@ class Messaging:
 
         self.props = dbus.Interface(
                 dbus_message, dbus_interface=self.modem_dbus_props_iface)
-        self.props.connect_to_signal(
-                "PropertiesChanged",
-                handler_function=self.__message_property_changed__,
-                path_keyword='path', 
-                member_keyword='member', 
-                interface_keyword='interface', 
-                destination_keyword='destination',
-                sender_keyword='sender')
 
         self.sms = dbus.Interface(
                 dbus_message, dbus_interface=self.modem_dbus_sms_iface)
-
-
-    def __message_property_changed__(self, *args, **kwargs) -> None:
-        """
-        """
-        logging.debug("%s message property changed: %s", args)
 
 
     def __is_received_message__(self) -> bool:
@@ -91,14 +77,14 @@ class Messaging:
         try:
             text = self.get_property("Text")
             number = self.get_property("Number")
+            timestamp = self.get_property("Timestamp")
 
-            logging.debug("[%s] %s", number, text)
 
         except Exception as error:
             logging.exception(error)
 
         else:
-            return text, number
+            return text, number, timestamp
 
 
     def get_property(self, property_name):
@@ -169,7 +155,7 @@ class Modem(threading.Event):
                 destination_keyword='destination',
                 sender_keyword='sender')
 
-        self.__handler_functions__ = []
+        self.__new_received_message_handlers__ = []
 
     def __modem_property_changed__(self, *args, **kwargs) -> None:
         """
@@ -241,20 +227,30 @@ class Modem(threading.Event):
         """
 
 
+    def __broadcast_new_message__(self, message: Messaging) -> None:
+        """
+        """
+        for message_handler in self.__new_received_message_handlers__:
+            message_handler_thread = threading.Thread(target=message_handler,
+                    args=(message,), daemon=True)
+
+            message_handler_thread.start()
+
 
     def check_available_messages(self) -> None:
         """
         """
         logging.debug("checking for available messages")
         try:
-            for message_path in self.messaging.List():
+            available_messages = self.messaging.List()
+            logging.debug("# Available messages - [%d]", len(available_messages))
+
+            for message_path in available_messages:
                 message = Messaging(self.bus, message_path)
                 if message.__is_received_message__():
-
-                    text, number = message.new_received_message()
-
-                    self.messaging.Delete(message_path)
-                    logging.warning("Deleted message: %s", message_path)
+                    self.__broadcast_new_message__(message)
+                    # self.messaging.Delete(message_path)
+                    # logging.warning("Deleted message: %s", message_path)
         except Exception as error:
             raise error
 
@@ -267,13 +263,18 @@ class Modem(threading.Event):
 
         message = Messaging(self.bus, message_path)
         if message.__is_received_message__():
-            message.new_received_message()
-
+            self.__broadcast_new_message__(message)
+            """
             self.messaging.Delete(message_path)
             logging.warning("Deleted message: %s", message_path)
-
+            """
 
     def is_ready(self) -> bool:
         """
         """
         return self.get_3gpp_property("OperatorCode") != ""
+    
+    def add_new_message_handler(self, new_received_message_handler) -> None:
+        """
+        """
+        self.__new_received_message_handlers__.append(new_received_message_handler)
