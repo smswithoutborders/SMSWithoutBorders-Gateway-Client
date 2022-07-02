@@ -76,11 +76,11 @@ def route_incoming_message(routing_urls: [], text: str, MSISDN: str) -> bool:
     return True
 
 
-def new_message_handler(message: Messaging) -> None:
+def new_message_handler(message: Messaging, modem: Modem) -> None:
     """
     """
     text, number, timestamp = message.new_received_message()
-    logging.debug("text:%s\n\tnumber:%s\n\ttimestamp:%s", text, number, timestamp)
+    logging.debug("\n\ttext:%s\n\tnumber:%s\n\ttimestamp:%s", text, number, timestamp)
 
 
     # routing_urls = configs['NODES']['routing_urls']
@@ -95,8 +95,8 @@ def new_message_handler(message: Messaging) -> None:
 
             time.sleep(10)
 
-        # TODO delete message
-        logging.debug("deleting message: %s", message.message_path)
+        modem.messaging.Delete(message.message_path)
+        logging.debug("deleted message: %s", message.message_path)
         
     except Exception as error:
         logging.exception(error)

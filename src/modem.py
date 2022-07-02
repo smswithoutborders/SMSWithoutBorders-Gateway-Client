@@ -232,7 +232,7 @@ class Modem(threading.Event):
         """
         for message_handler in self.__new_received_message_handlers__:
             message_handler_thread = threading.Thread(target=message_handler,
-                    args=(message,), daemon=True)
+                    args=(message, self), daemon=True)
 
             message_handler_thread.start()
 
@@ -243,7 +243,7 @@ class Modem(threading.Event):
         logging.debug("checking for available messages")
         try:
             available_messages = self.messaging.List()
-            logging.debug("# Available messages - [%d]", len(available_messages))
+            logging.debug("# Available received messages - [%d]", len(available_messages))
 
             for message_path in available_messages:
                 message = Messaging(self.bus, message_path)
