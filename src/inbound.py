@@ -95,8 +95,11 @@ def new_message_handler(message: Messaging, modem: Modem) -> None:
 
             time.sleep(10)
 
-        modem.messaging.Delete(message.message_path)
-        logging.debug("deleted message: %s", message.message_path)
+        try:
+            modem.messaging.Delete(message.message_path)
+            logging.debug("deleted message: %s", message.message_path)
+        except Exception as error:
+            logging.exception(error)
         
     except Exception as error:
         logging.exception(error)

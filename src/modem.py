@@ -25,16 +25,17 @@ class Messaging:
         MM_SMS_STORAGE_TA      = 6
 
 
-    def __init__(self, bus, message_path, *args) -> None:
+    def __init__(self, bus, message_path: str, modem, *args) -> None:
         """
         """
         self.message_path = message_path
         self.bus = bus
+        self.modem = modem
 
         self.modem_dbus_props_iface = 'org.freedesktop.DBus.Properties'
         self.modem_dbus_sms_iface = "org.freedesktop.ModemManager1.Sms"
 
-        dbus_message = bus.get_object(self.dbus_name, self.message_path, True)
+        dbus_message = self.bus.get_object(self.dbus_name, self.message_path, True)
 
 
         self.props = dbus.Interface(
@@ -42,6 +43,40 @@ class Messaging:
 
         self.sms = dbus.Interface(
                 dbus_message, dbus_interface=self.modem_dbus_sms_iface)
+
+        self.props.connect_to_signal(
+                "PropertiesChanged",
+                handler_function=self.__message_property_changed_added__,
+                path_keyword='path', 
+                member_keyword='member', 
+                interface_keyword='interface', 
+                destination_keyword='destination',
+                sender_keyword='sender')
+
+
+    def __message_property_changed_added__(self, *args, **kwargs) -> None:
+        """
+        """
+        member = args[0]
+        change_props = args[1]
+
+        logging.debug("Message property changed - %s, %s", member, args)
+
+        if ('State' in change_props
+                and 
+                self.MMSmsState(change_props['State']) == self.MMSmsState.MM_SMS_STATE_RECEIVED):
+            """
+            """
+            self.modem.__waited_completed__(self)
+
+
+    def __is_receiving_message__(self) -> bool:
+        """
+        """
+        return (
+                self.MMSmsState(self.get_property("State"))
+                == 
+                self.MMSmsState.MM_SMS_STATE_RECEIVING )
 
 
     def __is_received_message__(self) -> bool:
@@ -87,11 +122,19 @@ class Messaging:
             return text, number, timestamp
 
 
-    def get_property(self, property_name):
+    def get_property(self, property_name: str) -> None:
         """
         """
         try:
             return self.props.Get(self.modem_dbus_sms_iface, property_name)
+        except Exception as error:
+            raise error
+
+    def set_property(self, property_name: str, value: str) -> None:
+        """
+        """
+        try:
+            return self.props.Set(self.modem_dbus_sms_iface, property_name, value)
         except Exception as error:
             raise error
 
@@ -146,6 +189,7 @@ class Modem(threading.Event):
 
         self.messaging = dbus.Interface(
                 dbus_modem, dbus_interface=self.modem_dbus_messaging_iface)
+
         self.messaging.connect_to_signal(
                 "Added",
                 handler_function=self.__message_property_changed_added__,
@@ -155,7 +199,17 @@ class Modem(threading.Event):
                 destination_keyword='destination',
                 sender_keyword='sender')
 
+        self.messaging.connect_to_signal(
+                "PropertiesChanged",
+                handler_function=self.__message_property_changed_added__,
+                path_keyword='path', 
+                member_keyword='member', 
+                interface_keyword='interface', 
+                destination_keyword='destination',
+                sender_keyword='sender')
+
         self.__new_received_message_handlers__ = []
+        self.__messaging_received_waitlist__ = {}
 
     def __modem_property_changed__(self, *args, **kwargs) -> None:
         """
@@ -246,14 +300,21 @@ class Modem(threading.Event):
             logging.debug("# Available received messages - [%d]", len(available_messages))
 
             for message_path in available_messages:
-                message = Messaging(self.bus, message_path)
+                message = Messaging(self.bus, message_path, self)
+
                 if message.__is_received_message__():
                     self.__broadcast_new_message__(message)
-                    # self.messaging.Delete(message_path)
-                    # logging.warning("Deleted message: %s", message_path)
+
+                elif message.__is_receiving_message__():
+                    logging.debug("\n\treceiving: %s", message.new_received_message())
+
         except Exception as error:
             raise error
 
+    def __waited_completed__(self, message: Messaging) -> None:
+        """
+        """
+        self.__broadcast_new_message__(message)
 
     def __message_property_changed_added__(self, *args, **kwargs) -> None:
         """
@@ -261,13 +322,13 @@ class Modem(threading.Event):
         message_path = args[0]
         logging.debug("message property changed: %s", message_path)
 
-        message = Messaging(self.bus, message_path)
+        message = Messaging(self.bus, message_path, self)
+
         if message.__is_received_message__():
             self.__broadcast_new_message__(message)
-            """
-            self.messaging.Delete(message_path)
-            logging.warning("Deleted message: %s", message_path)
-            """
+
+        elif message.__is_receiving_message__():
+            logging.debug("\n\treceiving: %s", message.new_received_message())
 
     def is_ready(self) -> bool:
         """
