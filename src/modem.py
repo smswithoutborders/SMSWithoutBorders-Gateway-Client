@@ -140,7 +140,7 @@ class Messaging:
 
 
 
-class Modem(threading.Event):
+class Modem:
     """
     """
     dbus_name = 'org.freedesktop.ModemManager1'
@@ -176,6 +176,7 @@ class Modem(threading.Event):
         self.modem_path = modem_path
         dbus_modem = bus.get_object(self.dbus_name, self.modem_path, True)
 
+        self.connected = True
 
         self.props = dbus.Interface(dbus_modem, dbus_interface=self.modem_dbus_props_iface)
         self.props.connect_to_signal(
@@ -256,6 +257,19 @@ class Modem(threading.Event):
                     member, registration_state)
 
 
+    def wait_for(self, callable_) -> None:
+        """
+        """
+        import time
+
+        logging.debug("waiting for callable: %s", callable_)
+
+        while self.connected:
+            if callable_():
+                break
+
+            time.sleep(2)
+
 
     def get_3gpp_properties(self) -> dict:
         """
@@ -279,6 +293,11 @@ class Modem(threading.Event):
         TODO: kill all infinite loops from here by changing their threads to set()
         - https://docs.python.org/3/library/threading.html#threading.Condition.wait_for
         """
+
+        try:
+            self.connected = False
+        except Exception as error:
+            logging.exception(error)
 
 
     def __broadcast_new_message__(self, message: Messaging) -> None:
