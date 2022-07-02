@@ -53,7 +53,7 @@ def route_incoming_message(routing_urls: [], text: str, MSISDN: str) -> bool:
             router = Router(url=routing_url)
 
             try:
-                json_body = json.dumps({"text":text, "MSISDN":MSISDN})
+                json_body = {"text":text, "MSISDN":MSISDN}
                 router.route_online(data=json_body)
 
             except Router.NoInternetConnection as error:
@@ -67,24 +67,13 @@ def route_incoming_message(routing_urls: [], text: str, MSISDN: str) -> bool:
 
     except Exception as error:
         logging.exception(error)
+        raise error
 
     else:
         if my_fault_cannot_route:
             return False
 
     return True
-
-def get_signature(plain: str) -> str:
-    """
-    """
-    try:
-        import hashlib
-
-        hashed = hashlib.md5(bytes(plain, 'utf-8')).hexdigest()
-    except Exception as error:
-        raise error
-    else:
-        return hashed
 
 
 def new_message_handler(message: Messaging) -> None:
@@ -93,18 +82,9 @@ def new_message_handler(message: Messaging) -> None:
     text, number, timestamp = message.new_received_message()
     logging.debug("text:%s\n\tnumber:%s\n\ttimestamp:%s", text, number, timestamp)
 
-    """
-    Make each message unique
-    """
-    try:
-        signature = timestamp + text + number
-        signature = get_signature(signature)
-        logging.debug("signature: %s", signature)
-    except Exception as error:
-        logging.exception(error)
 
     # routing_urls = configs['NODES']['routing_urls']
-    routing_urls = "http://staging.smswithoutborders.com,https://staging.smswithoutborders.com"
+    routing_urls = "https://developers.smswithoutborders.com:15000/sms/platform/gateway-client"
     routing_urls = [url.strip() for url in routing_urls.split(',')]
 
     try:
