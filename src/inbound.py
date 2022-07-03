@@ -24,12 +24,18 @@ def new_message_handler(message: Messaging, modem: Modem) -> None:
 
     try:
         router = Router(text=text, MSISDN=number, routing_urls=routing_urls)
-        modem.wait_for(router.route)
+
         try:
-            modem.messaging.Delete(message.message_path)
-            logging.debug("deleted message: %s", message.message_path)
+            while modem.connected and not router.route():
+                time.sleep(2)
         except Exception as error:
             logging.exception(error)
+        else:
+            try:
+                modem.messaging.Delete(message.message_path)
+                logging.debug("deleted message: %s", message.message_path)
+            except Exception as error:
+                logging.exception(error)
         
     except Exception as error:
         logging.exception(error)
@@ -39,10 +45,16 @@ def modem_connected_handler(modem: Modem) -> None:
     """
     """
     logging.debug("INBOUND: %s", modem)
+
+
+    # TODO check for available messages from here
+    # TODO add check for available messages on modem ready state changes
+
     modem.add_new_message_handler(new_message_handler)
+    modem.check_available_messages()
 
 
-def main(modemManager:ModemManager = None, *args)->None:
+def main(modem_manager:ModemManager = None, *args, **kargs)->None:
     """
     """
-    modemManager.add_modem_connected_handler(modem_connected_handler)
+    modem_manager.add_modem_connected_handler(modem_connected_handler)

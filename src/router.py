@@ -68,8 +68,11 @@ class Router:
             """
             FAILED_DNS = "[Errno -2]"
             NAME_RESOLUTION_ERRNO = "[Errno -3]"
+            FAILED_ESTABLISH_CONNECTION = "[Errno 111]"
 
-            if NAME_RESOLUTION_ERRNO in error.args[0].reason.args[0]:
+            if (NAME_RESOLUTION_ERRNO in error.args[0].reason.args[0]
+                    or
+                    FAILED_ESTABLISH_CONNECTION in error.args[0].reason.args[0]):
                 """There be no internet... should retry
                 """
                 raise self.NoInternetConnection

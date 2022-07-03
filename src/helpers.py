@@ -2,7 +2,7 @@
 
 import phonenumbers
 import common.MCCMNC as MCCMNC
-from common.mmcli_python.modem import Modem
+from modem import Modem
 from phonenumbers import geocoder, carrier
 
 
@@ -71,15 +71,13 @@ def validate_repair_request(self, MSISDN: str) -> str:
     return MSISDN
 
 
-def get_modem_operator_name(modem:Modem)->str:
-    operator_code = modem.operator_code
-
+def get_modem_operator_name(operator_code: str)->str:
     ''' requires the first 3 digits '''
-    cm_op_code = (int(modem.operator_code[0:3]), int(modem.operator_code[-1]))
+    cm_op_code = (int(operator_code[0:3]), int(operator_code[-1]))
     if cm_op_code in MCCMNC.MNC_dict:
         operator_details = MCCMNC.MNC_dict[cm_op_code]
 
-        if operator_details[0] == int(modem.operator_code):
+        if operator_details[0] == int(operator_code):
             operator_name = str(operator_details[1])
             # logging.debug("%s", operator_name)
 

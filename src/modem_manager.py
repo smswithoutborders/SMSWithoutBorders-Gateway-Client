@@ -73,9 +73,6 @@ class ModemManager:
 
         except Exception as error:
             logging.exception(error)
-        else:
-            if modem.is_ready():
-                modem.check_available_messages()
 
 
     def modem_disconnected(self, modem_path):
@@ -154,6 +151,7 @@ class ModemManager:
         """
         """
         self.modem_connected_handlers.append(modem_connected_handler)
+
 
 
 if __name__ == '__main__':

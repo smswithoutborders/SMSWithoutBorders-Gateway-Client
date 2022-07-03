@@ -210,7 +210,8 @@ class Modem:
                 sender_keyword='sender')
 
         self.__new_received_message_handlers__ = []
-        self.__messaging_received_waitlist__ = {}
+        self.__modem_is_ready_handlers__ = []
+        self.__modem_is_not_ready_handlers__ = []
 
     def __modem_property_changed__(self, *args, **kwargs) -> None:
         """
@@ -229,46 +230,18 @@ class Modem:
 
         logging.debug("Modem property changed - %s", member)
 
-        if 'OperatorCode' in change_props and change_props['OperatorCode'] != '':
+        if 'OperatorCode' in change_props:
             operator_code = change_props['OperatorCode']
 
             logging.debug("%s: changed operator code: %s", 
                     member, operator_code)
 
-            """
-            !Important note:
+            if self.is_ready():
+                self.__broadcast_ready_modem__()
 
-            - For richer data quality could use RegistrationState signals.
-            This could inform about the network state and delivery efficiency.
+            else:
+                self.__broadcast_not_ready_modem__()
 
-            - Changes to registration state can be referenced from here.
-            https://www.freedesktop.org/software/ModemManager/api/latest/ModemManager-Flags-and-Enumerations.html#MMModem3gppRegistrationState
-            """
-
-            try:
-                self.check_available_messages()
-            except Exception as error:
-                logging.exception(error)
-
-        if 'RegistrationState' in change_props:
-            registration_state = \
-                    self.MMModem3gppRegistrationState(change_props['RegistrationState'])
-            logging.info("%s changed registration state: %s", 
-                    member, registration_state)
-
-
-    def wait_for(self, callable_) -> None:
-        """
-        """
-        import time
-
-        logging.debug("waiting for callable: %s", callable_)
-
-        while self.connected:
-            if callable_():
-                break
-
-            time.sleep(2)
 
 
     def get_3gpp_properties(self) -> dict:
@@ -296,6 +269,8 @@ class Modem:
 
         try:
             self.connected = False
+            self.__broadcast_not_ready_modem__()
+
         except Exception as error:
             logging.exception(error)
 
@@ -308,6 +283,27 @@ class Modem:
                     args=(message, self), daemon=True)
 
             message_handler_thread.start()
+
+
+
+    def __broadcast_ready_modem__(self) -> None:
+        """
+        """
+        for modem_ready_handler in self.__modem_is_ready_handlers__:
+            modem_ready_handler_thread = threading.Thread(target=modem_ready_handler,
+                    args=(self,), daemon=True)
+
+            modem_ready_handler_thread.start()
+
+
+    def __broadcast_not_ready_modem__(self) -> None:
+        """
+        """
+        for modem_not_ready_handler in self.__modem_is_not_ready_handlers__:
+            modem_not_ready_handler_thread = threading.Thread(target=modem_not_ready_handler,
+                    daemon=True)
+
+            modem_not_ready_handler_thread.start()
 
 
     def check_available_messages(self) -> None:
@@ -330,10 +326,22 @@ class Modem:
         except Exception as error:
             raise error
 
+    def check_modem_is_ready(self) -> None:
+        """
+        """
+        logging.debug("checking if modem is ready")
+        try:
+            if self.is_ready():
+                self.__broadcast_ready_modem__()
+        except Exception as error:
+            raise error
+
+
     def __waited_completed__(self, message: Messaging) -> None:
         """
         """
         self.__broadcast_new_message__(message)
+
 
     def __message_property_changed_added__(self, *args, **kwargs) -> None:
         """
@@ -349,12 +357,51 @@ class Modem:
         elif message.__is_receiving_message__():
             logging.debug("\n\treceiving: %s", message.new_received_message())
 
+
     def is_ready(self) -> bool:
         """
         """
-        return self.get_3gpp_property("OperatorCode") != ""
+
+        """
+        https://www.freedesktop.org/software/ModemManager/api/latest/ModemManager-Flags-and-Enumerations.html#MMModem3gppRegistrationState
+        """
+
+        print(self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState")))
+        return (self.get_3gpp_property("OperatorCode") != ''
+                and 
+                (self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState"))
+                == self.MMModem3gppRegistrationState.MM_MODEM_3GPP_REGISTRATION_STATE_HOME
+                or
+                self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState"))
+                == self.MMModem3gppRegistrationState.MM_MODEM_3GPP_REGISTRATION_STATE_ROAMING
+                or
+                self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState"))
+                == self.MMModem3gppRegistrationState.MM_MODEM_3GPP_REGISTRATION_STATE_HOME_SMS_ONLY
+                or
+                self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState"))
+                == self.MMModem3gppRegistrationState.MM_MODEM_3GPP_REGISTRATION_STATE_ROAMING_SMS_ONLY
+                or
+                self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState"))
+                == self.MMModem3gppRegistrationState.MM_MODEM_3GPP_REGISTRATION_STATE_UNKNOWN
+                or
+                self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState"))
+                == 
+                self.MMModem3gppRegistrationState.MM_MODEM_3GPP_REGISTRATION_STATE_ROAMING_SMS_ONLY))
+
     
+
     def add_new_message_handler(self, new_received_message_handler) -> None:
         """
         """
         self.__new_received_message_handlers__.append(new_received_message_handler)
+
+
+    def add_modem_is_ready_handler(self, modem_connected_handler) -> None:
+        """
+        """
+        self.__modem_is_ready_handlers__.append(modem_connected_handler)
+
+    def add_modem_is_not_ready_handler(self, modem_connected_handler) -> None:
+        """
+        """
+        self.__modem_is_not_ready_handlers__.append(modem_connected_handler)
