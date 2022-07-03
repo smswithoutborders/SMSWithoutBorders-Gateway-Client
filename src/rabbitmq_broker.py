@@ -23,7 +23,7 @@ class RabbitMQBroker:
             callback=None, 
             prefetch_count=1, 
             connection_port=5672, 
-            heartbeat=600, 
+            heartbeat=10, 
             blocked_connection_timeout=None, 
             username='guest', 
             password='guest') -> None:

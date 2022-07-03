@@ -367,6 +367,7 @@ class Modem:
         """
 
         print(self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState")))
+        """
         return (self.get_3gpp_property("OperatorCode") != ''
                 and 
                 (self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState"))
@@ -387,6 +388,8 @@ class Modem:
                 self.MMModem3gppRegistrationState(self.get_3gpp_property("RegistrationState"))
                 == 
                 self.MMModem3gppRegistrationState.MM_MODEM_3GPP_REGISTRATION_STATE_ROAMING_SMS_ONLY))
+        """
+        return self.get_3gpp_property("OperatorCode") != ''
 
     
 

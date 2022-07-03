@@ -110,11 +110,24 @@ class RMQModem:
                 logging.exception(error)
 
             except Exception as error:
-                raise error
+                logging.exception(error)
 
             else:
-                self.outgoing_channel.start_consuming()
-                logging.info("consumer for rmq started")
+                try:
+                    logging.info("consumer for rmq started")
+                    self.outgoing_channel.start_consuming()
+
+                except pika.exceptions.AMQPHeartbeatTimeout as error:
+                    logging.exception("heart beat failure issue")
+
+                finally:
+                    try:
+                        self.outgoing_channel.close()
+                        self.outgoing_channel.close()
+                    except Exception as error:
+                        logging.error(error)
+
+            logging.debug("End AMP connection for outbound...")
 
 
     def __rmq_incoming_request__(self, ch, method, properties, body) -> None:
