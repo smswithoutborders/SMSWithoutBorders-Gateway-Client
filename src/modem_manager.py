@@ -147,6 +147,7 @@ class ModemManager:
 
         loop.run()
 
+
     def add_modem_connected_handler(self, modem_connected_handler) -> None:
         """
         """

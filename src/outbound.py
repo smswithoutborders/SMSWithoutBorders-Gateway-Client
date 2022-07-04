@@ -136,6 +136,8 @@ class RMQModem:
 
     def __rmq_incoming_request__(self, ch, method, properties, body) -> None:
         """
+        SMSWithoutBorders OpenAPI sends back messages in JSON format.
+        The messages come with 'text' and 'number' as keys.
         """
 
         try:
