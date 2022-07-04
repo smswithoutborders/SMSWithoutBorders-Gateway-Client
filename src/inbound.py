@@ -8,10 +8,12 @@ import json
 import time
 
 from modem_manager import ModemManager
-from modem import Modem, Messaging
+
+from modem import Modem
+
 from router import Router
 
-def new_message_handler(message: Messaging, modem: Modem) -> None:
+def new_message_handler(message) -> None:
     """
     """
     text, number, timestamp = message.new_received_message()
@@ -26,13 +28,13 @@ def new_message_handler(message: Messaging, modem: Modem) -> None:
         router = Router(text=text, MSISDN=number, routing_urls=routing_urls)
 
         try:
-            while modem.connected and not router.route():
+            while message.messaging.modem.connected and not router.route():
                 time.sleep(2)
         except Exception as error:
             logging.exception(error)
         else:
             try:
-                modem.messaging.Delete(message.message_path)
+                message.messaging.messaging.Delete(message.message_path)
                 logging.debug("deleted message: %s", message.message_path)
             except Exception as error:
                 logging.exception(error)
@@ -50,8 +52,9 @@ def modem_connected_handler(modem: Modem) -> None:
     # TODO check for available messages from here
     # TODO add check for available messages on modem ready state changes
 
-    modem.add_new_message_handler(new_message_handler)
-    modem.check_available_messages()
+    modem.messaging.add_new_message_handler(new_message_handler)
+    if modem.is_ready():
+        modem.messaging.check_available_messages()
 
 
 def main(modem_manager:ModemManager = None, *args, **kargs)->None:

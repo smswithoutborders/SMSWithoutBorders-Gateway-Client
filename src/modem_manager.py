@@ -155,7 +155,17 @@ class ModemManager:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level='DEBUG')
+    def send_sms(modem):
+        """
+        """
+        message_path = modem.messaging.messaging.Create(
+                dbus.Dict({"Text":"Hello world",
+                    "Number":"+237652156811"}))
+
+        print(message_path)
 
     mm = ModemManager()
+
+    mm.add_modem_connected_handler(send_sms)
+
     mm.daemon()

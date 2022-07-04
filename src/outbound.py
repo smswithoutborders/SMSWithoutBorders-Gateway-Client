@@ -9,9 +9,13 @@ import time
 import pika
 
 from modem_manager import ModemManager
-from modem import Modem, Messaging
+
+from modem import Modem
+
 from rabbitmq_broker import RabbitMQBroker
+
 from router import Router
+
 import helpers
 
 class RMQModem:
