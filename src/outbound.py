@@ -234,6 +234,12 @@ def modem_ready_handler(modem: Modem) -> None:
     """
     """
     try:
+        logging.debug("clearing stack for ready modem")
+        modem.messaging.clear_stack()
+    except Exception as error:
+        logging.exception(error)
+
+    try:
         logging.debug("ready modem calling connection")
         rabbitmq_modem = RMQModem(modem=modem, configs=configs)
 

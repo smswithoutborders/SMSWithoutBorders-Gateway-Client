@@ -123,7 +123,7 @@ class Messaging:
     def __create_sms__(self, 
             text: str, 
             number: str, 
-            delivery_report_request: bool = True) -> str:
+            delivery_report_request: bool = False) -> str:
         """
         """
 
@@ -142,7 +142,7 @@ class Messaging:
     def send_sms(self, 
             text: str, 
             number: str, 
-            delivery_report_request: bool = True, **kwargs) -> None:
+            delivery_report_request: bool = False, **kwargs) -> None:
         """
         """
         try:
@@ -170,3 +170,32 @@ class Messaging:
             except Exception as error:
                 raise error
 
+            finally:
+                # remove this if monitoring for DeliveryReport
+                self.__delete_sms__(message_path)
+                if message_path in self.__sms__:
+                    del self.__sms__[message_path]
+
+    def __delete_sms__(self, message_path:str) -> None:
+        """
+        """
+        logging.warning("Deleting message: %s", message_path)
+        self.messaging.Delete(message_path)
+
+    def clear_stack(self) -> None:
+        """
+        """
+        try:
+            available_messages = self.messaging.List()
+            logging.debug("# Available received messages - [%d]", len(available_messages))
+
+            for message_path in available_messages:
+                message = SMS(message_path, self)
+
+                if (message.is_sent_message() or 
+                        message.is_unknown_message() or 
+                        message.is_delivery_report_message()):
+
+                    self.__delete_sms__(message_path)
+        except Exception as error:
+            raise error

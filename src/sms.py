@@ -126,6 +126,18 @@ class SMS:
         MM_SMS_STATE_SENDING   = 4
         MM_SMS_STATE_SENT      = 5
 
+    class MMSmsPduType(Enum):
+        MM_SMS_PDU_TYPE_UNKNOWN = 0
+        MM_SMS_PDU_TYPE_DELIVER       = 1
+        MM_SMS_PDU_TYPE_SUBMIT        = 2
+        MM_SMS_PDU_TYPE_STATUS_REPORT = 3
+        MM_SMS_PDU_TYPE_CDMA_DELIVER                  = 32
+        MM_SMS_PDU_TYPE_CDMA_SUBMIT                   = 33
+        MM_SMS_PDU_TYPE_CDMA_CANCELLATION             = 34
+        MM_SMS_PDU_TYPE_CDMA_DELIVERY_ACKNOWLEDGEMENT = 35
+        MM_SMS_PDU_TYPE_CDMA_USER_ACKNOWLEDGEMENT     = 36
+        MM_SMS_PDU_TYPE_CDMA_READ_ACKNOWLEDGEMENT     = 37
+
     def __init__(self, message_path: str, messaging, *args) -> None:
         """
         """
@@ -184,6 +196,28 @@ class SMS:
 
         if 'DeliveryState' in change_props:
             logging.debug("Changed in delivery: %s", args)
+
+    def is_sent_message(self) -> bool:
+        """
+        """
+        return self.MMSmsState(self.get_property('State')) == self.MMSmsState.MM_SMS_STATE_SENT
+
+    def is_unknown_message(self) -> bool:
+        """
+        """
+        return self.MMSmsState(self.get_property('State')) == self.MMSmsState.MM_SMS_STATE_UNKNOWN
+
+    def is_delivery_report_message(self) -> bool:
+        """
+        """
+        return (
+                self.MMSmsState(self.get_property('State')) == 
+                self.MMSmsState.MM_SMS_STATE_RECEIVED and
+                (self.MMSmsState(self.get_property('PduType')) == 
+                self.MMSmsPduType.MM_SMS_PDU_TYPE_STATUS_REPORT or
+                self.MMSmsState(self.get_property('PduType')) == 
+                self.MMSmsPduType.MM_SMS_PDU_TYPE_DELIVER))
+
 
     def get_property(self, property_name: str) -> None:
         """

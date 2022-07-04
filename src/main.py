@@ -78,12 +78,10 @@ if __name__ == "__main__":
     except Exception as error:
         logging.exception(error)
     else:
-        """
         try:
             inbound_thread = start_thread_inbound(modem_manager)
         except Exception as error:
             logging.exception(error)
-        """
 
         try:
             outbound_thread = start_thread_outbound(modem_manager)
