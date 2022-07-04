@@ -77,7 +77,7 @@ class Modem:
         change_props = args[1]
 
 
-        logging.debug("Modem property changed - %s", member)
+        logging.debug("Modem property changed - %s", args)
 
         if 'OperatorCode' in change_props:
             operator_code = change_props['OperatorCode']

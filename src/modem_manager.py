@@ -153,16 +153,18 @@ class ModemManager:
         self.modem_connected_handlers.append(modem_connected_handler)
 
 
-
 if __name__ == '__main__':
-    def send_sms(modem):
-        """
-        """
-        message_path = modem.messaging.messaging.Create(
-                dbus.Dict({"Text":"Hello world",
-                    "Number":"+237652156811"}))
+    logging.basicConfig(level='DEBUG')
 
-        print(message_path)
+    def send_sms(modem):
+        import inspect
+        print(inspect.signature(modem.messaging.messaging.Create))
+
+        try:
+            modem.messaging.send_sms(text="hello world", number="+237652156811")
+        except Exception as error:
+            logging.exception(error)
+
 
     mm = ModemManager()
 

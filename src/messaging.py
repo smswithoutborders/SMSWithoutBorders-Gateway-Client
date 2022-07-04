@@ -118,3 +118,39 @@ class Messaging:
         """
         """
         self.__new_received_message_handlers__.append(new_received_message_handler)
+
+
+    def __create_sms__(self, 
+            text: str, 
+            number: str, 
+            delivery_report_request: bool = True) -> str:
+        """
+        """
+
+        data = {'text':text, 
+                'number': number,
+                'delivery-report-request': delivery_report_request}
+
+        message_path = self.messaging.Create(data)
+        return message_path
+
+
+    def send_sms(self, 
+            text: str, 
+            number: str, 
+            delivery_report_request: bool = True):
+        """
+        """
+        message_path = self.__create_sms__(text, number)
+
+        logging.debug("created new sms")
+
+        sms = SMS(message_path, self)
+
+        self.__sms__[message_path] = sms
+
+        try:
+            self.__sms__[message_path].send()
+        except Exception as error:
+            logging.exception(error)
+

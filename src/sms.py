@@ -27,8 +27,6 @@ class SMS:
         self.props = dbus.Interface(
                 self.dbus_message, dbus_interface=modem_dbus_props_iface)
 
-        self.modem_dbus_sms_iface = "org.freedesktop.ModemManager1.Sms"
-
         self.props.connect_to_signal(
                 "PropertiesChanged",
                 handler_function=self.__message_property_changed__,
@@ -38,6 +36,19 @@ class SMS:
                 destination_keyword='destination',
                 sender_keyword='sender')
 
+        self.modem_dbus_sms_iface = "org.freedesktop.ModemManager1.Sms"
+        self.sms = dbus.Interface(
+                self.dbus_message, dbus_interface=self.modem_dbus_sms_iface)
+
+    def send(self) -> None:
+        """
+        """
+        try:
+            logging.debug("Sending new sms message")
+            send_status = self.sms.Send()
+            logging.debug("sent sms message: %s", send_status)
+        except Exception as error:
+            logging.exception(error)
 
     def __message_property_changed__(self, *args, **kwargs) -> None:
         """
