@@ -159,10 +159,17 @@ if __name__ == '__main__':
 
     def send_sms(modem):
         import inspect
+        import sys
+
         print(inspect.signature(modem.messaging.messaging.Create))
 
         try:
-            modem.messaging.send_sms(text="hello world", number="+237652156811")
+            number=sys.argv[1]
+            modem.messaging.send_sms(text="hello world", number=number)
+        except dbus.exceptions.DBusException as error:
+            logging.error("something went wrong with sending...")
+            raise error
+
         except Exception as error:
             logging.exception(error)
 

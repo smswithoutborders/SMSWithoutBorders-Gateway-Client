@@ -131,26 +131,42 @@ class Messaging:
                 'number': number,
                 'delivery-report-request': delivery_report_request}
 
-        message_path = self.messaging.Create(data)
+        try:
+            message_path = self.messaging.Create(data)
+        except Exception as error:
+            raise error
+
         return message_path
 
 
     def send_sms(self, 
             text: str, 
             number: str, 
-            delivery_report_request: bool = True):
+            delivery_report_request: bool = True, **kwargs) -> None:
         """
         """
-        message_path = self.__create_sms__(text, number)
-
-        logging.debug("created new sms")
-
-        sms = SMS(message_path, self)
-
-        self.__sms__[message_path] = sms
-
         try:
-            self.__sms__[message_path].send()
+            message_path = self.__create_sms__(text, number)
+
+            logging.debug("created new sms")
+
+            sms = SMS(message_path, self)
+
+            self.__sms__[message_path] = sms
+
+        except dbus.exceptions.DBusException as error:
+            raise error
+
         except Exception as error:
-            logging.exception(error)
+            raise error
+
+        else:
+            try:
+                self.__sms__[message_path].send()
+
+            except dbus.exceptions.DBusException as error:
+                raise error
+
+            except Exception as error:
+                raise error
 

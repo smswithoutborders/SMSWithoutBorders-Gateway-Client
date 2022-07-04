@@ -7,6 +7,7 @@ import threading
 import json
 import time
 import pika
+import dbus
 
 from modem_manager import ModemManager
 
@@ -51,14 +52,12 @@ class RMQModem:
         except Exception as error:
             logging.exception(error)
 
-
-
-    def rmq_connection(self) -> None:
+    def __rmq_connection__(self) -> None:
         """
         """
         try:
             self.modem_operator_code = self.modem.get_3gpp_property("OperatorCode")
-            self.modem_operator_name = helpers.get_modem_operator_name(
+            self.modem_operator_name = helpers.get_operator_name(
                     operator_code=self.modem_operator_code)
 
             logging.debug("modem operator code: %s", self.modem_operator_code)
@@ -111,27 +110,44 @@ class RMQModem:
                         connection_name=self.connection_name)
 
             except pika.exceptions.AMQPConnectionError as error:
-                logging.exception(error)
+                raise error
+
+            except Exception as error:
+                raise error
+
+
+
+    def rmq_connection(self) -> None:
+        """
+        """
+        try:
+            self.__rmq_connection__()
+
+        except pika.exceptions.AMQPConnectionError as error:
+            logging.exception(error)
+
+        except Exception as error:
+            raise error
+        
+        else:
+            try:
+                logging.info("consumer for rmq started")
+                self.outgoing_channel.start_consuming()
+
+            except pika.exceptions.AMQPHeartbeatTimeout as error:
+                logging.exception("heart beat failure issue")
 
             except Exception as error:
                 logging.exception(error)
 
-            else:
+            finally:
                 try:
-                    logging.info("consumer for rmq started")
-                    self.outgoing_channel.start_consuming()
+                    self.outgoing_channel.close()
+                    self.outgoing_connection.close()
+                except Exception as error:
+                    logging.error(error)
 
-                except pika.exceptions.AMQPHeartbeatTimeout as error:
-                    logging.exception("heart beat failure issue")
-
-                finally:
-                    try:
-                        self.outgoing_channel.close()
-                        self.outgoing_channel.close()
-                    except Exception as error:
-                        logging.error(error)
-
-            logging.debug("End AMP connection for outbound...")
+        logging.debug("End AMP connection for outbound...")
 
 
     def __rmq_incoming_request__(self, ch, method, properties, body) -> None:
@@ -142,84 +158,76 @@ class RMQModem:
 
         try:
             json_body = json.loads(body.decode('utf-8'))
+            logging.info("New sms request: %s", json_body)
             if not "text" in json_body:
-                logging.debug('text missing from request')
+                logging.error('text missing from request')
                 return 
             
             if not "number" in json_body:
-                logging.debug('number missing from request')
+                logging.error('number missing from request')
                 return 
 
-            text=json_body['text']
-            number=json_body['number'].replace(' ', '')
         except Exception as error:
             return
 
         else:
+            text=json_body['text']
+            number=json_body['number'].replace(' ', '')
 
-            """
             try:
-                logging.debug("sending: [%s]%s %s", 
-                        helpers.get_modem_operator_name(self.modem), 
-                        self.modem.imei, body)
-                deku = Deku(modem=self.modem)
-                if deku.modem_ready():
-                    deku.modem_send(
-                            text=text,
-                            number=number,
-                            match_operator=True)
-                else:
-                    logging.debug("Modem not ready!")
-                    raise Exception("modem not ready")
+                helpers.is_valid_number(MSISDN=number)
 
-            except helpers.InvalidNumber as error:
-                logging.debug("invalid number, dumping message")
-                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-
-            except helpers.InvalidNumber as error:
-                logging.error("invalid number, dumping message")
-                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-
-            except helpers.BadFormNumber as error:
-                logging.error("badly formed number, dumping message")
-                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-
-
-            except helpers.NoMatchOperator as error:
-                ''' could either choose to republish to right operator or dump '''
-                logging.error("no match operator, dumping message")
-                self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-
-            except helpers.NoAvailableModem as error:
-                logging.warning("no available modem while trying to send")
-                self.outgoing_channel.basic_reject(
-                        delivery_tag=method.delivery_tag, 
-                        requeue=True)
-                self.outgoing_connection.sleep(self.daemon_sleep_time)
-
-            except subprocess.CalledProcessError as error:
-                # logging.exception(error)
-                self.outgoing_channel.basic_reject(
-                        delivery_tag=method.delivery_tag, requeue=True)
-
+            except (helpers.NotE164Number, helpers.InvalidNumber) as error:
+                logging.exception(error)
+                ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+            
             except Exception as error:
-                self.outgoing_connection.sleep(self.daemon_sleep_time)
                 logging.exception(error)
 
-                if error.args[0] == helpers.INVALID_COUNTRY_CODE_EXCEPTION:
-                    logging.warning("[-] MESSAGE SHALL NOT PASS!!")
-
-                else:
-                    self.outgoing_channel.basic_reject(
-                            delivery_tag=method.delivery_tag, requeue=True)
-            
             else:
-                self.outgoing_channel.basic_ack(
-                        delivery_tag=method.delivery_tag)
-            finally:
-                if self.outgoing_channel.is_open:
-                    return
-            """
+                if 'MATCH_OPERATOR' in self.configs['OPENAPI']:
+                    """
+                    # TODO verify that number matches operator of modem
+                    # Cause human error
+                    """
+                    if int(self.configs['OPENAPI']['MATCH_OPERATOR']) == 1:
+
+                        try:
+                            MSISDN_oc = helpers.get_operator_code(number)
+
+                            if not MSISDN_oc == self.modem_operator_code:
+
+                                logging.error("MATCH_OPERATOR set but failed to match MSISDN.\n"
+                                "Modem is [%s] but request is [%s] MSISDN", 
+                                        self.modem_operator_code, MSISDN_oc)
+                                self.outgoing_channel.basic_reject(
+                                        delivery_tag=method.delivery_tag, requeue=True)
+
+                                return
+
+                        except Exception as error:
+                            logging.exception(error)
+
+                try:
+                    """
+                    """
+                    logging.info("Sending new sms message...")
+
+                    self.modem.messaging.send_sms(
+                            text=text,
+                            number=number)
+
+                except  Exception as error:
+                    logging.exception(error)
+                    ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+                else:
+                    # self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    logging.info("sent sms successfully!")
+
+                finally:
+                    time.sleep( 5 )
+
 
 
 def modem_ready_handler(modem: Modem) -> None:

@@ -147,18 +147,21 @@ class SMS:
                 sender_keyword='sender')
 
         self.modem_dbus_sms_iface = "org.freedesktop.ModemManager1.Sms"
+
         self.sms = dbus.Interface(
                 self.dbus_message, dbus_interface=self.modem_dbus_sms_iface)
+
 
     def send(self) -> None:
         """
         """
         try:
-            logging.debug("Sending new sms message")
-            send_status = self.sms.Send()
-            logging.debug("sent sms message: %s", send_status)
+            self.sms.Send()
+        except dbus.exceptions.DBusException as error:
+            raise error
+
         except Exception as error:
-            logging.exception(error)
+            raise error
 
     def __message_property_changed__(self, *args, **kwargs) -> None:
         """
@@ -236,4 +239,4 @@ class SMS:
                 self.MMSmsState(self.get_property("State"))
                 == 
                 self.MMSmsState.MM_SMS_STATE_RECEIVED )
-
+    
