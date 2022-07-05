@@ -64,7 +64,6 @@ class Messaging:
             logging.debug("added new sms: %s", message.message_path)
 
 
-
     def __message_property_changed_added__(self, *args, **kwargs) -> None:
         """
         """
@@ -73,8 +72,9 @@ class Messaging:
 
         logging.debug("Message property changed Added - %s", args)
 
-        sms = SMS(message_path, self)
-        self.__add_message__(sms)
+        if not message_path in self.__sms__:
+            sms = SMS(message_path, self)
+            self.__add_message__(sms)
 
 
     def __message_property_changed_deleted__(self, *args, **kwargs) -> None:
@@ -148,11 +148,7 @@ class Messaging:
         try:
             message_path = self.__create_sms__(text, number)
 
-            logging.debug("created new sms")
-
-            sms = SMS(message_path, self)
-
-            self.__sms__[message_path] = sms
+            logging.debug("created new sms: %s", message_path)
 
         except dbus.exceptions.DBusException as error:
             raise error
@@ -162,7 +158,7 @@ class Messaging:
 
         else:
             try:
-                self.__sms__[message_path].send()
+                SMS.send(message_path)
 
             except dbus.exceptions.DBusException as error:
                 raise error
@@ -173,13 +169,13 @@ class Messaging:
             finally:
                 # remove this if monitoring for DeliveryReport
                 self.__delete_sms__(message_path)
-                if message_path in self.__sms__:
-                    del self.__sms__[message_path]
+
 
     def __delete_sms__(self, message_path:str) -> None:
         """
         """
         logging.warning("Deleting message: %s", message_path)
+
         self.messaging.Delete(message_path)
 
     def clear_stack(self) -> None:
@@ -192,10 +188,7 @@ class Messaging:
             for message_path in available_messages:
                 message = SMS(message_path, self)
 
-                if (message.is_sent_message() or 
-                        message.is_unknown_message() or 
-                        message.is_delivery_report_message()):
-
+                if (message.is_sent_message() or message.is_delivery_report_message()):
                     self.__delete_sms__(message_path)
         except Exception as error:
             raise error

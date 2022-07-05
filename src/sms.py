@@ -164,11 +164,20 @@ class SMS:
                 self.dbus_message, dbus_interface=self.modem_dbus_sms_iface)
 
 
-    def send(self) -> None:
+    def send(message_path: str) -> None:
         """
         """
         try:
-            self.sms.Send()
+            bus = dbus.SystemBus()
+
+            dbus_message = bus.get_object(dbus_name, message_path, True)
+
+            modem_dbus_sms_iface = "org.freedesktop.ModemManager1.Sms"
+
+            sms = dbus.Interface(
+                    dbus_message, dbus_interface=modem_dbus_sms_iface)
+
+            sms.Send()
         except dbus.exceptions.DBusException as error:
             raise error
 
@@ -178,16 +187,20 @@ class SMS:
     def __message_property_changed__(self, *args, **kwargs) -> None:
         """
         """
+        logging.debug("Message property changed - %s", args)
         member = args[0]
         change_props = args[1]
 
-        logging.debug("Message property changed - %s, %s", member, args)
 
+        """
         if ('State' in change_props
                 and 
                 self.MMSmsState(change_props['State']) == self.MMSmsState.MM_SMS_STATE_RECEIVED):
+        """
+        if self.__is_received_message__():
             self.messaging.broadcast_new_message(self)
 
+        """
         if ('State' in change_props
                 and 
                 self.MMSmsState(change_props['State']) == self.MMSmsState.MM_SMS_STATE_SENT):
@@ -196,6 +209,7 @@ class SMS:
 
         if 'DeliveryState' in change_props:
             logging.debug("Changed in delivery: %s", args)
+        """
 
     def is_sent_message(self) -> bool:
         """
@@ -214,9 +228,7 @@ class SMS:
                 self.MMSmsState(self.get_property('State')) == 
                 self.MMSmsState.MM_SMS_STATE_RECEIVED and
                 (self.MMSmsState(self.get_property('PduType')) == 
-                self.MMSmsPduType.MM_SMS_PDU_TYPE_STATUS_REPORT or
-                self.MMSmsState(self.get_property('PduType')) == 
-                self.MMSmsPduType.MM_SMS_PDU_TYPE_DELIVER))
+                self.MMSmsPduType.MM_SMS_PDU_TYPE_STATUS_REPORT))
 
 
     def get_property(self, property_name: str) -> None:

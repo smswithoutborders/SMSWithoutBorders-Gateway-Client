@@ -64,13 +64,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
-    log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
+
+    log_file_path = os.path.join(
+            os.path.dirname(__file__), 'services/logs', 'service.log')
+
+    # handler= [logging.FileHandler(log_file_path), logging.StreamHandler(sys.stdout) ]
+
     logging.basicConfig(
             format='%(asctime)s|[%(levelname)s] [%(module)s] %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
-            handlers=[
-                logging.FileHandler(log_file_path),
-                logging.StreamHandler(sys.stdout) ],
             level=args.log.upper())
 
     try:
@@ -78,14 +80,16 @@ if __name__ == "__main__":
     except Exception as error:
         logging.exception(error)
     else:
-        try:
-            inbound_thread = start_thread_inbound(modem_manager)
-        except Exception as error:
-            logging.exception(error)
+        if args.module == "inbound":
+            try:
+                inbound_thread = start_thread_inbound(modem_manager)
+            except Exception as error:
+                logging.exception(error)
 
-        try:
-            outbound_thread = start_thread_outbound(modem_manager)
-        except Exception as error:
-            logging.exception(error)
+        elif args.module == "outbound":
+            try:
+                outbound_thread = start_thread_outbound(modem_manager)
+            except Exception as error:
+                logging.exception(error)
 
         modem_manager.daemon()

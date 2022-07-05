@@ -116,7 +116,6 @@ class RMQModem:
                 raise error
 
 
-
     def rmq_connection(self) -> None:
         """
         """
@@ -178,7 +177,7 @@ class RMQModem:
                 helpers.is_valid_number(MSISDN=number)
 
             except (helpers.NotE164Number, helpers.InvalidNumber) as error:
-                logging.exception(error)
+                logging.error(error)
                 ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
             
             except Exception as error:
@@ -201,7 +200,7 @@ class RMQModem:
                                 "Modem is [%s] but request is [%s] MSISDN", 
                                         self.modem_operator_code, MSISDN_oc)
                                 self.outgoing_channel.basic_reject(
-                                        delivery_tag=method.delivery_tag, requeue=True)
+                                        delivery_tag=method.delivery_tag, requeue=False)
 
                                 return
 
@@ -213,21 +212,19 @@ class RMQModem:
                     """
                     logging.info("Sending new sms message...")
 
+                    # TODO; this is blocking - careful
                     self.modem.messaging.send_sms(
                             text=text,
                             number=number)
 
-                except  Exception as error:
+                except Exception as error:
                     logging.exception(error)
                     ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+
                 else:
                     # self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
                     ch.basic_ack(delivery_tag=method.delivery_tag)
                     logging.info("sent sms successfully!")
-
-                finally:
-                    time.sleep( 5 )
-
 
 
 def modem_ready_handler(modem: Modem) -> None:
@@ -253,6 +250,7 @@ def modem_ready_handler(modem: Modem) -> None:
 
     except Exception as error:
         logging.exception(error)
+
 
 
 def modem_connected_handler(modem: Modem) -> None:
