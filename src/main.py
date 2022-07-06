@@ -8,14 +8,13 @@ import threading
 import argparse
 import configparser
 
-import inbound
-
-import outbound
+import inbound as Inbound
+import outbound as Outbound
 
 from modem_manager import ModemManager
 
 
-def start_thread_inbound(modem_manager: ModemManager):
+def main_inbound(modem_manager: ModemManager) -> None:
     """
     """
     configs = configparser.ConfigParser(interpolation=None)
@@ -23,15 +22,10 @@ def start_thread_inbound(modem_manager: ModemManager):
             os.path.join(os.path.dirname(__file__),
                 '../.configs', 'config.ini'))
 
-    inbound_thread = threading.Thread(target=inbound.main, 
-            kwargs={"modem_manager":modem_manager, "configs": configs}, daemon=True)
-
-    inbound_thread.start()
-
-    return inbound_thread
+    Inbound.Main(modem_manager=modem_manager, configs=configs)
 
 
-def start_thread_outbound(modem_manager: ModemManager):
+def main_outbound(modem_manager: ModemManager) -> None:
     """
     """
     configs = configparser.ConfigParser()
@@ -39,12 +33,7 @@ def start_thread_outbound(modem_manager: ModemManager):
             os.path.join(os.path.dirname(__file__),
                 '../.configs', 'config.ini'))
 
-    outbound_thread = threading.Thread(target=outbound.main, 
-            kwargs={"modem_manager":modem_manager, "configs": configs}, daemon=True)
-
-    outbound_thread.start()
-
-    return outbound_thread
+    Outbound.Main(modem_manager=modem_manager, configs=configs)
 
 
 
@@ -70,25 +59,35 @@ if __name__ == "__main__":
 
     # handler= [logging.FileHandler(log_file_path), logging.StreamHandler(sys.stdout) ]
 
+
+    # datefmt='%Y-%m-%d %H:%M:%S',
+    datefmt='%H:%M:%S'
+    format_= "[%(levelname)s] [%(thread)d:%(threadName)s]| " + \
+            "[%(module)s] %(message)s"
+
     logging.basicConfig(
-            format='%(asctime)s|[%(levelname)s] [%(module)s] %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S',
+            format=format_,
+            datefmt=datefmt,
             level=args.log.upper())
 
     try:
+
+        logging.info("")
         modem_manager = ModemManager()
+
     except Exception as error:
         logging.exception(error)
     else:
         if args.module == "inbound":
             try:
-                inbound_thread = start_thread_inbound(modem_manager)
+                main_inbound(modem_manager)
             except Exception as error:
                 logging.exception(error)
 
+
         elif args.module == "outbound":
             try:
-                outbound_thread = start_thread_outbound(modem_manager)
+                main_outbound(modem_manager)
             except Exception as error:
                 logging.exception(error)
 

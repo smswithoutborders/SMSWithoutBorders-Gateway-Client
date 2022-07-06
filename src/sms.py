@@ -144,7 +144,8 @@ class SMS:
         self.messaging = messaging 
         self.message_path = message_path
 
-        self.dbus_message = messaging.modem.bus.get_object(dbus_name, self.message_path, True)
+        bus = dbus.SystemBus()
+        self.dbus_message = bus.get_object(dbus_name, self.message_path, True)
 
         self.props = dbus.Interface(
                 self.dbus_message, dbus_interface=modem_dbus_props_iface)
@@ -164,20 +165,12 @@ class SMS:
                 self.dbus_message, dbus_interface=self.modem_dbus_sms_iface)
 
 
-    def send(message_path: str) -> None:
+    def send(self, message_path: str) -> None:
         """
         """
         try:
-            bus = dbus.SystemBus()
-
-            dbus_message = bus.get_object(dbus_name, message_path, True)
-
-            modem_dbus_sms_iface = "org.freedesktop.ModemManager1.Sms"
-
-            sms = dbus.Interface(
-                    dbus_message, dbus_interface=modem_dbus_sms_iface)
-
-            sms.Send()
+            logging.debug("Sending sms: %s", self.message_path)
+            self.sms.Send()
         except dbus.exceptions.DBusException as error:
             raise error
 
@@ -220,6 +213,18 @@ class SMS:
         """
         """
         return self.MMSmsState(self.get_property('State')) == self.MMSmsState.MM_SMS_STATE_UNKNOWN
+
+    def is_send_message(self) -> bool:
+        """
+        PduType = 2
+        State = 0
+        """
+        return (
+                self.MMSmsState(self.get_property('State')) == 
+                self.MMSmsState.MM_SMS_STATE_UNKNOWN and
+                self.MMSmsState(self.get_property('PduType')) == 
+                self.MMSmsPduType.MM_SMS_PDU_TYPE_SUBMIT)
+
 
     def is_delivery_report_message(self) -> bool:
         """

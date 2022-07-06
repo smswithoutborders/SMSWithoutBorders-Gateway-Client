@@ -119,10 +119,12 @@ class RMQModem:
     def rmq_connection(self) -> None:
         """
         """
+        import socket
+
         try:
             self.__rmq_connection__()
 
-        except pika.exceptions.AMQPConnectionError as error:
+        except (socket.gaierror, pika.exceptions.AMQPConnectionError) as error:
             logging.exception(error)
 
         except Exception as error:
@@ -230,11 +232,15 @@ class RMQModem:
 def modem_ready_handler(modem: Modem) -> None:
     """
     """
+    logging.debug("modem ready handler: %s",  modem)
+
+    """
     try:
         logging.debug("clearing stack for ready modem")
         modem.messaging.clear_stack()
     except Exception as error:
         logging.exception(error)
+    """
 
     try:
         logging.debug("ready modem calling connection")
@@ -242,7 +248,7 @@ def modem_ready_handler(modem: Modem) -> None:
 
         modem.add_modem_is_not_ready_handler(rabbitmq_modem.rmq_close_connection)
 
-        while modem.connected and modem.is_ready():
+        while modem.connected:
             logging.debug("[%s] starting rabbitmq connection...", modem.modem_path)
             rabbitmq_modem.rmq_connection()
 
@@ -256,11 +262,12 @@ def modem_ready_handler(modem: Modem) -> None:
 def modem_connected_handler(modem: Modem) -> None:
     """
     """
+    logging.debug("Modem connected outbound: %s", modem)
     modem.add_modem_is_ready_handler(modem_ready_handler)
     modem.check_modem_is_ready()
 
 
-def main(modem_manager: ModemManager, *args, **kwargs)->None:
+def Main(modem_manager: ModemManager, *args, **kwargs)->None:
     global configs
 
     configs = kwargs['configs']

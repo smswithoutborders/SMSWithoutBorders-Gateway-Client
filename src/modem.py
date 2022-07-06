@@ -37,6 +37,7 @@ class Modem:
             - Check if modem is Disabled and Enable it
         """
         super().__init__()
+        logging.debug("initialized new modem instance: %s", self)
 
         self.bus = bus
         self.modem_path = modem_path
@@ -116,8 +117,8 @@ class Modem:
         """
 
         try:
-            self.connected = False
             self.__broadcast_not_ready_modem__()
+            self.connected = False
 
         except Exception as error:
             logging.exception(error)

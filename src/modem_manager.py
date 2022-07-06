@@ -19,7 +19,6 @@ class ModemManager:
     This model begins activities for connected or newly plugged in modems.
     """
 
-
     def __init__(self)->None:
         """Initialize a modem manager instance.
         """
@@ -69,8 +68,11 @@ class ModemManager:
             modem = self.__add_modem__(modem_path)
 
             for modem_handler in self.modem_connected_handlers:
-                modem_handler(modem)
+                connected_modem_thread = threading.Thread(target=modem_handler,
+                        args=(modem,), daemon=True)
+                connected_modem_thread.start()
 
+            logging.debug("Exiting modem connected: %s", self)
         except Exception as error:
             logging.exception(error)
 
@@ -79,7 +81,9 @@ class ModemManager:
         """
         """
         self.__remove_modem__(modem_path)
+
         logging.warning("Modem removed: %s", modem_path)
+
         logging.debug("# Active modems: %d", len(self.active_modems))
 
 

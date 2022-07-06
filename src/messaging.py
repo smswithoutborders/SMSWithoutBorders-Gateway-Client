@@ -2,6 +2,7 @@ import threading
 import dbus
 from enum import Enum
 import logging
+import time
 
 from sms import SMS
 
@@ -52,6 +53,8 @@ class Messaging:
                 destination_keyword='destination',
                 sender_keyword='sender')
 
+        logging.debug("new messaging instance created: %s", self)
+
 
     def __add_message__(self, message: SMS) -> None:
         """
@@ -67,12 +70,12 @@ class Messaging:
     def __message_property_changed_added__(self, *args, **kwargs) -> None:
         """
         """
-        message_path = args[0]
-        change_props = args[1]
-
         logging.debug("Message property changed Added - %s", args)
 
-        if not message_path in self.__sms__:
+        message_path = args[0]
+        received_from_network = args[1]
+
+        if received_from_network:
             sms = SMS(message_path, self)
             self.__add_message__(sms)
 
@@ -93,10 +96,14 @@ class Messaging:
         logging.debug("checking for available messages")
         try:
             available_messages = self.messaging.List()
-            logging.debug("# Available received messages - [%d]", len(available_messages))
+
+            logging.debug("# Available received messages - [%d]", 
+                    len(available_messages))
 
             for message_path in available_messages:
+
                 message = SMS(message_path, self)
+
                 self.__add_message__(message)
 
 
@@ -108,6 +115,7 @@ class Messaging:
         """
         """
         for message_handler in self.__new_received_message_handlers__:
+
             message_handler_thread = threading.Thread(target=message_handler,
                     args=(message,), daemon=True)
 
@@ -158,7 +166,8 @@ class Messaging:
 
         else:
             try:
-                SMS.send(message_path)
+                sms = SMS(message_path, self)
+                sms.send(message_path)
 
             except dbus.exceptions.DBusException as error:
                 raise error
@@ -169,21 +178,27 @@ class Messaging:
             finally:
                 # remove this if monitoring for DeliveryReport
                 self.__delete_sms__(message_path)
+                time.sleep(3)
 
 
     def __delete_sms__(self, message_path:str) -> None:
         """
         """
-        logging.warning("Deleting message: %s", message_path)
-
-        self.messaging.Delete(message_path)
+        try:
+            self.messaging.Delete(message_path)
+        except Exception as error:
+            logging.exception(error)
+        else:
+            logging.warning("Deleted message: %s", message_path)
 
     def clear_stack(self) -> None:
         """
         """
+        logging.debug("clearing message stack...")
         try:
             available_messages = self.messaging.List()
-            logging.debug("# Available received messages - [%d]", len(available_messages))
+            logging.debug("# Available received messages - [%d]", 
+                    len(available_messages))
 
             for message_path in available_messages:
                 message = SMS(message_path, self)

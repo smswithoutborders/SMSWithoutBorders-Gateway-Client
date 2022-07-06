@@ -46,18 +46,18 @@ def new_message_handler(message) -> None:
 def modem_connected_handler(modem: Modem) -> None:
     """
     """
-    logging.debug("INBOUND: %s", modem)
-
-
-    # TODO check for available messages from here
-    # TODO add check for available messages on modem ready state changes
-
     modem.messaging.add_new_message_handler(new_message_handler)
+
+    """
+    modem.is_ready(): because signals won't be received if program restarts while modem
+    is already plugged in. So check for ready modem message queues
+    """
     if modem.is_ready():
         modem.messaging.check_available_messages()
 
 
-def main(modem_manager:ModemManager = None, *args, **kargs)->None:
+def Main(modem_manager:ModemManager = None, *args, **kargs)->None:
     """
     """
     modem_manager.add_modem_connected_handler(modem_connected_handler)
+    logging.info("")
