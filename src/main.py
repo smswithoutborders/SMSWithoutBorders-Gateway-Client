@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+https://www.freedesktop.org/software/ModemManager/api/latest/gdbus-org.freedesktop.ModemManager1.Modem.Messaging.html#gdbus-signal-org-freedesktop-ModemManager1-Modem-Messaging.Added
+"""
+
 
 import os
 import sys

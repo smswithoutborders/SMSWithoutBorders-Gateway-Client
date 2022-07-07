@@ -59,12 +59,15 @@ class Messaging:
     def __add_message__(self, message: SMS) -> None:
         """
         """
-        if message.__is_received_message__():
-            self.broadcast_new_message(message)
+        try:
+            if message.__is_received_message__():
+                self.broadcast_new_message(message)
 
-        elif message.__is_receiving_message__():
-            self.__sms__[message.message_path] = message
-            logging.debug("added new sms: %s", message.message_path)
+            elif message.__is_receiving_message__():
+                self.__sms__[message.message_path] = message
+                logging.debug("added new sms: %s", message.message_path)
+        except Exception as error:
+            raise error
 
 
     def __message_property_changed_added__(self, *args, **kwargs) -> None:
@@ -77,7 +80,10 @@ class Messaging:
 
         if received_from_network:
             sms = SMS(message_path, self)
-            self.__add_message__(sms)
+            try:
+                self.__add_message__(sms)
+            except Exception as error:
+                logging.exception(error)
 
 
     def __message_property_changed_deleted__(self, *args, **kwargs) -> None:
@@ -104,8 +110,10 @@ class Messaging:
 
                 message = SMS(message_path, self)
 
-                self.__add_message__(message)
-
+                try:
+                    self.__add_message__(message)
+                except Exception as error:
+                    logging.exception(error)
 
         except Exception as error:
             raise error

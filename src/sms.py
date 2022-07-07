@@ -185,12 +185,9 @@ class SMS:
         change_props = args[1]
 
 
-        """
         if ('State' in change_props
                 and 
-                self.MMSmsState(change_props['State']) == self.MMSmsState.MM_SMS_STATE_RECEIVED):
-        """
-        if self.__is_received_message__():
+                self.MMSmsState(change_props['State']) == self.MMSmsState.MM_SMS_STATE_RECEIVED): 
             self.messaging.broadcast_new_message(self)
 
         """
@@ -199,10 +196,8 @@ class SMS:
                 self.MMSmsState(change_props['State']) == self.MMSmsState.MM_SMS_STATE_SENT):
             logging.debug("Delivery state: %s",
                     self.MMSmsDeliveryState(self.get_property("DeliveryState")))
-
-        if 'DeliveryState' in change_props:
-            logging.debug("Changed in delivery: %s", args)
         """
+
 
     def is_sent_message(self) -> bool:
         """
