@@ -1,16 +1,45 @@
 #!/usr/bin/env python3
 
+"""
+https://www.freedesktop.org/software/ModemManager/api/latest/gdbus-org.freedesktop.ModemManager1.Modem.Messaging.html#gdbus-signal-org-freedesktop-ModemManager1-Modem-Messaging.Added
+"""
+
 
 import os
 import sys
 import logging
 import threading
 import argparse
-import traceback
+import configparser
 
-import inbound
-import outbound
+import inbound as Inbound
+import outbound as Outbound
+
 from modem_manager import ModemManager
+
+
+def main_inbound(modem_manager: ModemManager) -> None:
+    """
+    """
+    configs = configparser.ConfigParser(interpolation=None)
+    configs.read(
+            os.path.join(os.path.dirname(__file__),
+                '../.configs', 'config.ini'))
+
+    Inbound.Main(modem_manager=modem_manager, configs=configs)
+
+
+def main_outbound(modem_manager: ModemManager) -> None:
+    """
+    """
+    configs = configparser.ConfigParser()
+    configs.read(
+            os.path.join(os.path.dirname(__file__),
+                '../.configs', 'config.ini'))
+
+    Outbound.Main(modem_manager=modem_manager, configs=configs)
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -28,38 +57,42 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # https://docs.python.org/3/library/logging.html#logrecord-attributes
-    log_file_path = os.path.join(os.path.dirname(__file__), 'services/logs', 'service.log')
+
+    log_file_path = os.path.join(
+            os.path.dirname(__file__), 'services/logs', 'service.log')
+
+    # handler= [logging.FileHandler(log_file_path), logging.StreamHandler(sys.stdout) ]
+
+
+    # datefmt='%Y-%m-%d %H:%M:%S',
+    datefmt='%H:%M:%S'
+    format_= "[%(levelname)s] [%(thread)d:%(threadName)s]| " + \
+            "[%(module)s] %(message)s"
+
     logging.basicConfig(
-            format='%(asctime)s|[%(levelname)s] [%(module)s] %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S',
-            handlers=[
-                logging.FileHandler(log_file_path),
-                logging.StreamHandler(sys.stdout) ],
+            format=format_,
+            datefmt=datefmt,
             level=args.log.upper())
 
     try:
-        modemManager = ModemManager()
+
+        logging.info("")
+        modem_manager = ModemManager()
+
     except Exception as error:
         logging.exception(error)
     else:
-        try:
+        if args.module == "inbound":
+            try:
+                main_inbound(modem_manager)
+            except Exception as error:
+                logging.exception(error)
 
-            if args.module == "outbound" or args.module == "all":
-                thread_outbound = threading.Thread(target=outbound.main, 
-                        args=(modemManager,), daemon=True)
 
-                thread_outbound.start()
-                if not args.module == "all":
-                    thread_outbound.join()
-                    modemManager.daemon()
+        elif args.module == "outbound":
+            try:
+                main_outbound(modem_manager)
+            except Exception as error:
+                logging.exception(error)
 
-            if args.module == "inbound" or args.module == "all":
-                thread_outbound = threading.Thread(target=inbound.main, 
-                        args=(modemManager,), daemon=True)
-
-                thread_outbound.start()
-                thread_outbound.join()
-
-                modemManager.daemon()
-        except Exception as error:
-            logging.debug(error)
+        modem_manager.daemon()
