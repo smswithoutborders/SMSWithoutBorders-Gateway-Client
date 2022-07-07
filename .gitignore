@@ -12,3 +12,4 @@ installer/files/*
 tmp/*
 src/bins/*
 .idea/*
+;

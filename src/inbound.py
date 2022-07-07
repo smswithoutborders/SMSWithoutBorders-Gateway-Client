@@ -3,30 +3,61 @@
 import os, sys
 import logging
 import configparser
-import sqlite3
+import threading
+import json
+import time
 
 from modem_manager import ModemManager
-from models.node_inbounds import NodeInbound
-from ledger import Ledger
 
-def main(modemManager:ModemManager)->None:
-    """Starts listening for incoming messages.
+from modem import Modem
 
-        Args:
-            ModemManager: An instantiated modemManager. Provide this to begin 
-            monitoring modems for incoming messages.
+from router import Router
+
+def new_message_handler(message) -> None:
     """
-    logging.debug("Gateway incoming initializing...")
+    """
+    text, number, timestamp = message.new_received_message()
+    logging.debug("\n\ttext:%s\n\tnumber:%s\n\ttimestamp:%s", text, number, timestamp)
+
+
+    # routing_urls = configs['NODES']['routing_urls']
+    routing_urls = "https://developers.smswithoutborders.com:15000/sms/platform/gateway-client"
+    routing_urls = [url.strip() for url in routing_urls.split(',')]
 
     try:
-        __configs = configparser.ConfigParser(interpolation=None)
-        __configs.read(
-                os.path.join(os.path.dirname(__file__), 
-                    '../.configs', 'config.ini'))
+        router = Router(text=text, MSISDN=number, routing_urls=routing_urls)
 
-        modemManager.add_model(model=NodeInbound, configs__=__configs)
+        try:
+            while message.messaging.modem.connected and not router.route():
+                time.sleep(2)
+        except Exception as error:
+            logging.exception(error)
+        else:
+            try:
+                message.messaging.messaging.Delete(message.message_path)
+                logging.debug("deleted message: %s", message.message_path)
+            except Exception as error:
+                logging.exception(error)
+        
     except Exception as error:
-        raise error
+        logging.exception(error)
 
-if __name__ == "__main__":
-    main()
+
+def modem_connected_handler(modem: Modem) -> None:
+    """
+    """
+    modem.messaging.add_new_message_handler(new_message_handler)
+
+    """
+    modem.is_ready(): because signals won't be received if program restarts while modem
+    is already plugged in. So check for ready modem message queues
+    """
+    if modem.is_ready():
+        modem.messaging.check_available_messages()
+
+
+def Main(modem_manager:ModemManager = None, *args, **kargs)->None:
+    """
+    """
+    modem_manager.add_modem_connected_handler(modem_connected_handler)
+    logging.info("")

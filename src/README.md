@@ -2,33 +2,7 @@
 
 ### Installation
 #### Installing required Dependencies
-- Erlang (minimum 23)
-##### Arch
-```bash
-sudo pacman -S erlang
-```
-
-##### Ubuntu 20.04
-```bash
-sudo apt install wget
-```
-```bash
-wget -O- https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
-```
-```bash
-echo "deb https://packages.erlang-solutions.com/ubuntu focal contrib" | sudo tee /etc/apt/sources.list.d/erlang-solution.list
-```
-```bash
-sudo apt update
-```
-```bash
-sudo apt-get install -y erlang-base \
-                        erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
-                        erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
-                        erlang-runtime-tools erlang-snmp erlang-ssl \
-                        erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
-
-```
+- python3
 
 #### Build and install
 
@@ -72,22 +46,6 @@ API_KEY=<insert your server password here (same as an Afkanerd develper Auth Key
 CONNECTION_URL=developers.smswithoutborders.com
 ```
 
-
-##### configure events
-There are 2 types of events (FAILED, SUCCESS). For each event, an array of ACTIONS can be listed. \
-Each event can be configured to trigger an event when certain values are met. \
-**Important** Event rules are not ISP specific and would be triggered regardless of modem's ISP \
-
-- Edit `.configs/events/rules.ini` ref:[link to example rules](.configs/events/example.rules.ini)
-
-##### configure transmissions for events
-Transmissions provide a means of externally receiving the states/results of triggered events. \
-The means of transmission can be customized to third-party platforms you prefer e.g Telegram (default). \
-\
-To automatically enable transmissions, provide the required authentication details for whichever platforms you intend to use as a means for transmission.
-- Edit `.configs/extensions/platforms/telegram.ini` ref:[link Telegram config file](.configs/extensions/platforms/example.telegram.ini) \
-All other supported platforms are placed in `.configs/extensions/platforms/
-
 #### Running as system service
 ##### Linux
 ```bash
@@ -111,22 +69,31 @@ tail -f src/services/logs/service.log
     ```bash
     source venv/bin/activate
     ```
-    - And:
+    - For outgoing OpenAPI messages:
     ```bash
     python3 src/main.py --log=DEBUG --module=outbound
     ```
-- To run the incoming (receive and process incoming messages)
+    - To run the incoming (receive and process incoming messages)
+    ```bash
+    python3 src/main.py --log=DEBUG --module=inbound
+    ```
+
+<b>Logs - </b>
+
+**systemd**
+
+<small>Inbound</small>
 ```bash
-python3 src/main.py --log=DEBUG --module=inbound
+journalctl -af -u swob_inbound.service
 ```
 
-<b>To view all running logs</b>
+<small>Outbound</small>
 ```bash
-tail -f src/services/logs/service.log
+journalctl -af -u swob_outbound.service
 ```
 
 ### Sending out SMS messages Using OpenAPI
-<p>With [<b>OpenAPI</b>](https://smswithoutborders-openapi.readthedocs.io/en/latest/overview.html), you can send out single and bulk SMS messages through the Gateway Client. After the gateway client as a system service or manually, you are good to start sending out SMS messages.</p>
+<p>With <b>[OpenAPI](https://smswithoutborders-openapi.readthedocs.io/en/latest/overview.html)</b>, you can send out single and bulk SMS messages through the Gateway Client. After the gateway client as a system service or manually, you are good to start sending out SMS messages.</p>
 
 
 ### Setting up on Raspberry pi (tested on 4B)
