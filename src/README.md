@@ -4,6 +4,17 @@
 #### Installing required Dependencies
 - python3
 
+#### Dependencies
+##### Ubuntu
+`sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0`
+
+`sudo apt install libgirepository1.0-dev gcc libcairo2-dev pkg-config python3-dev gir1.2-gtk-3.0`
+
+##### Arch
+`sudo pacman -S python-gobject gtk3`
+
+`sudo pacman -S python cairo pkgconf gobject-introspection gtk3`
+
 #### Build and install
 
 <p>Clone the repository</p>
