@@ -20,8 +20,7 @@ def new_message_handler(message) -> None:
     logging.debug("\n\ttext:%s\n\tnumber:%s\n\ttimestamp:%s", text, number, timestamp)
 
 
-    # routing_urls = configs['NODES']['routing_urls']
-    routing_urls = "https://developers.smswithoutborders.com:15000/sms/platform/gateway-client"
+    routing_urls = configs['NODES']['ROUTING_URLS']
     routing_urls = [url.strip() for url in routing_urls.split(',')]
 
     try:
@@ -56,8 +55,10 @@ def modem_connected_handler(modem: Modem) -> None:
         modem.messaging.check_available_messages()
 
 
-def Main(modem_manager:ModemManager = None, *args, **kargs)->None:
+def Main(modem_manager:ModemManager = None, *args, **kwargs)->None:
     """
     """
+    global configs
+    configs = kwargs['configs']
+
     modem_manager.add_modem_connected_handler(modem_connected_handler)
-    logging.info("")
