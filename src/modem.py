@@ -13,6 +13,7 @@ class Modem:
     """
     """
     modem_3gpp_interface = 'org.freedesktop.ModemManager1.Modem.Modem3gpp'
+    modem_modem_interface = 'org.freedesktop.ModemManager1.Modem'
 
     class MMModem3gppRegistrationState(Enum):
         """
@@ -55,6 +56,7 @@ class Modem:
                 destination_keyword='destination',
                 sender_keyword='sender')
 
+        self.modem = dbus.Interface(self.dbus_modem, dbus_interface=self.modem_modem_interface)
 
         self.__new_received_message_handlers__ = []
         self.__modem_is_ready_handlers__ = []
@@ -200,3 +202,9 @@ class Modem:
         """
         """
         self.__modem_is_not_ready_handlers__.append(modem_connected_handler)
+
+    def enable(self) -> None:
+        """
+        """
+        self.modem.Enable(True)
+

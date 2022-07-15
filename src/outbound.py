@@ -263,6 +263,14 @@ def modem_connected_handler(modem: Modem) -> None:
     """
     """
     logging.debug("Modem connected outbound: %s", modem)
+
+    if 'AUTO_ENABLE' in configs['NODES'] and int(configs['NODES']['AUTO_ENABLE'])== 1:
+        try:
+            modem.enable()
+            logging.info("Modem auto enabled...")
+        except Exception as error:
+            logging.exception(error)
+
     modem.add_modem_is_ready_handler(modem_ready_handler)
     modem.check_modem_is_ready()
 
