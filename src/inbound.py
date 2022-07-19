@@ -45,6 +45,13 @@ def new_message_handler(message) -> None:
 def modem_connected_handler(modem: Modem) -> None:
     """
     """
+    if 'AUTO_ENABLE' in configs['NODES'] and int(configs['NODES']['AUTO_ENABLE'])== 1:
+        try:
+            modem.enable()
+            logging.info("Modem auto enabled...")
+        except Exception as error:
+            logging.exception(error)
+
     modem.messaging.add_new_message_handler(new_message_handler)
 
     """
