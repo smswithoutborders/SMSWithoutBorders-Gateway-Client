@@ -250,7 +250,10 @@ def modem_ready_handler(modem: Modem) -> None:
 
         while modem.connected:
             logging.debug("[%s] starting rabbitmq connection...", modem.modem_path)
-            rabbitmq_modem.rmq_connection()
+            try:
+                rabbitmq_modem.rmq_connection()
+            except Exception as error:
+                logging.exception(error)
 
         logging.debug("ending rmq connection loop...")
 
