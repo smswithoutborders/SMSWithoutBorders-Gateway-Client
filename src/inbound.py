@@ -6,6 +6,7 @@ import configparser
 import threading
 import json
 import time
+import requests
 
 from modem_manager import ModemManager
 
@@ -18,7 +19,6 @@ def new_message_handler(message) -> None:
     """
     text, number, timestamp = message.new_received_message()
     logging.debug("\n\ttext:%s\n\tnumber:%s\n\ttimestamp:%s", text, number, timestamp)
-
 
     routing_urls = configs['NODES']['ROUTING_URLS']
     routing_urls = [url.strip() for url in routing_urls.split(',')]
@@ -42,6 +42,34 @@ def new_message_handler(message) -> None:
         logging.exception(error)
 
 
+def modem_alive_ping(modem: Modem, 
+        ping_urls: list = [], 
+        ping_sleep_time: int = 10) -> None:
+    """
+    Ping data = IMSI.
+    """
+    while modem.connected:
+        try:
+            sim = modem.get_sim()
+        except Exception as error:
+            logging.exception(error)
+        else:
+            try:
+                sim_imsi = sim.get_property("Imsi")
+                sim_id = sim.get_property("SimIdentifier")
+                operator_id = sim.get_property("OperatorIdentifier")
+
+            except Exception as error:
+                logging.exception(error)
+            else:
+                headers = {"sim_data":"%s.%s.%s" % (sim_imsi, operator_id, sim_id)}
+                for url in ping_urls:
+                    response = requests.get(url, headers=headers)
+                    logging.debug("ping response: %s -> %s", url, response)
+
+        time.sleep(ping_sleep_time)
+
+
 def modem_connected_handler(modem: Modem) -> None:
     """
     """
@@ -51,6 +79,21 @@ def modem_connected_handler(modem: Modem) -> None:
             logging.info("Modem auto enabled...")
         except Exception as error:
             logging.exception(error)
+
+    '''pinging session begins from here'''
+    ping_urls = configs['NODES']['SEED_PING_URLS']
+    ping_sleep_time = 10
+
+    if 'ALIVE_PING_SLEEP_TIME' in configs['NODES']:
+        ping_sleep_time = int(configs['NODES']['ALIVE_PING_SLEEP_TIME'])
+        ping_sleep_time = 10 if ping_sleep_time < 10 else ping_sleep_time
+
+    ping_urls = [url.strip() for url in ping_urls.split(',')]
+    thread_ping_alive = threading.Thread(target=modem_alive_ping,
+            args=(modem, ping_urls, ping_sleep_time), daemon=True)
+
+    thread_ping_alive.start()
+    logging.info("Started keep-alive ping sessions")
 
     modem.messaging.add_new_message_handler(new_message_handler)
 
