@@ -46,7 +46,7 @@ def modem_alive_ping(modem: Modem,
         ping_urls: list = [], 
         ping_sleep_time: int = 10) -> None:
     """
-    Ping data = IMSI.
+    Ping data = IMSI.SimID
     """
     while modem.connected:
         try:
@@ -56,31 +56,27 @@ def modem_alive_ping(modem: Modem,
         else:
             try:
                 sim_imsi = sim.get_property("Imsi")
-                sim_id = sim.get_property("SimIdentifier")
-                operator_id = sim.get_property("OperatorIdentifier")
-
             except Exception as error:
                 logging.exception(error)
+
             else:
-                headers = {"sim_data":"%s.%s.%s" % (sim_imsi, operator_id, sim_id)}
+                headers = {"sim_data":"%s" % (sim_imsi)}
                 for url in ping_urls:
-                    response = requests.get(url, headers=headers)
-                    logging.debug("ping response: %s -> %s", url, response)
+                    try:
+                        response = requests.get(url, headers=headers)
+                    except requests.ConnectionError as error:
+                        logging.error(error)
+                    except Exception as error:
+                        logging.exception(error)
+                    else:
+                        logging.debug("ping response: %s -> %s", url, response)
 
         time.sleep(ping_sleep_time)
 
 
-def modem_connected_handler(modem: Modem) -> None:
+def initiate_ping_sessions(modem: Modem) -> None:
+    """Pinging session begins from here
     """
-    """
-    if 'AUTO_ENABLE' in configs['NODES'] and int(configs['NODES']['AUTO_ENABLE'])== 1:
-        try:
-            modem.enable()
-            logging.info("Modem auto enabled...")
-        except Exception as error:
-            logging.exception(error)
-
-    '''pinging session begins from here'''
     ping_urls = configs['NODES']['SEED_PING_URLS']
     ping_sleep_time = 10
 
@@ -95,6 +91,18 @@ def modem_connected_handler(modem: Modem) -> None:
     thread_ping_alive.start()
     logging.info("Started keep-alive ping sessions")
 
+
+def modem_connected_handler(modem: Modem) -> None:
+    """
+    """
+    if 'AUTO_ENABLE' in configs['NODES'] and int(configs['NODES']['AUTO_ENABLE'])== 1:
+        try:
+            modem.enable()
+            logging.info("Modem auto enabled...")
+        except Exception as error:
+            logging.exception(error)
+
+    initiate_ping_sessions(modem)
     modem.messaging.add_new_message_handler(new_message_handler)
 
     """
