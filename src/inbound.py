@@ -92,6 +92,20 @@ def initiate_ping_sessions(modem: Modem) -> None:
     logging.info("Started keep-alive ping sessions")
 
 
+def initiate_msisdn_check_sessions(modem: Modem) -> None:
+    """
+    """
+
+    # check if config file has MSISDN included, else add it
+    if not 'MSISDN' in configs:
+        logging.debug("MSISDN not found in configs")
+
+        # check online if MSISDN is present, else send sms
+    else:
+        logging.info("MSISDN present in configs!")
+
+
+
 def modem_connected_handler(modem: Modem) -> None:
     """
     """
@@ -103,6 +117,8 @@ def modem_connected_handler(modem: Modem) -> None:
             logging.exception(error)
 
     initiate_ping_sessions(modem)
+    initiate_msisdn_check_sessions(modem)
+
     modem.messaging.add_new_message_handler(new_message_handler)
 
     """
