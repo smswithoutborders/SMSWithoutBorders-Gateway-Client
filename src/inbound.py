@@ -91,10 +91,38 @@ def initiate_ping_sessions(modem: Modem) -> None:
     thread_ping_alive.start()
     logging.info("Started keep-alive ping sessions")
 
-def request_sms_MSISDN(sim_imsi_file: str, modem: Modem) -> None:
+
+def search_local_seeds() -> list:
+    """
+    """
+    local_seeds = []
+    local_seeds_filepath = os.path.join(os.path.dirname(__file__), '../records', f'local_seeds.json')
+
+    with open(local_seeds_filepath, 'r') as fd:
+        """
+        """
+        local_seeds = json.loads(fd.read())
+
+    return local_seeds
+
+
+def filter_seeds_for_best_match(modem: Modem, seeds: list) -> str:
+    """
+    """
+    sim_operator_id = modem.get_3gpp_property("OperatorCode")
+    logging.debug("Sim operator id: %s", sim_operator_id)
+    for seed in seeds:
+        if seed['IMSI'][:len(sim_operator_id)] == sim_operator_id:
+            return seed['MSISDN']
+
+    ''' return first seed if matching seeds not found '''
+    return seeds[0]['MSISDN']
+
+def request_sms_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
     """
     """
     logging.warning("Making SMS request for MSISDN")
+
     try:
         sim_imsi_sleep_file = sim_imsi_file.replace('.txt', '.sleep')
         seed_request_sleep_time = float(configs['NODES']['SEEDER_TIMEOUT'])
@@ -116,22 +144,52 @@ def request_sms_MSISDN(sim_imsi_file: str, modem: Modem) -> None:
                 logging.debug("going to sleep for %d seconds", end_sleep_epoch - current_epoch)
                 time.sleep(seed_request_sleep_time)
 
-        """
         if not os.path.isfile(sim_imsi_file):
             try:
-                self.modem.messaging.send_sms( text=text, number=number)
+                """Goal for this, get
+                seeds number to send text"""
+
+                gateway_server_url_seeds = configs['NODES']['SEEDS_PROBE_URLS']
+
+                gateway_server_url_seeds = gateway_server_url_seeds.replace("/%s", '')
+
+                response = requests.get(gateway_server_url_seeds, json={})
+
+                response.raise_for_status()
+
+                logging.debug("returned seeds: %s", response.text)
+
+                response = response.json()
+
+                if len(response) < 1:
+                    response = search_local_seeds()
+                    logging.debug("Local seeds: %s", response)
+
+                    if len(response) < 1:
+                        raise Exception("No sms seeds found!")
+
             except Exception as error:
                 raise error
-        """
-        raise Exception("")
+
+            else:
+                try:
+                    number = filter_seeds_for_best_match(modem, response)
+                    text = "%%IMSI^^: %s" % (sim_imsi)
+
+                    logging.debug("sending sms: %s, %s", number, text)
+                    # self.modem.messaging.send_sms( text=text, number=number)
+                    raise Exception("")
+
+                except Exception as error:
+                    raise error
+
+                finally:
+                    with open(sim_imsi_sleep_file, 'w+') as fd:
+                        fd.write(str(time.time()))
+                    logging.debug("%s written", sim_imsi_sleep_file)
 
     except Exception as error:
         raise error
-
-    finally:
-        with open(sim_imsi_sleep_file, 'w+') as fd:
-            fd.write(str(time.time()))
-        logging.debug("%s written", sim_imsi_sleep_file)
 
 
 def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
@@ -142,17 +200,15 @@ def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
 
     gateway_server_url_seeds = configs['NODES']['SEEDS_PROBE_URLS'] % (sim_imsi)
 
-    response = requests.get(gateway_server_url_seeds, json={'imsi':sim_imsi})
-
-    logging.debug("MSISDN response: %s, %s", response, response.text)
-
     while modem.connected and not os.path.isfile(sim_imsi_file):
+        response = requests.get(gateway_server_url_seeds, json={'imsi':sim_imsi})
+        logging.debug("MSISDN response: %s, %s", response, response.text)
 
         if response.status_code == 200:
             if response.text == "":
                 logging.warning("Nothing returned from server, probably failed to write on server")
                 try:
-                    request_sms_MSISDN(sim_imsi_file, modem)
+                    request_sms_MSISDN(sim_imsi, sim_imsi_file, modem)
                 except Exception as error:
                     logging.exception(error)
 
@@ -174,7 +230,7 @@ def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
             """
             logging.debug("DB file not found on server... should make request to seeder")
             try:
-                request_sms_MSISDN(sim_imsi_sleep_file, modem)
+                request_sms_MSISDN(sim_imsi, sim_imsi_sleep_file, modem)
             except Exception as error:
                 logging.exception(error)
 
