@@ -20,17 +20,40 @@ def new_message_handler(message) -> None:
     text, number, timestamp = message.new_received_message()
     logging.debug("\n\ttext:%s\n\tnumber:%s\n\ttimestamp:%s", text, number, timestamp)
 
+    registration_requested = False
+
+    standard_format_text = "%IMSI^^: "
+    if text.find(standard_format_text) > -1:
+        '''request from a seeder, requires registration'''
+        text = text[len(standard_format_text):]
+        registration_requested = True
+
     routing_urls = configs['NODES']['ROUTING_URLS']
     routing_urls = [url.strip() for url in routing_urls.split(',')]
 
+    seeds_registration_urls = "https://developers.smswithoutborders.com:15000/seeds" if not 'SEEDS_REGISTRATION_URLS' in configs['NODES'] else configs['NODES']['SEEDS_REGISTRATION_URLS']
+    seeds_registration_urls = [url.strip() for url in seeds_registration_urls.split(',')]
+
     try:
-        router = Router(text=text, MSISDN=number, routing_urls=routing_urls)
+        if registration_requested:
+            logging.debug("routing for registration...")
+            router = Router(text=text, MSISDN=number, registration_urls=seeds_registration_urls)
+
+        else:
+            logging.debug("routing for publishing...")
+            router = Router(text=text, MSISDN=number, routing_urls=routing_urls)
 
         try:
-            while message.messaging.modem.connected and not router.route():
-                time.sleep(2)
+            if not registration_requested: 
+                while message.messaging.modem.connected and not router.route():
+                    time.sleep(2)
+            else:
+                while message.messaging.modem.connected and not router.register():
+                    time.sleep(2)
+
         except Exception as error:
             logging.exception(error)
+
         else:
             try:
                 message.messaging.messaging.Delete(message.message_path)
@@ -202,9 +225,10 @@ def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
     '''first check online if MSISDN for IMSI before going on with request'''
 
     gateway_server_url_seeds = configs['NODES']['SEEDS_PROBE_URLS'] % (sim_imsi)
+    logging.debug("requesting msisdn from: %s", gateway_server_url_seeds)
 
     while modem.connected and not os.path.isfile(sim_imsi_file):
-        response = requests.get(gateway_server_url_seeds, json={'imsi':sim_imsi})
+        response = requests.get(gateway_server_url_seeds)
         logging.debug("MSISDN response: %s, %s", response, response.text)
 
         if response.status_code == 200:
@@ -222,18 +246,17 @@ def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
                 '''write MSISDN to file'''
                 # TODO: check if an actual MSISDN came back
                 with open(sim_imsi_file, 'w+') as fd:
-                    fd.write(response)
+                    fd.write(response.text)
 
-                    logging.info("Created %s", sim_imsi_file)
-
-                    break
+                logging.info("Created %s", sim_imsi_file)
+                break
 
         elif response.status_code == 400:
             """
             """
             logging.debug("DB file not found on server... should make request to seeder")
             try:
-                request_sms_MSISDN(sim_imsi, sim_imsi_sleep_file, modem)
+                request_sms_MSISDN(sim_imsi, sim_imsi_file, modem)
             except Exception as error:
                 logging.exception(error)
 
