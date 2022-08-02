@@ -91,19 +91,111 @@ def initiate_ping_sessions(modem: Modem) -> None:
     thread_ping_alive.start()
     logging.info("Started keep-alive ping sessions")
 
+def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
+    """
+    """
+
+    '''first check online if MSISDN for IMSI before going on with request'''
+
+    gateway_server_url_seeds = configs['NODES']['SEEDS_PROBE_URLS'] % (sim_imsi)
+    sim_imsi_sleep_file = sim_imsi_file.replace('.txt', '.sleep')
+    seed_request_sleep_time = float(configs['NODES']['SEEDER_TIMEOUT'])
+    seed_request_sleep_time = seed_request_sleep_time if seed_request_sleep_time > 300.0 else 300.0
+
+    logging.debug("set sleep time to %d", seed_request_sleep_time)
+
+    response = requests.get(gateway_server_url_seeds, json={'imsi':sim_imsi})
+
+    logging.debug("MSISDN response: %s, %s", response, response.text)
+
+    while modem.connected and not os.path.isfile(sim_imsi_file):
+        if response.status_code == 200:
+            # TODO: check the actual response from the server
+            if response.text == "":
+                request_MSISDN()
+
+            else:
+                with open(sim_imsi_file, 'w+') as fd:
+                    fd.write(response)
+                    logging.info("Created %s", sim_imsi_file)
+                    break
+
+        elif response.status_code == 400:
+            """
+            """
+            logging.error(response.text)
+            # TODO: make request for SMS
+            try:
+                if os.path.isfile(sim_imsi_sleep_file):
+                    with open(sim_imsi_sleep_file, 'r') as fd:
+                        start_sleep_epoch = float(fd.read())
+
+                    current_epoch = time.time()
+                    end_sleep_epoch = start_sleep_epoch + seed_request_sleep_time
+                    if current_epoch < end_sleep_epoch:
+                        logging.debug("going to sleep for %d seconds", end_sleep_epoch - current_epoch)
+                        time.sleep(seed_request_sleep_time)
+                        continue
+
+                # TODO: if there's a sleep ongoing, resume it
+                # self.modem.messaging.send_sms( text=text, number=number)
+                raise Exception("")
+
+            except Exception as error:
+                logging.exception(error)
+
+                with open(sim_imsi_sleep_file, 'w+') as fd:
+                    fd.write(time.time())
+                    logging.debug("%s written for %s", sim_imsi_sleep_file, sim_imsi)
+
+            else:
+                logging.debug("MSISDN sms request made for IMSI: %s", sim_imsi)
+                break
+
+        elif response.status_code == 404:
+            """
+            """
+            logging.error(response.text)
+            logging.warning("Breaking because url cannot be found, check url and restart service")
+            break
+
+        else:
+            '''
+            Most likely the server is down, sleep and try again
+            '''
+            # TODO: make time bigger to avoid overloading server
+            time.sleep(2)
+
+    logging.info("%s stopped making request for MSISDN", sim_imsi)
 
 def initiate_msisdn_check_sessions(modem: Modem) -> None:
     """
+    - Requires the IMSI.txt
     """
-
-    # check if config file has MSISDN included, else add it
-    if not 'MSISDN' in configs:
-        logging.debug("MSISDN not found in configs")
-
-        # check online if MSISDN is present, else send sms
+    logging.debug("Initiating MSISDN session checks")
+    try:
+        sim = modem.get_sim()
+    except Exception as error:
+        logging.exception(error)
     else:
-        logging.info("MSISDN present in configs!")
+        try:
+            sim_imsi = sim.get_property("Imsi")
 
+        except Exception as error:
+            logging.exception(error)
+
+        else:
+            sim_imsi_file = os.path.join(os.path.dirname(__file__), '../records', f'{sim_imsi}.txt')
+            logging.debug("IMSI file: %s", sim_imsi_file)
+
+            if not os.path.isfile(sim_imsi_file) or os.path.getsize(sim_imsi_file) < 1:
+                logging.warning("%s not found! should make request", sim_imsi_file)
+                request_msisdn_thread = threading.Thread(target=request_MSISDN, 
+                        args=(sim_imsi, sim_imsi_file, modem, ), daemon=True)
+
+                request_msisdn_thread.start()
+            else:
+                logging.info("data file found for %s", sim_imsi_file)
 
 
 def modem_connected_handler(modem: Modem) -> None:

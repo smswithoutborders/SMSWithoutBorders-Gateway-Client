@@ -40,7 +40,6 @@ def main_outbound(modem_manager: ModemManager) -> None:
     Outbound.Main(modem_manager=modem_manager, configs=configs)
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
 
