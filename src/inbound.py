@@ -91,6 +91,49 @@ def initiate_ping_sessions(modem: Modem) -> None:
     thread_ping_alive.start()
     logging.info("Started keep-alive ping sessions")
 
+def request_sms_MSISDN(sim_imsi_file: str, modem: Modem) -> None:
+    """
+    """
+    logging.warning("Making SMS request for MSISDN")
+    try:
+        sim_imsi_sleep_file = sim_imsi_file.replace('.txt', '.sleep')
+        seed_request_sleep_time = float(configs['NODES']['SEEDER_TIMEOUT'])
+        seed_request_sleep_time = seed_request_sleep_time if seed_request_sleep_time > 300.0 else 300.0
+
+        logging.debug("set sleep time to %d", seed_request_sleep_time)
+
+        '''block sending multiple sms messages till scheduled sleep time '''
+        if os.path.isfile(sim_imsi_sleep_file):
+            with open(sim_imsi_sleep_file, 'r') as fd:
+                data = fd.read()
+                logging.debug("data: %s", data)
+                start_sleep_epoch = float(data)
+
+            current_epoch = time.time()
+            end_sleep_epoch = start_sleep_epoch + seed_request_sleep_time
+
+            if current_epoch < end_sleep_epoch:
+                logging.debug("going to sleep for %d seconds", end_sleep_epoch - current_epoch)
+                time.sleep(seed_request_sleep_time)
+
+        """
+        if not os.path.isfile(sim_imsi_file):
+            try:
+                self.modem.messaging.send_sms( text=text, number=number)
+            except Exception as error:
+                raise error
+        """
+        raise Exception("")
+
+    except Exception as error:
+        raise error
+
+    finally:
+        with open(sim_imsi_sleep_file, 'w+') as fd:
+            fd.write(str(time.time()))
+        logging.debug("%s written", sim_imsi_sleep_file)
+
+
 def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
     """
     """
@@ -98,65 +141,55 @@ def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
     '''first check online if MSISDN for IMSI before going on with request'''
 
     gateway_server_url_seeds = configs['NODES']['SEEDS_PROBE_URLS'] % (sim_imsi)
-    sim_imsi_sleep_file = sim_imsi_file.replace('.txt', '.sleep')
-    seed_request_sleep_time = float(configs['NODES']['SEEDER_TIMEOUT'])
-    seed_request_sleep_time = seed_request_sleep_time if seed_request_sleep_time > 300.0 else 300.0
-
-    logging.debug("set sleep time to %d", seed_request_sleep_time)
 
     response = requests.get(gateway_server_url_seeds, json={'imsi':sim_imsi})
 
     logging.debug("MSISDN response: %s, %s", response, response.text)
 
     while modem.connected and not os.path.isfile(sim_imsi_file):
+
         if response.status_code == 200:
-            # TODO: check the actual response from the server
             if response.text == "":
-                request_MSISDN()
+                logging.warning("Nothing returned from server, probably failed to write on server")
+                try:
+                    request_sms_MSISDN(sim_imsi_file, modem)
+                except Exception as error:
+                    logging.exception(error)
+
+                else:
+                    logging.debug("MSISDN sms request made for IMSI: %s", sim_imsi)
 
             else:
+                '''write MSISDN to file'''
+                # TODO: check if an actual MSISDN came back
                 with open(sim_imsi_file, 'w+') as fd:
                     fd.write(response)
+
                     logging.info("Created %s", sim_imsi_file)
+
                     break
 
         elif response.status_code == 400:
             """
             """
-            logging.error(response.text)
-            # TODO: make request for SMS
+            logging.debug("DB file not found on server... should make request to seeder")
             try:
-                if os.path.isfile(sim_imsi_sleep_file):
-                    with open(sim_imsi_sleep_file, 'r') as fd:
-                        start_sleep_epoch = float(fd.read())
-
-                    current_epoch = time.time()
-                    end_sleep_epoch = start_sleep_epoch + seed_request_sleep_time
-                    if current_epoch < end_sleep_epoch:
-                        logging.debug("going to sleep for %d seconds", end_sleep_epoch - current_epoch)
-                        time.sleep(seed_request_sleep_time)
-                        continue
-
-                # TODO: if there's a sleep ongoing, resume it
-                # self.modem.messaging.send_sms( text=text, number=number)
-                raise Exception("")
-
+                request_sms_MSISDN(sim_imsi_sleep_file, modem)
             except Exception as error:
                 logging.exception(error)
-
-                with open(sim_imsi_sleep_file, 'w+') as fd:
-                    fd.write(time.time())
-                    logging.debug("%s written for %s", sim_imsi_sleep_file, sim_imsi)
 
             else:
                 logging.debug("MSISDN sms request made for IMSI: %s", sim_imsi)
                 break
 
+
         elif response.status_code == 404:
             """
             """
             logging.error(response.text)
+
             logging.warning("Breaking because url cannot be found, check url and restart service")
+
             break
 
         else:
@@ -164,9 +197,10 @@ def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
             Most likely the server is down, sleep and try again
             '''
             # TODO: make time bigger to avoid overloading server
-            time.sleep(2)
+            time.sleep(10)
 
     logging.info("%s stopped making request for MSISDN", sim_imsi)
+
 
 def initiate_msisdn_check_sessions(modem: Modem) -> None:
     """
