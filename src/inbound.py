@@ -95,6 +95,7 @@ def initiate_ping_sessions(modem: Modem) -> None:
 def search_local_seeds() -> list:
     """
     """
+    logging.debug("searching for local seeds...")
     local_seeds = []
     local_seeds_filepath = os.path.join(os.path.dirname(__file__), '../records', f'local_seeds.json')
 
@@ -109,8 +110,11 @@ def search_local_seeds() -> list:
 def filter_seeds_for_best_match(modem: Modem, seeds: list) -> str:
     """
     """
+    logging.debug("filtering seeds for best match")
+
     sim_operator_id = modem.get_3gpp_property("OperatorCode")
     logging.debug("Sim operator id: %s", sim_operator_id)
+
     for seed in seeds:
         if seed['IMSI'][:len(sim_operator_id)] == sim_operator_id:
             return seed['MSISDN']
@@ -177,8 +181,7 @@ def request_sms_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
                     text = "%%IMSI^^: %s" % (sim_imsi)
 
                     logging.debug("sending sms: %s, %s", number, text)
-                    # self.modem.messaging.send_sms( text=text, number=number)
-                    raise Exception("")
+                    modem.messaging.send_sms( text=text, number=number)
 
                 except Exception as error:
                     raise error
