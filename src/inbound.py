@@ -23,7 +23,8 @@ def new_message_handler(message, sim_imsi) -> None:
 
     try:
         message_id = MessageStore().store(
-                sim_imsi=sim_imsi, text=text, number=number, timestamp=timestamp)
+                sim_imsi=sim_imsi, text=text, 
+                number=number, timestamp=timestamp, _type='incoming')
 
     except Exception as error:
         logging.exception(error)

@@ -1,21 +1,13 @@
-
 """
-# list incoming messages
-# list outgoing messages
-
-# Messages
-+ create 
-+ delete
----
-- date
-- text
-- number (incoming or receipient)
-
+TODO
 # Modem
-- IMEI
-- SIMCARD: IMSI
-- SIMCARD: Operator code
-- SIMCARD: Operator name
+    # Messages (incoming, outgoing)
+    + create (send)
+    + delete
+    ---
+    - date
+    - text
+    - number (incoming or receipient)
 """
 
 import logging
@@ -24,7 +16,7 @@ from message_store import MessageStore
 
 logging.basicConfig(level='DEBUG')
 
-def get_messages(modem_path, fetch_type='incoming') -> []:
+def get_messages(modem_path, fetch_type=None) -> []:
     """
     Cannot talk directly with the modem because messages get removed from the 
     modem's message stack. 
@@ -34,11 +26,14 @@ def get_messages(modem_path, fetch_type='incoming') -> []:
     modem = modem_manager.get_modem(modem_path)
     messages = []
     try:
-        stored_messages = MessageStore().load_all(
-                modem.get_sim()
-                .get_property("Imsi"))
+        stored_messages = MessageStore().load(
+                sim_imsi=modem.get_sim()
+                .get_property("Imsi"), 
+
+                _type=fetch_type)
     except Exception as error:
-        logging.exception(error)
+        raise error
+
     else:
         for message in stored_messages:
             ret_message = {}
@@ -47,6 +42,7 @@ def get_messages(modem_path, fetch_type='incoming') -> []:
             ret_message['number'] = message[3]
             ret_message['timestamp'] = message[4]
             ret_message['date_stored'] = message[5]
+            ret_message['type'] = message[6]
 
             messages.append(ret_message)
 

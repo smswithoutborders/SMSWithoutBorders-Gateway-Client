@@ -34,6 +34,7 @@ class MessageStore:
             text text NOT NULL,
             number text NOT NULL, 
             timestamp text NOT NULL,
+            type text NOT NULL,
             date DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL) ''')
 
             database_conn.commit()
@@ -42,7 +43,7 @@ class MessageStore:
             raise error
 
 
-    def store(self, sim_imsi: str, text: str, number: str, timestamp: str) -> int:
+    def store(self, sim_imsi: str, text: str, number: str, timestamp: str, _type: str) -> int:
         """
         """
         database_conn = database.connect(self.message_store_file)
@@ -50,8 +51,9 @@ class MessageStore:
 
         try:
             cur.execute(
-                    """INSERT INTO messages (sim_imsi, text, number, timestamp) VALUES (?,?,?,?)""", 
-                    (sim_imsi, text, number, timestamp))
+                    """INSERT INTO messages (sim_imsi, text, number, timestamp, type) 
+                    VALUES (?,?,?,?,?)""", 
+                    (sim_imsi, text, number, timestamp, _type))
 
             database_conn.commit()
         except Exception as error:
@@ -59,7 +61,7 @@ class MessageStore:
         else:
             return cur.lastrowid
 
-    def load_all(self, sim_imsi: str) -> list:
+    def load(self, sim_imsi: str, _type=None) -> list:
         """
         """
         database_conn = database.connect(self.message_store_file)
@@ -67,15 +69,28 @@ class MessageStore:
         cur = database_conn.cursor()
 
         try:
-            cur.execute('''SELECT 
-                    id,
-                    sim_imsi,
-                    text,
-                    number,
-                    timestamp,
-                    date 
-                    FROM messages WHERE sim_imsi=:sim_imsi''',
-                    {"sim_imsi":sim_imsi})
+            if _type:
+                cur.execute('''SELECT 
+                        id,
+                        sim_imsi,
+                        text,
+                        number,
+                        timestamp,
+                        date, 
+                        type
+                        FROM messages WHERE sim_imsi=:sim_imsi and type=:type''',
+                        {"sim_imsi":sim_imsi, "type":_type})
+            else:
+                cur.execute('''SELECT 
+                        id,
+                        sim_imsi,
+                        text,
+                        number,
+                        timestamp,
+                        date,
+                        type
+                        FROM messages WHERE sim_imsi=:sim_imsi''',
+                        {"sim_imsi":sim_imsi})
         except Exception as error:
             raise error
         else:
