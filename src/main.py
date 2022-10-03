@@ -17,6 +17,8 @@ import outbound as Outbound
 
 from modem_manager import ModemManager
 
+import api
+
 
 def main_inbound(modem_manager: ModemManager) -> None:
     """
@@ -94,4 +96,10 @@ if __name__ == "__main__":
             except Exception as error:
                 logging.exception(error)
 
-        modem_manager.daemon()
+        mm_daemon_thread = threading.Thread(target=modem_manager.daemon, daemon=True)
+        mm_daemon_thread.start()
+
+        api.run(modem_manager)
+
+        # todo: remove this
+        mm_daemon_thread.join()

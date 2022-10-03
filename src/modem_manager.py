@@ -25,6 +25,53 @@ class ModemManager:
         self.active_modems = {}
         self.modem_connected_handlers = []
 
+        self.name = 'org.freedesktop.ModemManager1'
+        self.path = '/org/freedesktop/ModemManager1'
+        self.obj_mng_iface = 'org.freedesktop.DBus.ObjectManager'
+
+        self.interface_added_str = "InterfacesAdded"
+        self.interface_removed_str = "InterfacesRemoved"
+
+        DBusGMainLoop(set_as_default=True)
+        self.loop = GLib.MainLoop()
+
+        self.bus = dbus.SystemBus()
+
+
+    def __list_modems__(self) -> None:
+        """
+        """
+        dbus_mm = self.bus.get_object(self.name, self.path, True)
+
+        self.mm_iface_obj_mng = dbus.Interface(dbus_mm, dbus_interface=self.obj_mng_iface)
+
+        managed_objects : dict = self.mm_iface_obj_mng.GetManagedObjects()
+
+        for object_path, _ in managed_objects.items():
+            self.modem_connected(object_path)
+
+    def list_modems(self) -> {}:
+        """
+        """
+        dbus_mm = self.bus.get_object(self.name, self.path, True)
+
+        self.mm_iface_obj_mng = dbus.Interface(dbus_mm, dbus_interface=self.obj_mng_iface)
+
+        managed_objects : dict = self.mm_iface_obj_mng.GetManagedObjects()
+
+        for object_path, _ in managed_objects.items():
+            self.__add_modem__(object_path)
+
+        return self.active_modems
+    
+    def get_modem(self, modem_path: str) -> Modem:
+        """
+        """
+        if modem_path in self.active_modems:
+            return self.active_modems[modem_path]
+        
+        return None
+
     def __add_modem__(self, modem_path: str) -> Modem:
         """
         """
@@ -106,31 +153,10 @@ class ModemManager:
     def daemon(self) -> None:
         """
         """
-        DBusGMainLoop(set_as_default=True)
-        loop = GLib.MainLoop()
-
-        self.bus = dbus.SystemBus()
-
-        self.name = 'org.freedesktop.ModemManager1'
-        self.path = '/org/freedesktop/ModemManager1'
-        self.obj_mng_iface = 'org.freedesktop.DBus.ObjectManager'
-
-        self.interface_added_str = "InterfacesAdded"
-        self.interface_removed_str = "InterfacesRemoved"
-
-        dbus_mm = self.bus.get_object(self.name, self.path, True)
-
-        mm_iface_obj_mng = dbus.Interface(dbus_mm, dbus_interface=self.obj_mng_iface)
-
-        managed_objects : dict = mm_iface_obj_mng.GetManagedObjects()
-
-
-        for object_path, _ in managed_objects.items():
-            self.modem_connected(object_path)
-
+        self.__list_modems__()
 
         """Signal modem has been removed"""
-        mm_iface_obj_mng.connect_to_signal(
+        self.mm_iface_obj_mng.connect_to_signal(
                 self.interface_removed_str,
                 handler_function=self.handler_function_interfaces_changed, 
                 path_keyword='path', 
@@ -140,7 +166,7 @@ class ModemManager:
                 sender_keyword='sender')
 
         """Signal modem has been added"""
-        mm_iface_obj_mng.connect_to_signal(
+        self.mm_iface_obj_mng.connect_to_signal(
                 self.interface_added_str,
                 handler_function=self.handler_function_interfaces_changed, 
                 path_keyword='path', 
@@ -149,7 +175,7 @@ class ModemManager:
                 destination_keyword='destination',
                 sender_keyword='sender')
 
-        loop.run()
+        self.loop.run()
 
 
     def add_modem_connected_handler(self, modem_connected_handler) -> None:
