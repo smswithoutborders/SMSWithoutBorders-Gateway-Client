@@ -40,8 +40,8 @@ def get_messages(modem_path, fetch_type='incoming') -> []:
     except Exception as error:
         logging.exception(error)
     else:
-        ret_message = {}
         for message in stored_messages:
+            ret_message = {}
             ret_message['id'] = message[0]
             ret_message['text'] = message[2]
             ret_message['number'] = message[3]
@@ -52,12 +52,22 @@ def get_messages(modem_path, fetch_type='incoming') -> []:
 
     return messages
 
-def get_modems() -> {}:
+def get_modems() -> list:
     """
     """
     list_modems = modem_manager.list_modems()
 
-    return list_modems
+    modems = []
+    for modem_path, modem in list_modems.items():
+        ret_modem = {}
+        ret_modem["index"] = str(modem_path)
+        ret_modem["imei"] = str(modem.get_3gpp_property("Imei"))
+        ret_modem["operator_code"] = str(modem.get_3gpp_property("OperatorCode"))
+        ret_modem["operator_name"] = str(modem.get_3gpp_property("OperatorName"))
+
+        modems.append(ret_modem)
+
+    return modems
 
 def run(mm: ModemManager) -> None:
     """
@@ -70,7 +80,8 @@ def run(mm: ModemManager) -> None:
     """
     modems = get_modems()
     logging.debug("List of modems: %s", modems)
-    for modem_path in modems:
-        messages = get_messages(modem_path)
+
+    for modem in modems:
+        messages = get_messages(modem["index"])
 
         logging.debug("List of messages: %s", messages)
