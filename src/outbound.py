@@ -180,7 +180,11 @@ class RMQModem:
 
             except (helpers.NotE164Number, helpers.InvalidNumber) as error:
                 logging.error(error)
-                ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+
+                try:
+                    ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+                except Exception as error:
+                    logging.error(error)
             
             except Exception as error:
                 logging.exception(error)
@@ -201,8 +205,11 @@ class RMQModem:
                                 logging.error("MATCH_OPERATOR set but failed to match MSISDN.\n"
                                 "Modem is [%s] but request is [%s] MSISDN", 
                                         self.modem_operator_code, MSISDN_oc)
-                                self.outgoing_channel.basic_reject(
-                                        delivery_tag=method.delivery_tag, requeue=False)
+                                try:
+                                    self.outgoing_channel.basic_reject(
+                                            delivery_tag=method.delivery_tag, requeue=False)
+                                except Exception as error:
+                                    logging.error(error)
 
                                 return
 
@@ -221,12 +228,19 @@ class RMQModem:
 
                 except Exception as error:
                     logging.exception(error)
-                    ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+
+                    try:
+                        ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+                    except Exception as error:
+                        logging.error(error)
 
                 else:
                     # self.outgoing_channel.basic_ack(delivery_tag=method.delivery_tag)
-                    ch.basic_ack(delivery_tag=method.delivery_tag)
                     logging.info("sent sms successfully!")
+                    try:
+                        ch.basic_ack(delivery_tag=method.delivery_tag)
+                    except Exception as error:
+                        logging.error(error)
 
 
 def modem_ready_handler(modem: Modem) -> None:

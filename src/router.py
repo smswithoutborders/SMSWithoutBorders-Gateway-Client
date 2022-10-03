@@ -11,7 +11,7 @@ class Router:
         def __init__(self):
             super().__init__()
 
-    def __init__(self, routing_urls: [], text: str, MSISDN: str) -> None:
+    def __init__(self, text: str, MSISDN: str, routing_urls: list=None, registration_urls: list=None) -> None:
         """
         """
         self.text = text
@@ -19,6 +19,39 @@ class Router:
         self.MSISDN = MSISDN
 
         self.routing_urls = routing_urls
+        self.registration_urls = registration_urls
+
+    def register(self) -> bool:
+        """
+        """
+        try:
+            my_fault_cannot_route = False # keep message if True
+            for i in range(len(self.registration_urls)):
+                url = self.registration_urls[i]
+                logging.debug("registration_urls to: %s", url)
+
+                try:
+                    json_body = {"IMSI":self.text, "MSISDN":self.MSISDN}
+                    self.route_online(url=url, data=json_body)
+
+                except Router.NoInternetConnection as error:
+                    logging.warn( 
+                            "** no internet connection... returning message to queue")
+                    my_fault_cannot_route = True
+                    break
+
+                except Exception as error:
+                    logging.exception(error)
+
+        except Exception as error:
+            logging.exception(error)
+            raise error
+
+        else:
+            if my_fault_cannot_route:
+                return False
+
+        return True
 
     def route(self) -> bool:
         """

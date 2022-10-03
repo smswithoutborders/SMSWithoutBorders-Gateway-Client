@@ -9,6 +9,29 @@ from messaging import Messaging
 dbus_name = 'org.freedesktop.ModemManager1'
 modem_dbus_props_iface = 'org.freedesktop.DBus.Properties'
 
+class SIM:
+    sim_properties_iface = "org.freedesktop.ModemManager1.Sim"
+
+    def __init__(self, modem, sim_path, *args) -> None:
+        """
+        """
+        self.modem = modem
+
+        self.sim_path = sim_path 
+
+        self.dbus_sim = self.modem.bus.get_object(dbus_name, self.sim_path, True)
+
+        self.props = dbus.Interface(self.dbus_sim, 
+                dbus_interface=modem_dbus_props_iface)
+
+    def get_property(self, property_name):
+        """
+        """
+        try:
+            return self.props.Get(self.sim_properties_iface, property_name)
+        except Exception as error:
+            raise error
+
 class Modem:
     """
     """
@@ -64,6 +87,20 @@ class Modem:
 
         self.messaging = Messaging(modem=self)
 
+    def get_sim(self) -> SIM:
+        """
+        """
+        try:
+            sim_path = self.get_modem_property("Sim")
+
+        except Exception as error:
+            raise error
+
+        else:
+            if sim_path != "":
+                return SIM(modem=self, sim_path=sim_path)
+
+        return None
     
     def __modem_property_changed__(self, *args, **kwargs) -> None:
         """
@@ -109,6 +146,14 @@ class Modem:
         """
         try:
             return self.props.Get(self.modem_3gpp_interface, property_name)
+        except Exception as error:
+            raise error
+
+    def get_modem_property(self, property_name):
+        """
+        """
+        try:
+            return self.props.Get(self.modem_modem_interface, property_name)
         except Exception as error:
             raise error
 
