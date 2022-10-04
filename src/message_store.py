@@ -35,6 +35,7 @@ class MessageStore:
             number text NOT NULL, 
             timestamp text NOT NULL,
             type text NOT NULL,
+            status text NULL,
             date DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL) ''')
 
             database_conn.commit()
@@ -43,7 +44,8 @@ class MessageStore:
             raise error
 
 
-    def store(self, sim_imsi: str, text: str, number: str, timestamp: str, _type: str) -> int:
+    def store(self, sim_imsi: str, text: str, number: str, 
+            timestamp: str, _type: str, status: str = None) -> int:
         """
         """
         database_conn = database.connect(self.message_store_file)
@@ -51,15 +53,51 @@ class MessageStore:
 
         try:
             cur.execute(
-                    """INSERT INTO messages (sim_imsi, text, number, timestamp, type) 
-                    VALUES (?,?,?,?,?)""", 
-                    (sim_imsi, text, number, timestamp, _type))
+                    """INSERT INTO messages (sim_imsi, text, number, timestamp, type, status) 
+                    VALUES (?,?,?,?,?,?)""", 
+                    (sim_imsi, text, number, timestamp, _type, status))
 
             database_conn.commit()
         except Exception as error:
             raise error
         else:
             return cur.lastrowid
+
+
+    def update(self, message_id: str, row: str, value: str) -> int:
+        """
+        """
+        database_conn = database.connect(self.message_store_file)
+        cur = database_conn.cursor()
+
+        try:
+            query = "UPDATE messages SET %s =:value WHERE id =:message_id" % (row)
+            cur.execute(query, {"value":value, "message_id":message_id})
+
+            database_conn.commit()
+        except Exception as error:
+            raise error
+        else:
+            return cur.lastrowid
+
+
+    def delete(self, message_id: str) -> int:
+        """
+        """
+        database_conn = database.connect(self.message_store_file)
+        cur = database_conn.cursor()
+
+        try:
+            cur.execute(
+                    """DELETE FROM messages WHERE id=:message_id""", 
+                    {"message_id":message_id})
+
+            database_conn.commit()
+        except Exception as error:
+            raise error
+        else:
+            return cur.rowcount
+
 
     def load(self, sim_imsi: str, _type=None) -> list:
         """
@@ -77,7 +115,8 @@ class MessageStore:
                         number,
                         timestamp,
                         date, 
-                        type
+                        type,
+                        status,
                         FROM messages WHERE sim_imsi=:sim_imsi and type=:type''',
                         {"sim_imsi":sim_imsi, "type":_type})
             else:
@@ -88,7 +127,8 @@ class MessageStore:
                         number,
                         timestamp,
                         date,
-                        type
+                        type,
+                        status,
                         FROM messages WHERE sim_imsi=:sim_imsi''',
                         {"sim_imsi":sim_imsi})
         except Exception as error:

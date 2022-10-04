@@ -11,10 +11,57 @@ TODO
 """
 
 import logging
+import time
 from modem_manager import ModemManager
 from message_store import MessageStore
 
 logging.basicConfig(level='DEBUG')
+
+def send_sms(modem_path, text, number) -> None:
+    """
+    """
+    try:
+        logging.info("Sending new sms message...")
+
+        modem = modem_manager.get_modem(modem_path)
+
+        timestamp = time.time()
+
+        message_id = MessageStore().store(
+                modem.get_sim().get_property("Imsi"), text, number, 
+                timestamp, 'outgoing', 'sending')
+
+        modem.messaging.send_sms(
+                text=text,
+                number=number)
+
+    except Exception as error:
+        logging.exception(error)
+
+        try: 
+            MessageStore().update(message_id, "status", "failed")
+
+        except Exception as error:
+            logging.exception(error)
+            raise error
+
+        raise error
+
+    else:
+        MessageStore().update(message_id, "status", "sent")
+        logging.info("sent sms successfully!")
+
+
+def delete_sms(message_id) -> int:
+    """
+    """
+    try:
+        row_count = MessageStore().delete(message_id)
+    except Exception as error:
+        raise error
+    
+    return row_count
+
 
 def get_messages(modem_path, fetch_type=None) -> []:
     """
