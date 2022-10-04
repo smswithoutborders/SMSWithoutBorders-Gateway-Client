@@ -41,6 +41,7 @@ def api_get_modems():
 def api_send_sms(index):
     """
     """
+    index = index.replace(".", "/")
     try:
         data = json.loads(request.data, strict=False)
         text = data['text']
@@ -60,9 +61,10 @@ def api_send_sms(index):
     return "", 200
 
 @app.route('/modems/<index>/sms', methods=['GET'])
-def api_fetch_incoming_sms():
+def api_fetch_incoming_sms(index):
     """
     """
+    index = index.replace(".", "/")
     messages = []
     try:
         messages = get_messages(index, 'incoming')
@@ -76,6 +78,7 @@ def api_fetch_incoming_sms():
 def api_delete_sms(index, message_id):
     """
     """
+    index = index.replace(".", "/")
     try:
         row_count = delete_sms(message_id)
     except Exception as error:
@@ -170,7 +173,7 @@ def get_modems() -> list:
     modems = []
     for modem_path, modem in list_modems.items():
         ret_modem = {}
-        ret_modem["index"] = str(modem_path)
+        ret_modem["index"] = str(modem_path).replace("/", ".")
         ret_modem["imei"] = str(modem.get_3gpp_property("Imei"))
         ret_modem["operator_code"] = str(modem.get_3gpp_property("OperatorCode"))
         ret_modem["operator_name"] = str(modem.get_3gpp_property("OperatorName"))
