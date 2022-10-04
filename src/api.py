@@ -17,6 +17,66 @@ from message_store import MessageStore
 
 logging.basicConfig(level='DEBUG')
 
+@app.route('/modems', methods=['GET'])
+def api_get_modems():
+    """
+    """
+    modems = []
+    try:
+        modems = get_modems()
+    except Exception as error:
+        logging.exception(error)
+        return '', 500
+
+    return jsonify(modems), 200
+
+@app.route('/modems/<index>/sms', methods=['POST'])
+def api_send_sms(index):
+    """
+    """
+    try:
+        data = json.loads(request.data, strict=False)
+        text = data['text']
+        number = data['number']
+
+    except Exception as error:
+        logging.exception(error)
+        return 'bad json', 400
+
+    else:
+        try:
+            send_sms(index, text, number)
+        except Exception as error:
+            logging.exception(error)
+            return '', 500
+
+    return "", 200
+
+@app.route('/modems/<index>/sms', methods=['GET'])
+def api_fetch_incoming_sms():
+    """
+    """
+    messages = []
+    try:
+        messages = get_messages(index, 'incoming')
+    except Exception as error:
+        logging.exception(error)
+        return '', 500
+
+    return jsonify(messages), 200
+
+@app.route('/modems/<index>/sms/<message_id>', methods=['DELETE'])
+def api_delete_sms(index, message_id):
+    """
+    """
+    try:
+        row_count = delete_sms(message_id)
+    except Exception as error:
+        logging.exception(error)
+        return '', 500
+
+    return '', 200
+
 def send_sms(modem_path, text, number) -> None:
     """
     """
