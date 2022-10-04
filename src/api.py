@@ -10,12 +10,19 @@ TODO
     - number (incoming or receipient)
 """
 
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
 import logging
 import time
+import json
+
 from modem_manager import ModemManager
 from message_store import MessageStore
 
 logging.basicConfig(level='DEBUG')
+
+app = Flask(__name__)
 
 @app.route('/modems', methods=['GET'])
 def api_get_modems():
@@ -178,13 +185,8 @@ def run(mm: ModemManager) -> None:
     global modem_manager
     modem_manager = mm
 
-    """
-    Test scripts here
-    """
-    modems = get_modems()
-    logging.debug("List of modems: %s", modems)
+    host = "localhost"
+    port = "12123"
+    debug = True
 
-    for modem in modems:
-        messages = get_messages(modem["index"])
-
-        logging.debug("List of messages: %s", messages)
+    app.run(host=host, port=port, debug=debug, threaded=True )
