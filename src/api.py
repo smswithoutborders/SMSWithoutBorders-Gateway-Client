@@ -13,6 +13,7 @@ TODO
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+import os
 import logging
 import time
 import json
@@ -23,6 +24,24 @@ from message_store import MessageStore
 logging.basicConfig(level='DEBUG')
 
 app = Flask(__name__)
+
+@app.route('/system/state', methods=['GET'])
+def get_service_state():
+    """
+    """
+    try:
+        inbound_status = 'active' if os.system('systemctl is-active --quiet swob_inbound.service') == 0 else 'inactive'
+        outbound_status = 'active' if os.system('systemctl is-active --quiet swob_outbound.service') == 0 else 'inactive'
+
+        return jsonify({
+            "inbound":inbound_status,
+            "outbound":outbound_status})
+
+    except Exception as error:
+        logging.exception(error)
+        return '', 500
+
+    return jsonify(modems), 200
 
 @app.route('/modems', methods=['GET'])
 def api_get_modems():
