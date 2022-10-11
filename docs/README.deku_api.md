@@ -1,15 +1,5 @@
 # Deku API
 
-#### Running API
-To have Deku API running (assuming entire project has been cloned already)
-```bash
-git submodule update --init --recursive
-. venv/bin/activate
-python3 -m venv venv
-pip3 install -r requirements.txt
-python3 src/deku_api.py
-```
-
 #### Endpoints
 
 ##### Fetch state of cluster
