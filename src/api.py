@@ -17,6 +17,7 @@ import os
 import logging
 import time
 import json
+import configparser
 
 from modem_manager import ModemManager
 from message_store import MessageStore
@@ -24,6 +25,41 @@ from message_store import MessageStore
 logging.basicConfig(level='DEBUG')
 
 app = Flask(__name__)
+
+@app.route('/system/configs/sections/<section_name>', methods=['POST'])
+def update_configs(section_name: str):
+    """
+    """
+    try:
+        data = json.loads(request.data, strict=False)
+    except Exception as error:
+        logging.exception(error)
+        return 'bad json', 400
+
+    else:
+        try:
+            config_filepath = os.path.join(os.path.dirname(__file__), '../.configs', 'config.ini')
+            configs = configparser.ConfigParser(interpolation=None)
+            configs.read(config_filepath)
+
+            if not section_name in configs:
+                return 'invalid section name', 400
+
+            else:
+                for key, _value in data.items():
+                    configs[section_name][key] = _value
+
+                with open(config_filepath, 'w') as configfile:
+                    configs.write(configfile)
+
+                    return '', 200
+
+                return '', 500
+        
+        except Exception as error:
+            logging.exception(error)
+            return '', 500
+
 
 @app.route('/system/state', methods=['GET'])
 def get_service_state():
