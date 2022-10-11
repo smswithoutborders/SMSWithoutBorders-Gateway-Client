@@ -2,14 +2,56 @@
 
 #### Endpoints
 
+##### Update configs
+> Protocol: POST \
+> Url: /system/configs/sections/<section_name> \
+> Body Type: JSON \
+> Body Content - 
+```json
+{
+	"[key]":"value"
+}
+```
+> Returns: -
+```curl
+success 200
+failed 4xx
+error 5xx
+```
+*Example*
+```bash
+curl -X POST -H "Content-Type: application/json" \
+-d '{"FRIENDLY_NAME":"Afkanerd"}' localhost:5000/system/configs/sections/OPENAPI
+```
+
+##### Fetch configs
+> Protocol: GET \
+> Url: /system/configs \
+> Returns: -
+```json
+{
+	"[section]": {
+		"[key]": "value"
+	}
+}
+```
+```bash
+failed 4xx
+error 5xx
+```
+*Example*
+```bash
+curl localhost:5000/system/configs
+```
+
 ##### Fetch state of cluster
 > Protocol: GET \
 > Url: /system/state \
 > Returns: -
-```python
+```json
 {
-	"inbound":"active"|"inactive",
-	"outbound":"active"|"inactive"
+	"inbound":"active|inactive",
+	"outbound":"active|inactive"
 }
 ```
 ```bash
