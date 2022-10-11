@@ -17,7 +17,10 @@ python3 src/deku_api.py
 > Url: /system/state \
 > Returns: -
 ```python
-active or inactive, 200
+{
+	"inbound":"active"|"inactive",
+	"outbound":"active"|"inactive"
+}
 ```
 ```bash
 failed 4xx
