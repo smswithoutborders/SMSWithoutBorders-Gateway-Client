@@ -26,6 +26,29 @@ logging.basicConfig(level='DEBUG')
 
 app = Flask(__name__)
 
+@app.route('/system/configs', methods=['GET'])
+def fetch_configs():
+    """
+    """
+    try:
+        config_filepath = os.path.join(os.path.dirname(__file__), '../.configs', 'config.ini')
+        configs = configparser.ConfigParser(interpolation=None)
+        configs.read(config_filepath)
+
+        configs_values = {}
+        for sections in configs:
+            if not sections in configs_values:
+                configs_values[sections] = {}
+
+            for key, value in configs[sections].items():
+                configs_values[sections][key] = value
+
+        return jsonify(configs_values), 200
+    
+    except Exception as error:
+        logging.exception(error)
+        return '', 500
+
 @app.route('/system/configs/sections/<section_name>', methods=['POST'])
 def update_configs(section_name: str):
     """
@@ -54,7 +77,7 @@ def update_configs(section_name: str):
 
                     return '', 200
 
-                return '', 500
+                return 'error writing config file', 500
         
         except Exception as error:
             logging.exception(error)
