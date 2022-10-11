@@ -116,7 +116,7 @@ class MessageStore:
                         timestamp,
                         date, 
                         type,
-                        status,
+                        status
                         FROM messages WHERE sim_imsi=:sim_imsi and type=:type''',
                         {"sim_imsi":sim_imsi, "type":_type})
             else:
@@ -128,7 +128,7 @@ class MessageStore:
                         timestamp,
                         date,
                         type,
-                        status,
+                        status
                         FROM messages WHERE sim_imsi=:sim_imsi''',
                         {"sim_imsi":sim_imsi})
         except Exception as error:
