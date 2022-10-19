@@ -94,7 +94,7 @@ def restart_services_state():
 
         return jsonify({
             "inbound":inbound_status,
-            "outbound":outbound_status})
+            "outbound":outbound_status}),200
 
     except Exception as error:
         logging.exception(error)
@@ -103,7 +103,6 @@ def restart_services_state():
         if inbound_status != 0 or outbound_status != 0:
             return '', 500
 
-    return jsonify(modems), 200
 
 @app.route('/system/state', methods=['GET'])
 def get_service_state():
@@ -121,7 +120,6 @@ def get_service_state():
         logging.exception(error)
         return '', 500
 
-    return jsonify(modems), 200
 
 @app.route('/modems', methods=['GET'])
 def api_get_modems():
