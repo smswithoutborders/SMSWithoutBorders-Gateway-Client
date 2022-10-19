@@ -44,6 +44,20 @@ error 5xx
 curl localhost:5000/system/configs
 ```
 
+##### Restart state of cluster
+> Protocol: POST \
+> Url: /system/state/restart \
+> Returns: -
+```bash
+success 200
+failed 4xx
+error 5xx
+```
+*Example*
+```bash
+curl -X POST localhost:5000/system/state/restart
+```
+
 ##### Fetch state of cluster
 > Protocol: GET \
 > Url: /system/state \
