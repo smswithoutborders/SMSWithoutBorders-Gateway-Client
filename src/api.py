@@ -84,6 +84,27 @@ def update_configs(section_name: str):
             return '', 500
 
 
+@app.route('/system/state/restart', methods=['POST'])
+def restart_services_state():
+    """
+    """
+    try:
+        inbound_status = os.system('systemctl restart swob_inbound.service')
+        outbound_status = os.system('systemctl restart swob_outbound.service') 
+
+        return jsonify({
+            "inbound":inbound_status,
+            "outbound":outbound_status})
+
+    except Exception as error:
+        logging.exception(error)
+        return '', 500
+    else:
+        if inbound_status != 0 or outbound_status != 0:
+            return '', 500
+
+    return jsonify(modems), 200
+
 @app.route('/system/state', methods=['GET'])
 def get_service_state():
     """
