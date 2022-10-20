@@ -10,7 +10,9 @@ TODO
     - number (incoming or receipient)
 """
 
-from flask import Flask, request, jsonify
+from threading import Thread
+
+from flask import Flask, request, jsonify, after_this_request
 from flask_cors import CORS
 
 import os
@@ -84,25 +86,31 @@ def update_configs(section_name: str):
             return '', 500
 
 
-@app.route('/system/state/restart', methods=['POST'])
-def restart_services_state():
+@app.route('/system/state/restart/services/<string:service>', methods=['POST'])
+def restart_services_state(service: str):
     """
     """
     try:
-        inbound_status = os.system('systemctl restart swob_inbound.service')
-        outbound_status = os.system('systemctl restart swob_outbound.service') 
+        def trigger_restart(service: str) -> None:
+            """
+            """
+            os.system('systemctl restart swob_%s.service' % service) 
 
-        return jsonify({
-            "inbound":inbound_status,
-            "outbound":outbound_status}),200
+            return None
+
+        @after_this_request
+        def restart(response):
+            """
+            """
+            thread = Thread(target=trigger_restart, kwargs={'service': service})
+            thread.start()
+            return response
+
+        return "", 202
 
     except Exception as error:
         logging.exception(error)
         return '', 500
-    else:
-        if inbound_status != 0 or outbound_status != 0:
-            return '', 500
-
 
 @app.route('/system/state', methods=['GET'])
 def get_service_state():
