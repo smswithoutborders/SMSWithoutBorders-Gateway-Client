@@ -25,6 +25,7 @@ from message_store import MessageStore
 logging.basicConfig(level='DEBUG')
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/system/configs', methods=['GET'])
 def fetch_configs():
@@ -72,12 +73,15 @@ def update_configs(section_name: str):
                 for key, _value in data.items():
                     configs[section_name][key] = _value
 
-                with open(config_filepath, 'w') as configfile:
-                    configs.write(configfile)
+                try:
+                    with open(config_filepath, 'w') as configfile:
+                        configs.write(configfile)
 
-                    return '', 200
+                        return '', 200
 
-                return 'error writing config file', 500
+                except Exception as error:
+                    logging.exception(error)
+                    return 'error writing config file', 500
         
         except Exception as error:
             logging.exception(error)
@@ -230,7 +234,7 @@ def delete_sms(message_id) -> int:
     return row_count
 
 
-def get_messages(modem_path, fetch_type=None) -> []:
+def get_messages(modem_path, fetch_type=None) -> list:
     """
     Cannot talk directly with the modem because messages get removed from the 
     modem's message stack. 
