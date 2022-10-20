@@ -99,7 +99,12 @@ if __name__ == "__main__":
         mm_daemon_thread = threading.Thread(target=modem_manager.daemon, daemon=True)
         mm_daemon_thread.start()
 
-        api.run(modem_manager)
+        try:
+            api.run(modem_manager)
+            
+        except OSError as error:
+            if str(error) == "[Errno 98] Address already in use":
+                logging.error(error)
 
         # todo: remove this
         mm_daemon_thread.join()
