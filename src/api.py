@@ -27,15 +27,15 @@ logging.basicConfig(level='DEBUG')
 app = Flask(__name__)
 CORS(app)
 
+config_filepath = os.path.join(os.path.dirname(__file__), '../.configs', 'config.ini')
+configs = configparser.ConfigParser(interpolation=None)
+configs.read(config_filepath)
+
 @app.route('/system/configs', methods=['GET'])
 def fetch_configs():
     """
     """
     try:
-        config_filepath = os.path.join(os.path.dirname(__file__), '../.configs', 'config.ini')
-        configs = configparser.ConfigParser(interpolation=None)
-        configs.read(config_filepath)
-
         configs_values = {}
         for sections in configs:
             if not sections in configs_values:
@@ -62,10 +62,6 @@ def update_configs(section_name: str):
 
     else:
         try:
-            config_filepath = os.path.join(os.path.dirname(__file__), '../.configs', 'config.ini')
-            configs = configparser.ConfigParser(interpolation=None)
-            configs.read(config_filepath)
-
             if not section_name in configs:
                 return 'invalid section name', 400
 
@@ -289,8 +285,8 @@ def run(mm: ModemManager) -> None:
     global modem_manager
     modem_manager = mm
 
-    host = "localhost"
-    port = "12123"
+    host = configs["API"]["host"]
+    port = configs["API"]["port"]
     debug = True
 
     app.run(host=host, port=port, debug=debug, threaded=True )
