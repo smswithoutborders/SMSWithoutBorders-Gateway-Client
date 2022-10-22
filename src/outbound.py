@@ -219,9 +219,16 @@ class RMQModem:
                 try:
                     """
                     """
+                    # TODO:
                     logging.info("Sending new sms message...")
 
                     # TODO; this is blocking - careful
+
+                    callback_url = None if not 'callback_url' in json_body else json_body['callback_url']
+
+                    if callback_url:
+                        callback_url = callback_url.split(',')
+
                     self.modem.messaging.send_sms(
                             text=text,
                             number=number)

@@ -64,8 +64,9 @@ class Messaging:
                 self.broadcast_new_message(message)
 
             elif message.__is_receiving_message__():
-                self.__sms__[message.message_path] = message
-                logging.debug("added new sms: %s", message.message_path)
+                if not message.message_path in self.__sms__:
+                    self.__sms__[message.message_path] = message
+                    logging.debug("added part sms (pending): %s", str(message.message_path))
         except Exception as error:
             raise error
 
@@ -100,6 +101,9 @@ class Messaging:
         """
         """
         logging.debug("checking for available messages")
+
+        self.clear_stack()
+
         try:
             available_messages = self.messaging.List()
 
@@ -122,19 +126,18 @@ class Messaging:
     def broadcast_new_message(self, message: SMS) -> None:
         """
         """
-        for message_handler in self.__new_received_message_handlers__:
+        modem_imsi = self.modem.get_sim().get_property("Imsi")
 
+        for message_handler in self.__new_received_message_handlers__:
             message_handler_thread = threading.Thread(target=message_handler,
-                    args=(message,), daemon=True)
+                    args=(message,modem_imsi,), daemon=True)
 
             message_handler_thread.start()
-
 
     def add_new_message_handler(self, new_received_message_handler) -> None:
         """
         """
         self.__new_received_message_handlers__.append(new_received_message_handler)
-
 
     def __create_sms__(self, 
             text: str, 
@@ -211,7 +214,7 @@ class Messaging:
             for message_path in available_messages:
                 message = SMS(message_path, self)
 
-                if (message.is_sent_message() or message.is_delivery_report_message()):
+                if (message.__is_receiving_message__() or message.is_delivery_report_message()):
                     self.__delete_sms__(message_path)
         except Exception as error:
             raise error

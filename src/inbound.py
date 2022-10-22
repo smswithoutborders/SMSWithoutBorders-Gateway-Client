@@ -14,10 +14,23 @@ from modem import Modem
 
 from router import Router
 
-def new_message_handler(message) -> None:
+from message_store import MessageStore
+
+def new_message_handler(message, sim_imsi) -> None:
     """
     """
     text, number, timestamp = message.new_received_message()
+
+    try:
+        message_id = MessageStore().store(
+                sim_imsi=sim_imsi, text=text, 
+                number=number, timestamp=timestamp, _type='incoming')
+
+    except Exception as error:
+        logging.exception(error)
+    else:
+        logging.debug("Succesfully stored message: %d", message_id)
+
     logging.debug("\n\ttext:%s\n\tnumber:%s\n\ttimestamp:%s", text, number, timestamp)
 
     registration_requested = False
@@ -301,7 +314,9 @@ def initiate_msisdn_check_sessions(modem: Modem) -> None:
             logging.exception(error)
 
         else:
-            sim_imsi_file = os.path.join(os.path.dirname(__file__), '../records', f'{sim_imsi}.txt')
+            sim_imsi_file = os.path.join(
+                    os.path.dirname(__file__), '../records', f'{sim_imsi}.txt')
+
             logging.debug("IMSI file: %s", sim_imsi_file)
 
             if not os.path.isfile(sim_imsi_file) or os.path.getsize(sim_imsi_file) < 1:
@@ -324,7 +339,7 @@ def modem_connected_handler(modem: Modem) -> None:
         except Exception as error:
             logging.exception(error)
 
-    initiate_ping_sessions(modem)
+    # initiate_ping_sessions(modem)
     initiate_msisdn_check_sessions(modem)
 
     modem.messaging.add_new_message_handler(new_message_handler)
@@ -343,4 +358,8 @@ def Main(modem_manager:ModemManager = None, *args, **kwargs)->None:
     global configs
     configs = kwargs['configs']
 
+    if not MessageStore.has_store():
+        MessageStore.create_store()
+
     modem_manager.add_modem_connected_handler(modem_connected_handler)
+    logging.debug("Added modem connection handler...")
