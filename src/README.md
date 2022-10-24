@@ -106,7 +106,7 @@ journalctl -af -u swob_outbound.service
 ```
 
 ### Sending out SMS messages Using OpenAPI
-<p>With <b>[OpenAPI](https://smswithoutborders-openapi.readthedocs.io/en/latest/overview.html)</b>, you can send out single and bulk SMS messages through the Gateway Client. After the gateway client as a system service or manually, you are good to start sending out SMS messages.</p>
+With [OpenAPI](https://smswithoutborders-openapi.readthedocs.io/en/latest/overview.html), you can send out single and bulk SMS messages through the Gateway Client. After the gateway client as a system service or manually, you are good to start sending out SMS messages.
 
 
 ### Setting up on Raspberry pi (tested on 4B)
