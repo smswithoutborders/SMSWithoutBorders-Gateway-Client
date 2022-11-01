@@ -91,6 +91,10 @@ def restart_services_state(service: str):
     """
     """
     try:
+        if service.lower() not in ["inbound", "outbound"]:
+            logging.error("Invalid service name `%s`" % service)
+            return "invalid service name", 400
+            
         def trigger_restart(service: str) -> None:
             """
             """
