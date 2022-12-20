@@ -7,6 +7,7 @@ import threading
 import json
 import time
 import requests
+from requests.exceptions import HTTPError
 
 from modem_manager import ModemManager
 
@@ -56,26 +57,32 @@ def new_message_handler(message, sim_imsi) -> None:
             logging.debug("routing for publishing...")
             router = Router(text=text, MSISDN=number, routing_urls=routing_urls)
 
-        try:
-            if not registration_requested: 
-                while message.messaging.modem.connected and not router.route():
-                    time.sleep(2)
-            else:
-                while message.messaging.modem.connected and not router.register():
-                    time.sleep(2)
-
-        except Exception as error:
-            logging.exception(error)
-
+    try:
+        if not registration_requested: 
+            while message.messaging.modem.connected and not router.route():
+                time.sleep(2)
         else:
-            try:
-                message.messaging.messaging.Delete(message.message_path)
-                logging.debug("deleted message: %s", message.message_path)
-            except Exception as error:
-                logging.exception(error)
-        
+            while message.messaging.modem.connected and not router.register():
+                time.sleep(2)
+    except HTTPError as error:
+        logging.exception(error)
+        code = error.response.status_code
+
+        if code in [400, 401, 403]:
+            message.messaging.messaging.Delete(message.message_path)
+            logging.debug("deleted message: %s", message.message_path)
     except Exception as error:
         logging.exception(error)
+
+    else:
+        try:
+            message.messaging.messaging.Delete(message.message_path)
+            logging.debug("deleted message: %s", message.message_path)
+        except Exception as error:
+            logging.exception(error)
+    
+except Exception as error:
+    logging.exception(error)
 
 
 def modem_alive_ping(modem: Modem, 
