@@ -11,7 +11,7 @@
 
 ```json
 {
-  "[key]": "value"
+	"[key]": "value"
 }
 ```
 
@@ -27,7 +27,7 @@ _Example_
 
 ```bash
 curl -X POST -H "Content-Type: application/json" \
--d '{"FRIENDLY_NAME":"Afkanerd"}' localhost:5000/system/configs/sections/OPENAPI
+-d '{"FRIENDLY_NAME":"Afkanerd"}' localhost:5000/system/configs/sections/DEKU
 ```
 
 ##### Fetch configs
@@ -38,9 +38,9 @@ curl -X POST -H "Content-Type: application/json" \
 
 ```json
 {
-  "[section]": {
-    "[key]": "value"
-  }
+	"[section]": {
+		"[key]": "value"
+	}
 }
 ```
 
@@ -81,8 +81,8 @@ curl -X POST localhost:5000/system/state/restart/services/inbound
 
 ```json
 {
-  "inbound": "active|inactive",
-  "outbound": "active|inactive"
+	"inbound": "active|inactive",
+	"outbound": "active|inactive"
 }
 ```
 
