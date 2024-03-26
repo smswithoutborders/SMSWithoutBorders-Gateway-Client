@@ -17,8 +17,8 @@ itsdangerous==2.0.1
 Jinja2==3.0.3
 MarkupSafe==2.0.1
 packaging==21.3
-phonenumbers==8.12.41
-pika==1.2.0
+phonenumbers==8.13.7
+pika==1.3.1
 pika-stubs==0.1.3
 pycairo==1.21.0
 Pygments==2.11.2
