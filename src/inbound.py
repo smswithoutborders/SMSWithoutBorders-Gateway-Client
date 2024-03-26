@@ -304,38 +304,6 @@ def request_MSISDN(sim_imsi: str, sim_imsi_file: str, modem: Modem) -> None:
     logging.info("%s stopped making request for MSISDN", sim_imsi)
 
 
-def initiate_msisdn_check_sessions(modem: Modem) -> None:
-    """
-    - Requires the IMSI.txt
-    """
-    logging.debug("Initiating MSISDN session checks")
-    try:
-        sim = modem.get_sim()
-    except Exception as error:
-        logging.exception(error)
-    else:
-        try:
-            sim_imsi = sim.get_property("Imsi")
-
-        except Exception as error:
-            logging.exception(error)
-
-        else:
-            sim_imsi_file = os.path.join(
-                    os.path.dirname(__file__), '../records', f'{sim_imsi}.txt')
-
-            logging.debug("IMSI file: %s", sim_imsi_file)
-
-            if not os.path.isfile(sim_imsi_file) or os.path.getsize(sim_imsi_file) < 1:
-                logging.warning("%s not found! should make request", sim_imsi_file)
-                request_msisdn_thread = threading.Thread(target=request_MSISDN, 
-                        args=(sim_imsi, sim_imsi_file, modem, ), daemon=True)
-
-                request_msisdn_thread.start()
-            else:
-                logging.info("data file found for %s", sim_imsi_file)
-
-
 def modem_connected_handler(modem: Modem) -> None:
     """
     """
@@ -346,8 +314,8 @@ def modem_connected_handler(modem: Modem) -> None:
         except Exception as error:
             logging.exception(error)
 
-    # initiate_ping_sessions(modem)
-    initiate_msisdn_check_sessions(modem)
+
+    print('after intiating line')
 
     modem.messaging.add_new_message_handler(new_message_handler)
 
